@@ -4,6 +4,8 @@ package com.zoophy.database;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.springframework.stereotype.Repository;
+
 import com.zoophy.genbank.GenBankRecord;
 import com.zoophy.genbank.Gene;
 import com.zoophy.genbank.Host;
@@ -15,6 +17,7 @@ import com.zoophy.genbank.Sequence;
  * Responsible for retreiving data from the SQL database.
  * @author devdemetri
  */
+@Repository("ZoophyDAO")
 public class ZoophyDAO {
 	
 	public GenBankRecord retreiveRecord(String accession) {

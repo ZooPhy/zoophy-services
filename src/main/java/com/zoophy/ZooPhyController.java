@@ -1,4 +1,4 @@
-package com.zoophy.main;
+package com.zoophy;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,7 +14,7 @@ public class ZooPhyController {
 	@Autowired
 	ZoophyDAO dao;
     
-    @RequestMapping("/record/")
+    @RequestMapping("/record")
     public GenBankRecord getRecord(@RequestParam(value="accession") String accession) {
     	GenBankRecord gbr = dao.retreiveRecord(accession);
     	return gbr;

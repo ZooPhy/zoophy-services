@@ -9,14 +9,14 @@ public class Sequence {
 		
 	private String accession;
 	private String definition;
-	private Integer tax_id;
+	private Integer taxId;
 	private String organism;
 	private String isolate;
 	private String strain;
-	private String collection_date; 
+	private String collectionDate; 
 	private String comment;
 	private String sequence;
-	private Integer segment_length;
+	private Integer segmentLength;
 	private Publication pub;
 	
 	public String getAccession() {
@@ -36,11 +36,11 @@ public class Sequence {
 	}
 	
 	public Integer getTax_id() {
-		return tax_id;
+		return taxId;
 	}
 	
 	public void setTax_id(Integer tax_id) {
-		this.tax_id = tax_id;
+		this.taxId = tax_id;
 	}
 	
 	public String getOrganism() {
@@ -67,11 +67,11 @@ public class Sequence {
 	}
 	
 	public String getCollection_date() {
-		return collection_date;
+		return collectionDate;
 	}
 	
 	public void setCollection_date(String collection_date) {
-		this.collection_date = collection_date;
+		this.collectionDate = collection_date;
 	}
 	
 	public String getComment() {
@@ -91,11 +91,11 @@ public class Sequence {
 	}
 	
 	public Integer getSegment_length() {
-		return segment_length;
+		return segmentLength;
 	}
 	
 	public void setSegment_length(Integer segment_length) {
-		this.segment_length = segment_length;
+		this.segmentLength = segment_length;
 	}
 	
 	public Publication getPub() {

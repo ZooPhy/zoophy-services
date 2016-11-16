@@ -1,4 +1,4 @@
-package com.zoophy.main;
+package com.zoophy;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
