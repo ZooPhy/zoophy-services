@@ -1,7 +1,7 @@
 package com.zoophy.genbank;
 
 /**
- * 
+ * Pubmed publication
  * @author devdemetri
  *
  */
@@ -13,6 +13,10 @@ public class Publication {
 	private String authors;
 	private String title;
 	private String journal;
+	
+	public Publication() {
+		
+	}
 	
 	public Integer getPubId() {
 		return pubId;

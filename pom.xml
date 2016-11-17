@@ -5,7 +5,7 @@
 
     <groupId>org.zoophy</groupId>
     <artifactId>zoophy-rest-service</artifactId>
-    <version>0.1.0</version>
+    <version>0.0.1</version>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -28,6 +28,16 @@
             <artifactId>json-path</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+		    <groupId>org.postgresql</groupId>
+		    <artifactId>postgresql</artifactId>
+		    <version>9.4.1212.jre7</version><!--$NO-MVN-MAN-VER$-->
+		</dependency>
+        <dependency>
+			<groupId>org.apache.lucene</groupId>
+			<artifactId>lucene-core</artifactId>
+			<version>3.0.1</version>
+	    </dependency>
     </dependencies>
 
     <properties>

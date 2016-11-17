@@ -1,10 +1,14 @@
 package com.zoophy.genbank;
 
 import java.util.List;
+
+import org.apache.lucene.document.Document;
+
+import java.sql.ResultSet;
 import java.util.LinkedList;
 
 /**
- * Main object for GenBank records. This is a truncated version that has everything needed for the webservices.
+ * Main object for representing GenBank records. This is a truncated version that has everything needed for these services.
  * @author devdemetri
  */
 public class GenBankRecord {
@@ -15,8 +19,24 @@ public class GenBankRecord {
 	private Host host; 
 	private Location geonameLocation;
 	
-	public GenBankRecord() {
-		genes = new LinkedList<Gene>();
+	public GenBankRecord(Document luceneDoc) throws GenBankRecordException {
+		try {
+			genes = new LinkedList<Gene>();
+			
+		}
+		catch (Exception e) {
+			throw new GenBankRecordException("ERROR converting Lucene Document to GenBankRecord: "+e.getMessage());
+		}
+	}
+	
+	public GenBankRecord(ResultSet rs) throws GenBankRecordException {
+		try {
+			genes = new LinkedList<Gene>();
+			
+		}
+		catch (Exception e) {
+			throw new GenBankRecordException("ERROR converting ResultSet to GenBankRecord: "+e.getMessage());
+		}
 	}
 
 	public String getAccession() {

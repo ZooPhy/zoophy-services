@@ -1,15 +1,18 @@
 package com.zoophy.genbank;
 
 /**
- * 
+ * Virus gene
  * @author devdemetri
- *
  */
 public class Gene {
 	
 	private Long id;
 	private String accession; 
 	private String name;
+	
+	public Gene() {
+		
+	}
 	
 	public Long getId() {
 		return id;

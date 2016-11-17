@@ -1,7 +1,7 @@
 package com.zoophy.genbank;
 
 /**
- * 
+ * Virus host
  * @author devdemetri
  */
 public class Host {
@@ -9,6 +9,10 @@ public class Host {
 	private String accession;
 	private String name;
 	private Integer taxon;
+	
+	public Host() {
+		
+	}
 	
 	public String getAccession() {
 		return accession;

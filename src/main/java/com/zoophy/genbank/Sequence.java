@@ -1,12 +1,11 @@
 package com.zoophy.genbank;
 
 /**
- * 
+ * Viral Sequence object containing sequence details and the raw dna/rna sequence
  * @author devdemetri
- *
  */
 public class Sequence {
-		
+
 	private String accession;
 	private String definition;
 	private Integer taxId;
@@ -15,9 +14,13 @@ public class Sequence {
 	private String strain;
 	private String collectionDate; 
 	private String comment;
-	private String sequence;
+	private String rawSequence;
 	private Integer segmentLength;
 	private Publication pub;
+	
+	public Sequence() {
+		
+	}
 	
 	public String getAccession() {
 		return accession;
@@ -35,12 +38,12 @@ public class Sequence {
 		this.definition = definition;
 	}
 	
-	public Integer getTax_id() {
+	public Integer getTaxId() {
 		return taxId;
 	}
 	
-	public void setTax_id(Integer tax_id) {
-		this.taxId = tax_id;
+	public void setTaxId(Integer taxId) {
+		this.taxId = taxId;
 	}
 	
 	public String getOrganism() {
@@ -66,12 +69,12 @@ public class Sequence {
 		this.strain = strain;
 	}
 	
-	public String getCollection_date() {
+	public String getCollectionDate() {
 		return collectionDate;
 	}
 	
-	public void setCollection_date(String collection_date) {
-		this.collectionDate = collection_date;
+	public void setCollectionDate(String collectionDate) {
+		this.collectionDate = collectionDate;
 	}
 	
 	public String getComment() {
@@ -83,19 +86,19 @@ public class Sequence {
 	}
 	
 	public String getSequence() {
-		return sequence;
+		return rawSequence;
 	}
 	
-	public void setSequence(String sequence) {
-		this.sequence = sequence;
+	public void setSequence(String rawSequence) {
+		this.rawSequence = rawSequence;
 	}
 	
-	public Integer getSegment_length() {
+	public Integer getSegmentLength() {
 		return segmentLength;
 	}
 	
-	public void setSegment_length(Integer segment_length) {
-		this.segmentLength = segment_length;
+	public void setSegmentLength(Integer segmentLength) {
+		this.segmentLength = segmentLength;
 	}
 	
 	public Publication getPub() {

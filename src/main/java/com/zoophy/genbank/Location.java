@@ -1,7 +1,7 @@
 package com.zoophy.genbank;
 
 /**
- * 
+ * Virus location
  * @author devdemetri
  */
 public class Location {
@@ -12,6 +12,10 @@ public class Location {
 	private Double latitude;
 	private Double longitude;
 	private String geonameType;
+	
+	public Location() {
+		
+	}
 	
 	public Long getId() {
 		return id;
