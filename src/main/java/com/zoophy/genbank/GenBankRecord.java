@@ -1,10 +1,6 @@
 package com.zoophy.genbank;
 
 import java.util.List;
-
-import org.apache.lucene.document.Document;
-
-import java.sql.ResultSet;
 import java.util.LinkedList;
 
 /**
@@ -18,26 +14,12 @@ public class GenBankRecord {
 	private List<Gene> genes;
 	private Host host; 
 	private Location geonameLocation;
+	private Publication pub;
 	
-	public GenBankRecord(Document luceneDoc) throws GenBankRecordException {
-		try {
-			genes = new LinkedList<Gene>();
-			
-		}
-		catch (Exception e) {
-			throw new GenBankRecordException("ERROR converting Lucene Document to GenBankRecord: "+e.getMessage());
-		}
+	public GenBankRecord() {
+		genes = new LinkedList<Gene>();
 	}
 	
-	public GenBankRecord(ResultSet rs) throws GenBankRecordException {
-		try {
-			genes = new LinkedList<Gene>();
-			
-		}
-		catch (Exception e) {
-			throw new GenBankRecordException("ERROR converting ResultSet to GenBankRecord: "+e.getMessage());
-		}
-	}
 
 	public String getAccession() {
 		return accession;
@@ -77,6 +59,16 @@ public class GenBankRecord {
 
 	public void setGeonameLocation(Location geonameLocation) {
 		this.geonameLocation = geonameLocation;
+	}
+
+
+	public Publication getPub() {
+		return pub;
+	}
+
+
+	public void setPub(Publication pub) {
+		this.pub = pub;
 	}
 	
 }

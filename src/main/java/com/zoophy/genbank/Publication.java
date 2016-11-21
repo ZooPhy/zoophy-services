@@ -7,7 +7,6 @@ package com.zoophy.genbank;
  */
 public class Publication {
 	
-	private Integer pubId;
 	private Integer pubmedId;
 	private String centralId;
 	private String authors;
@@ -16,14 +15,6 @@ public class Publication {
 	
 	public Publication() {
 		
-	}
-	
-	public Integer getPubId() {
-		return pubId;
-	}
-	
-	public void setPubId(Integer pubId) {
-		this.pubId = pubId;
 	}
 	
 	public Integer getPubmedId() {

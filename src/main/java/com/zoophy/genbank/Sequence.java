@@ -16,7 +16,6 @@ public class Sequence {
 	private String comment;
 	private String rawSequence;
 	private Integer segmentLength;
-	private Publication pub;
 	
 	public Sequence() {
 		
@@ -89,7 +88,7 @@ public class Sequence {
 		return rawSequence;
 	}
 	
-	public void setSequence(String rawSequence) {
+	public void setRawSequence(String rawSequence) {
 		this.rawSequence = rawSequence;
 	}
 	
@@ -99,14 +98,6 @@ public class Sequence {
 	
 	public void setSegmentLength(Integer segmentLength) {
 		this.segmentLength = segmentLength;
-	}
-	
-	public Publication getPub() {
-		return pub;
-	}
-	
-	public void setPub(Publication pub) {
-		this.pub = pub;
 	}
 
 }

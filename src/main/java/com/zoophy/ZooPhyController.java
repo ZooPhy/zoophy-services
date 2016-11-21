@@ -30,8 +30,14 @@ public class ZooPhyController {
      * @return specified record from the database.
      */
     @RequestMapping("/record")
-    public GenBankRecord getDatabaseRecord(@RequestParam(value="accession") String accession) {
-    	GenBankRecord gbr = dao.retreiveRecord(accession);
+    public GenBankRecord getDatabaseRecord(@RequestParam(value="accession") String accession, @RequestParam(value="isfull", required=false, defaultValue="true") Boolean isFull) {
+    	GenBankRecord gbr;
+    	if (isFull) {
+    		gbr = dao.retreiveFullRecord(accession);
+    	}
+    	else {
+    		gbr = dao.retreiveLightRecord(accession);
+    	}
     	return gbr;
     }
     
