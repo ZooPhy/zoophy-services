@@ -1,0 +1,7 @@
+# Template for Spring Properties file. Original should NEVER be commited to GitHub
+spring.datasource.url=jdbc:postgresql:<Host URL>/<DB Name>
+spring.datasource.username=<DB User>
+spring.datasource.password=<DB Password>
+spring.datasource.driver-class-name=com.postgresql.jdbc.Driver
+spring.datasource.tomcat.max-active=12
+spring.datasource.tomcat.test-on-borrow=true
