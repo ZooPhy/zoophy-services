@@ -1,7 +1,10 @@
 # zoophy-services
 RESTful services for ZooPhy. This consists of:
+
 1) Retreiving GenBankRecords from the ZooPhy SQL Database
+
 2) Searching GenBankRecords in the ZooPhy Lucene Index
+
 3) Running ZooPhy Pipeling jobs
 
 ## Requirements:
