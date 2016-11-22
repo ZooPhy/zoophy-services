@@ -19,10 +19,10 @@ import com.zoophy.index.LuceneSearcher;
 public class ZooPhyController {
 	
 	@Autowired
-	ZoophyDAO dao;
+	private ZoophyDAO dao;
 	
 	@Autowired
-	LuceneSearcher indexSearcher;
+	private LuceneSearcher indexSearcher;
 	
     /**
      * Retrieves the specified record from the database.
