@@ -16,6 +16,7 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
 import com.zoophy.genbank.GenBankRecord;
@@ -27,13 +28,18 @@ import com.zoophy.genbank.GenBankRecord;
 @Repository
 public class LuceneSearcher {
 	
-	private static final String indexLocation = "/home/devdemetri/Desktop/Big_Index";
-	private static Directory indexDirectory;
-	private static QueryParser queryParser;
+	private Directory indexDirectory;
+	private QueryParser queryParser;
 	
-	public LuceneSearcher() throws LuceneSearcherException {
+	public LuceneSearcher(@Value("${lucene.index.location}") String indexLocation) throws LuceneSearcherException {
 		try {
-			indexDirectory = FSDirectory.open(new File(indexLocation));
+			File index = new File(indexLocation);
+			if (index.exists() && index.isDirectory()) {
+				indexDirectory = FSDirectory.open(index);
+			}
+			else {
+				throw new LuceneSearcherException("No Lucene Index at: "+indexLocation);
+			}
 			queryParser = new QueryParser(Version.LUCENE_30, "text", new StandardAnalyzer(Version.LUCENE_30));
 		}
 		catch (IOException ioe) {
@@ -70,8 +76,10 @@ public class LuceneSearcher {
 		}
 		finally {
 			try {
-				indexSearcher.close();
-			} 
+				if (indexSearcher != null) {
+					indexSearcher.close();
+				}
+			}
 			catch (IOException ioe) {
 				//just going to ignore this for now...
 			}

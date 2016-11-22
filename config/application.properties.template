@@ -4,3 +4,4 @@ spring.datasource.username=<DB User>
 spring.datasource.password=<DB Password>
 spring.datasource.tomcat.max-active=12
 spring.datasource.tomcat.test-on-borrow=true
+lucene.index.location=<Lucene Index Path>
