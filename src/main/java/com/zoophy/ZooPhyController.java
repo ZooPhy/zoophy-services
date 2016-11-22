@@ -31,7 +31,7 @@ public class ZooPhyController {
      */
     @RequestMapping("/record")
     public GenBankRecord getDatabaseRecord(@RequestParam(value="accession") String accession, @RequestParam(value="isfull", required=false, defaultValue="true") Boolean isFull) {
-    	GenBankRecord gbr;
+    	GenBankRecord gbr = null;
     	if (isFull) {
     		gbr = dao.retreiveFullRecord(accession);
     	}

@@ -29,7 +29,7 @@ public class GenBankRecordRowMapper implements RowMapper<GenBankRecord> {
 		seq.setIsolate(rs.getString("Isolate"));
 		seq.setOrganism(rs.getString("Organism"));
 		seq.setSegmentLength(rs.getInt("Segment_Length"));
-		seq.setRawSequence("Sequence");
+		seq.setRawSequence(rs.getString("Sequence"));
 		seq.setStrain(rs.getString("Strain"));
 		seq.setTaxId(rs.getInt("Tax_ID"));
 		rec.setSequence(seq);

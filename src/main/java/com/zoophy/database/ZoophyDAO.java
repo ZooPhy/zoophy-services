@@ -1,9 +1,9 @@
 package com.zoophy.database;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.zoophy.genbank.GenBankRecord;
 import com.zoophy.genbank.Gene;
@@ -28,9 +28,15 @@ public class ZoophyDAO {
 	 * @param accession - unique accession of record to be returned
 	 * @return - retrieved GenBankRecord from database
 	 */
-	@Transactional(readOnly=true)
 	public GenBankRecord retreiveLightRecord(String accession) {
-		GenBankRecord record = jdbc.queryForObject(pullRecordDetails, new Object[] { accession }, new GenBankRecordRowMapper());
+		GenBankRecord record = null;
+		String[] param = {accession};
+		try {
+			record = jdbc.queryForObject(pullRecordDetails, param, new GenBankRecordRowMapper());
+		}
+		catch (EmptyResultDataAccessException erdae) {
+			return record;
+		}
 		return record;
 	}
 	
@@ -39,11 +45,17 @@ public class ZoophyDAO {
 	 * @param accession - unique accession of record to be returned
 	 * @return - retrieved GenBankRecord from database
 	 */
-	@Transactional(readOnly=true)
 	public GenBankRecord retreiveFullRecord(String accession) {
-		GenBankRecord record = jdbc.queryForObject(pullRecordDetails, new Object[] { accession }, new GenBankRecordRowMapper());
-		record.setGenes(jdbc.queryForList(pullRecordGenes, Gene.class, new Object[] { accession }, new GeneRowMapper()));
-		record.setPub(jdbc.queryForObject(pullRecordPublication, new Object[] { accession }, new PublicationRowMapper()));
+		GenBankRecord record = null;
+		String[] param = {accession};
+		try {
+			record = jdbc.queryForObject(pullRecordDetails, param, new GenBankRecordRowMapper());
+//			record.setGenes(jdbc.queryForList(pullRecordGenes, Gene.class, param, new GeneRowMapper()));
+			record.setPub(jdbc.queryForObject(pullRecordPublication, param, new PublicationRowMapper()));
+		}
+		catch (EmptyResultDataAccessException erdae) {
+			return record;
+		}
 		return record;
 	}
 	
