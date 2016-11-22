@@ -13,7 +13,9 @@ import com.zoophy.database.DaoException;
 import com.zoophy.database.GenBankRecordNotFoundException;
 import com.zoophy.database.ZoophyDAO;
 import com.zoophy.genbank.GenBankRecord;
+import com.zoophy.index.InvalidLuceneQueryException;
 import com.zoophy.index.LuceneSearcher;
+import com.zoophy.index.LuceneSearcherException;
 
 /**
  * Responsible for mapping ZooPhy service requests
@@ -53,10 +55,12 @@ public class ZooPhyController {
      * Retrieve GenBankRecords for resulting Lucene query
      * @param query - Valid Lucene querystring
      * @return GenBankRecord results of given query.
+     * @throws LuceneSearcherException 
+     * @throws InvalidLuceneQueryException 
      */
     @RequestMapping("/search")
     @ResponseStatus(value=HttpStatus.OK)
-    public List<GenBankRecord> queryLucene(@RequestParam(value="query") String query) {
+    public List<GenBankRecord> queryLucene(@RequestParam(value="query") String query) throws LuceneSearcherException, InvalidLuceneQueryException {
     	List<GenBankRecord> results = indexSearcher.searchIndex(query);
     	return results;
     }
