@@ -25,7 +25,7 @@ public class GenBankRecordRowMapper implements RowMapper<GenBankRecord> {
 		seq.setAccession(acc);
 		seq.setCollectionDate(rs.getString("Collection_Date"));
 		seq.setComment(rs.getString("Comment"));
-		seq.setDefinition("Definition");
+		seq.setDefinition(rs.getString("Definition"));
 		seq.setIsolate(rs.getString("Isolate"));
 		seq.setOrganism(rs.getString("Organism"));
 		seq.setSegmentLength(rs.getInt("Segment_Length"));
