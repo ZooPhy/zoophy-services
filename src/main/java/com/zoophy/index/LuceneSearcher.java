@@ -22,7 +22,7 @@ import org.springframework.stereotype.Repository;
 import com.zoophy.genbank.GenBankRecord;
 
 /**
- * Responsible for retreiving information from Lucene
+ * Responsible for retrieving information from Lucene
  * @author devdemetri
  */
 @Repository("LuceneSearcher")
@@ -36,6 +36,8 @@ public class LuceneSearcher {
 			File index = new File(indexLocation);
 			if (index.exists() && index.isDirectory()) {
 				indexDirectory = FSDirectory.open(index);
+				IndexSearcher indexSearcher = new IndexSearcher(indexDirectory, true);
+				indexSearcher.close();
 			}
 			else {
 				throw new LuceneSearcherException("No Lucene Index at: "+indexLocation);
@@ -43,7 +45,7 @@ public class LuceneSearcher {
 			queryParser = new QueryParser(Version.LUCENE_30, "text", new StandardAnalyzer(Version.LUCENE_30));
 		}
 		catch (IOException ioe) {
-			throw new LuceneSearcherException("Could not open Lucene Index at: "+indexLocation);
+			throw new LuceneSearcherException("Could not open Lucene Index at: "+indexLocation+ " : "+ioe.getMessage());
 		}
 	}
 	
