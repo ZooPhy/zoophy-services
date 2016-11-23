@@ -11,26 +11,32 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ZooPhyRunner {
 	
-	private String replyEmail;
-	private String jobID;
-	private String jobName;
+	private ZooPhyJob job;
+	private ZooPhyMailer mailer;
 	
 	private static Set<String> ids = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 	
 	public ZooPhyRunner(String replyEmail) {
-		this.replyEmail = replyEmail;
-		this.jobName = null;
-		this.jobID = generateID();
+		job = new ZooPhyJob(generateID(),null,replyEmail);
 	}
 
 	public ZooPhyRunner(String replyEmail, String jobName) {
-		this.replyEmail = replyEmail;
-		this.jobName = jobName;
-		this.jobID = generateID();
+		job = new ZooPhyJob(generateID(),jobName,replyEmail);
 	}
 	
-	public void runZooPhy(List<String> accessions) {
-		//TODO: run the pipeline//
+	public void runZooPhy(List<String> accessions) throws PipelineException {
+		try {
+			mailer = new ZooPhyMailer(job);
+			mailer.sendStartEmail();
+			//TODO: add rest of pipeline
+			// mailer.sendSuccessEmail();
+		}
+		catch (PipelineException pe) {
+			mailer.sendFailureEmail(pe.getUserMessage());
+		}
+		catch (Exception e) {
+			mailer.sendFailureEmail("Server Error");
+		}
 	}
 	
 	private static String generateID() {

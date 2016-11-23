@@ -22,6 +22,7 @@ import com.zoophy.genbank.Location;
 import com.zoophy.index.InvalidLuceneQueryException;
 import com.zoophy.index.LuceneSearcher;
 import com.zoophy.index.LuceneSearcherException;
+import com.zoophy.pipeline.PipelineException;
 import com.zoophy.pipeline.ZooPhyRunner;
 import com.zoophy.security.Parameter;
 import com.zoophy.security.ParameterException;
@@ -48,9 +49,9 @@ public class ZooPhyController {
      * @param accession - Accession of GenBankRecord to be retrieved
      * @param isFull - does the record need its associated Publication and Genes
      * @return specified record from the database.
-     * @throws GenBankRecordNotFoundException 
+     * @throws GenBankRecordNotFoundException
      * @throws DaoException 
-     * @throws ParameterException 
+     * @throws ParameterException
      */
     @RequestMapping(value="/record", method=RequestMethod.GET)
     @ResponseStatus(value=HttpStatus.OK)
@@ -110,15 +111,15 @@ public class ZooPhyController {
     	}
     }
     
-    @RequestMapping(value="/run", method=RequestMethod.POST)
-    @ResponseStatus(value=HttpStatus.ACCEPTED)
     /**
      * @param replyEmail
      * @param jobName
      * @param accessions
      * @throws ParameterException
      */
-    public void runZooPhyJob(@RequestBody String replyEmail, @RequestBody(required=false) String jobName, @RequestBody List<String> accessions) throws ParameterException {
+    @RequestMapping(value="/run", method=RequestMethod.POST)
+    @ResponseStatus(value=HttpStatus.ACCEPTED)
+    public void runZooPhyJob(@RequestBody String replyEmail, @RequestBody(required=false) String jobName, @RequestBody List<String> accessions) throws ParameterException, PipelineException {
     	if (security.checkParameter(replyEmail, Parameter.EMAIL)) {
     		ZooPhyRunner zoophy;
 	    	if (jobName == null) {
