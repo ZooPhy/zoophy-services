@@ -14,12 +14,14 @@ public class SecurityHelper {
 	
 	private static final String ACCESSION_REGEX = "^([A-Z]|\\d|_|\\.){5,10}$";
 	private static final String LUCENE_REGEX = "^(\\w| |:|\\[|\\]|\\(|\\)){5,1024}$";
+	private static final String EMAIL_REGEX = "^[-a-z0-9~!$%^&*_=+}{\\'?]+(\\.[-a-z0-9~!$%^&*_=+}{\\'?]+)*@([a-z0-9_][-a-z0-9_]*(\\.[-a-z0-9_]+[a-z][a-z])|([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}))(:[0-9]{1,5})?$";
+	private static final String JOB_NAME_REGEX = "^(\\w| |-|_|#|&){3,255}$";
 	
 	/**
 	 * Verifies parameters via regular expression
 	 * @param param - String parameter to check
 	 * @param type - Type of allowed parameter
-	 * @return - True if param passes regular expression validation
+	 * @return True if param passes regular expression validation
 	 */
 	public Boolean checkParameter(String param, Parameter type) {
 		if (param == null || param.trim().isEmpty()) {
@@ -32,6 +34,12 @@ public class SecurityHelper {
 				break;
 			case LUCENE_QUERY:
 				regex = Pattern.compile(LUCENE_REGEX);
+				break;
+			case EMAIL:
+				regex = Pattern.compile(EMAIL_REGEX);
+				break;
+			case JOB_NAME:
+				regex = Pattern.compile(JOB_NAME_REGEX);
 				break;
 			default:
 				return false;

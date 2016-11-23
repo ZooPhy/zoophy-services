@@ -1,6 +1,9 @@
 package com.zoophy;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -19,6 +22,7 @@ import com.zoophy.genbank.Location;
 import com.zoophy.index.InvalidLuceneQueryException;
 import com.zoophy.index.LuceneSearcher;
 import com.zoophy.index.LuceneSearcherException;
+import com.zoophy.pipeline.ZooPhyRunner;
 import com.zoophy.security.Parameter;
 import com.zoophy.security.ParameterException;
 import com.zoophy.security.SecurityHelper;
@@ -108,8 +112,40 @@ public class ZooPhyController {
     
     @RequestMapping(value="/run", method=RequestMethod.POST)
     @ResponseStatus(value=HttpStatus.ACCEPTED)
-    public void runZooPhyJob(@RequestBody String jobID, @RequestBody String jobName, @RequestBody List<String> accessions) {
-    	//TODO: validate input and run zoophy job
+    /**
+     * @param replyEmail
+     * @param jobName
+     * @param accessions
+     * @throws ParameterException
+     */
+    public void runZooPhyJob(@RequestBody String replyEmail, @RequestBody(required=false) String jobName, @RequestBody List<String> accessions) throws ParameterException {
+    	if (security.checkParameter(replyEmail, Parameter.EMAIL)) {
+    		ZooPhyRunner zoophy;
+	    	if (jobName == null) {
+	    			zoophy = new ZooPhyRunner(replyEmail);
+	    	}
+	    	else {
+	    		if (security.checkParameter(jobName, Parameter.JOB_NAME)) {
+	    			zoophy = new ZooPhyRunner(replyEmail, jobName);
+	    		}
+	    		else {
+	    			throw new ParameterException(jobName);
+	    		}
+	    	}
+	    	Set<String> accs = new LinkedHashSet<String>(accessions.size());
+	    	for(String acc : accessions) {
+	    		if  (security.checkParameter(acc, Parameter.ACCESSION)) {
+	    			accs.add(acc);
+	    		}
+	    		else {
+	    			throw new ParameterException(acc);
+	    		}
+	    	}
+	    	zoophy.runZooPhy(new ArrayList<String>(accs));
+    	}
+    	else {
+    		throw new ParameterException(replyEmail);
+    	}
     }
     
 }

@@ -6,5 +6,7 @@ package com.zoophy.security;
  */
 public enum Parameter {
 	ACCESSION,
-	LUCENE_QUERY
+	LUCENE_QUERY, 
+	EMAIL,
+	JOB_NAME
 }

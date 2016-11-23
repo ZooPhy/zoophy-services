@@ -5,7 +5,7 @@
 
     <groupId>org.zoophy</groupId>
     <artifactId>zoophy-rest-service</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -19,27 +19,13 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.jayway.jsonpath</groupId>
-            <artifactId>json-path</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
+		    <groupId>org.springframework.boot</groupId>
+		    <artifactId>spring-boot-starter-jdbc</artifactId>
+		</dependency>
+		<dependency>
 		    <groupId>postgresql</groupId>
 		    <artifactId>postgresql</artifactId>
 		    <version>9.1-901.jdbc4</version>
-		</dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-jdbc</artifactId>
-        </dependency>
-        <dependency>
-		    <groupId>org.springframework.boot</groupId>
-		    <artifactId>spring-boot-starter-jdbc</artifactId>
 		</dependency>
         <dependency>
 			<groupId>org.apache.lucene</groupId>
@@ -51,7 +37,6 @@
     <properties>
         <java.version>1.7</java.version>
     </properties>
-
 
     <build>
         <plugins>
@@ -68,10 +53,12 @@
             <url>https://repo.spring.io/libs-release</url>
         </repository>
     </repositories>
+    
     <pluginRepositories>
         <pluginRepository>
             <id>spring-releases</id>
             <url>https://repo.spring.io/libs-release</url>
         </pluginRepository>
     </pluginRepositories>
+    
 </project>
