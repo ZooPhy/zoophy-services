@@ -48,7 +48,7 @@ public class DocumentMapper {
 			if (doc.getFields("TaxonID") != null) {
 				for (Field f : doc.getFields("TaxonID")) {
 					try {
-						seq.setTaxId(Integer.parseInt(f.stringValue()));
+						seq.setTaxID(Integer.parseInt(f.stringValue()));
 						break;
 					}
 					catch (Exception e) {
@@ -62,7 +62,7 @@ public class DocumentMapper {
 			if (doc.getFields("GeonameID") != null) {
 				for (Field f : doc.getFields("GeonameID")) {
 					try {
-						loc.setId(Long.parseLong(f.stringValue()));
+						loc.setGeonameID(Long.parseLong(f.stringValue()));
 						break;
 					}
 					catch (Exception e) {
@@ -104,7 +104,7 @@ public class DocumentMapper {
 			}
 			Publication pub = new Publication();
 			if (doc.getField("PubmedID") != null && !doc.getField("PubmedID").stringValue().equalsIgnoreCase("n/a")) {
-				pub.setPubmedId(Integer.parseInt(doc.getField("PubmedID").stringValue()));
+				pub.setPubMedID(Integer.parseInt(doc.getField("PubmedID").stringValue()));
 			}
 			if (doc.getFields("Gene").length > 0) {
 				List<Gene> genes = rec.getGenes();

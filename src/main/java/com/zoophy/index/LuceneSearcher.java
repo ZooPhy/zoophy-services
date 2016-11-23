@@ -25,7 +25,7 @@ import com.zoophy.genbank.GenBankRecord;
  * Responsible for retreiving information from Lucene
  * @author devdemetri
  */
-@Repository
+@Repository("LuceneSearcher")
 public class LuceneSearcher {
 	
 	private Directory indexDirectory;
@@ -59,7 +59,7 @@ public class LuceneSearcher {
 		Query query;
 		TopDocs docs;
 		try {
-			indexSearcher = new IndexSearcher(indexDirectory);
+			indexSearcher = new IndexSearcher(indexDirectory, true);
 			query = queryParser.parse(querystring);
 			docs = indexSearcher.search(query, 10000);
 			for (ScoreDoc scoreDoc : docs.scoreDocs) {

@@ -6,7 +6,7 @@ package com.zoophy.genbank;
  */
 public class Location {
 	
-	private Long id;
+	private Long geonameID;
 	private String accession;
 	private String location;
 	private Double latitude;
@@ -17,12 +17,12 @@ public class Location {
 		
 	}
 	
-	public Long getId() {
-		return id;
+	public Long getGeonameID() {
+		return geonameID;
 	}
 	
-	public void setId(Long id) {
-		this.id = id;
+	public void setGeonameID(Long geonameID) {
+		this.geonameID = geonameID;
 	}
 	
 	public String getAccession() {

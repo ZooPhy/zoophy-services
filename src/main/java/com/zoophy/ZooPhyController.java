@@ -15,9 +15,13 @@ import com.zoophy.database.DaoException;
 import com.zoophy.database.GenBankRecordNotFoundException;
 import com.zoophy.database.ZoophyDAO;
 import com.zoophy.genbank.GenBankRecord;
+import com.zoophy.genbank.Location;
 import com.zoophy.index.InvalidLuceneQueryException;
 import com.zoophy.index.LuceneSearcher;
 import com.zoophy.index.LuceneSearcherException;
+import com.zoophy.security.Parameter;
+import com.zoophy.security.ParameterException;
+import com.zoophy.security.SecurityHelper;
 
 /**
  * Responsible for mapping ZooPhy service requests
@@ -32,6 +36,9 @@ public class ZooPhyController {
 	@Autowired
 	private LuceneSearcher indexSearcher;
 	
+	@Autowired
+	private SecurityHelper security;
+	
     /**
      * Retrieves the specified record from the database.
      * @param accession - Accession of GenBankRecord to be retrieved
@@ -39,18 +46,44 @@ public class ZooPhyController {
      * @return specified record from the database.
      * @throws GenBankRecordNotFoundException 
      * @throws DaoException 
+     * @throws ParameterException 
      */
     @RequestMapping(value="/record", method=RequestMethod.GET)
     @ResponseStatus(value=HttpStatus.OK)
-    public GenBankRecord getDatabaseRecord(@RequestParam(value="accession") String accession, @RequestParam(value="isfull", required=false, defaultValue="true") Boolean isFull) throws GenBankRecordNotFoundException, DaoException {
-    	GenBankRecord gbr = null;
-    	if (isFull) {
-    		gbr = dao.retreiveFullRecord(accession);
+    public GenBankRecord getDatabaseRecord(@RequestParam(value="accession") String accession, @RequestParam(value="isfull", required=false, defaultValue="true") Boolean isFull) throws GenBankRecordNotFoundException, DaoException, ParameterException {
+    	if (security.checkParameter(accession, Parameter.ACCESSION)) {
+	    	GenBankRecord gbr = null;
+	    	if (isFull) {
+	    		gbr = dao.retrieveFullRecord(accession);
+	    	}
+	    	else {
+	    		gbr = dao.retrieveLightRecord(accession);
+	    	}
+	    	return gbr;
     	}
     	else {
-    		gbr = dao.retreiveLightRecord(accession);
+    		throw new ParameterException(accession);
     	}
-    	return gbr;
+    }
+    
+    /**
+     * Returns the Geoname Location for the given Accession
+     * @param accession
+     * @return Location of the accession
+     * @throws DaoException 
+     * @throws GenBankRecordNotFoundException 
+     * @throws ParameterException 
+     */
+    @RequestMapping(value="/location", method=RequestMethod.GET)
+    @ResponseStatus(value=HttpStatus.OK)
+    public Location getRecordLocation(@RequestParam(value="accession") String accession) throws GenBankRecordNotFoundException, DaoException, ParameterException {
+    	if (security.checkParameter(accession, Parameter.ACCESSION)) {
+    		Location loc = dao.retrieveLocation(accession);
+    		return loc;
+    	}
+    	else {
+    		throw new ParameterException(accession);
+    	}
     }
     
     /**
@@ -59,18 +92,24 @@ public class ZooPhyController {
      * @return GenBankRecord results of given query.
      * @throws LuceneSearcherException 
      * @throws InvalidLuceneQueryException 
+     * @throws ParameterException 
      */
     @RequestMapping(value="/search", method=RequestMethod.GET)
     @ResponseStatus(value=HttpStatus.OK)
-    public List<GenBankRecord> queryLucene(@RequestParam(value="query") String query) throws LuceneSearcherException, InvalidLuceneQueryException {
-    	List<GenBankRecord> results = indexSearcher.searchIndex(query);
-    	return results;
+    public List<GenBankRecord> queryLucene(@RequestParam(value="query") String query) throws LuceneSearcherException, InvalidLuceneQueryException, ParameterException {
+    	if (security.checkParameter(query, Parameter.LUCENE_QUERY)) {
+    		List<GenBankRecord> results = indexSearcher.searchIndex(query);
+    		return results;
+    	}
+    	else {
+    		throw new ParameterException(query);
+    	}
     }
     
     @RequestMapping(value="/run", method=RequestMethod.POST)
     @ResponseStatus(value=HttpStatus.ACCEPTED)
     public void runZooPhyJob(@RequestBody String jobID, @RequestBody String jobName, @RequestBody List<String> accessions) {
-    	//TODO: run zoophy job
+    	//TODO: validate input and run zoophy job
     }
     
 }

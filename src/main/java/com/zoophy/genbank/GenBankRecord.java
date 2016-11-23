@@ -12,9 +12,9 @@ public class GenBankRecord {
 	private String accession;
 	private Sequence sequence;
 	private List<Gene> genes;
-	private Host host; 
+	private Host host;
 	private Location geonameLocation;
-	private Publication pub;
+	private Publication publication;
 	
 	public GenBankRecord() {
 		genes = new LinkedList<Gene>();
@@ -61,14 +61,13 @@ public class GenBankRecord {
 		this.geonameLocation = geonameLocation;
 	}
 
-
-	public Publication getPub() {
-		return pub;
+	public Publication getPublication() {
+		return publication;
 	}
 
 
-	public void setPub(Publication pub) {
-		this.pub = pub;
+	public void setPublication(Publication publication) {
+		this.publication = publication;
 	}
 	
 }

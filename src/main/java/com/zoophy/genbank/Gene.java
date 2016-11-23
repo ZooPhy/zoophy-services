@@ -6,20 +6,11 @@ package com.zoophy.genbank;
  */
 public class Gene {
 	
-	private Long id;
 	private String accession; 
 	private String name;
 	
 	public Gene() {
 		
-	}
-	
-	public Long getId() {
-		return id;
-	}
-	
-	public void setId(Long id) {
-		this.id = id;
 	}
 	
 	public String getAccession() {

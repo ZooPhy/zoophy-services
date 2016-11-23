@@ -31,11 +31,11 @@ public class GenBankRecordRowMapper implements RowMapper<GenBankRecord> {
 		seq.setSegmentLength(rs.getInt("Segment_Length"));
 		seq.setRawSequence(rs.getString("Sequence"));
 		seq.setStrain(rs.getString("Strain"));
-		seq.setTaxId(rs.getInt("Tax_ID"));
+		seq.setTaxID(rs.getInt("Tax_ID"));
 		rec.setSequence(seq);
 		Location loc = new Location();
 		loc.setAccession(acc);
-		loc.setId(rs.getLong("Geoname_ID"));
+		loc.setGeonameID(rs.getLong("Geoname_ID"));
 		loc.setLocation(rs.getString("Location"));
 		loc.setGeonameType(rs.getString("Type"));
 		loc.setLatitude(rs.getDouble("Latitude"));

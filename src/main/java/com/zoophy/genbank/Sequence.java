@@ -8,7 +8,7 @@ public class Sequence {
 
 	private String accession;
 	private String definition;
-	private Integer taxId;
+	private Integer taxID;
 	private String organism;
 	private String isolate;
 	private String strain;
@@ -37,12 +37,12 @@ public class Sequence {
 		this.definition = definition;
 	}
 	
-	public Integer getTaxId() {
-		return taxId;
+	public Integer getTaxID() {
+		return taxID;
 	}
 	
-	public void setTaxId(Integer taxId) {
-		this.taxId = taxId;
+	public void setTaxID(Integer taxID) {
+		this.taxID = taxID;
 	}
 	
 	public String getOrganism() {
@@ -84,7 +84,7 @@ public class Sequence {
 		this.comment = comment;
 	}
 	
-	public String getSequence() {
+	public String getRawSequence() {
 		return rawSequence;
 	}
 	
