@@ -125,7 +125,7 @@ public class ZooPhyController {
     @ResponseStatus(value=HttpStatus.OK)
     public Set<Long> getRecordLocationAncestors(@RequestParam(value="accession") String accession) throws LuceneSearcherException, ParameterException {
     	if (security.checkParameter(accession, Parameter.ACCESSION)) {
-    		Set<Long> ancestors = indexSearcher.findLocatoinAncestors(accession);
+    		Set<Long> ancestors = indexSearcher.findLocationAncestors(accession);
     		return ancestors;
     	}
     	else {

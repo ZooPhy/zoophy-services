@@ -97,7 +97,7 @@ public class LuceneSearcher {
 	 * @return Set of ancestors for a record's Geoname location
 	 * @throws LuceneSearcherException
 	 */
-	public Set<Long> findLocatoinAncestors(String accession) throws LuceneSearcherException {
+	public Set<Long> findLocationAncestors(String accession) throws LuceneSearcherException {
 		Set<Long> ancestors = new HashSet<Long>();
 		IndexSearcher indexSearcher = null;
 		Query query;
