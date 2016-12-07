@@ -40,6 +40,7 @@ public class GenBankRecordRowMapper implements RowMapper<GenBankRecord> {
 		loc.setGeonameType(rs.getString("Type"));
 		loc.setLatitude(rs.getDouble("Latitude"));
 		loc.setLongitude(rs.getDouble("Longitude"));
+		loc.setCountry(rs.getString("Country"));
 		rec.setGeonameLocation(loc);
 		Host host = new Host();
 		host.setAccession(acc);

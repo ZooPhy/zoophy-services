@@ -1,8 +1,7 @@
 package edu.asu.zoophy.genbank;
 
 /**
- * Pubmed publication
- * 
+ * PubMed publication
  * @author devdemetri
  */
 public class Publication {

@@ -82,6 +82,9 @@ public class DocumentMapper {
 			if (doc.getField("Longitude") != null) {
 				loc.setLongitude(Double.parseDouble(doc.getField("Longitude").stringValue()));
 			}
+			if (doc.getField("Country") != null) {
+				loc.setCountry(doc.getField("Country").stringValue()); 
+			}
 			rec.setGeonameLocation(loc);
 			Host host = new Host();
 			host.setAccession(acc);

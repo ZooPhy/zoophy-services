@@ -12,6 +12,7 @@ public class Location {
 	private Double latitude;
 	private Double longitude;
 	private String geonameType;
+	private String country;
 	
 	public Location() {
 		
@@ -63,6 +64,14 @@ public class Location {
 	
 	public void setGeonameType(String geonameType) {
 		this.geonameType = geonameType;
+	}
+
+	public String getCountry() {
+		return country;
+	}
+
+	public void setCountry(String country) {
+		this.country = country;
 	}
 	
 }

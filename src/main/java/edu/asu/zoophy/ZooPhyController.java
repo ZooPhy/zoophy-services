@@ -95,7 +95,7 @@ public class ZooPhyController {
     
     /**
      * Retrieve GenBankRecords for resulting Lucene query
-     * @param query - Valid Lucene querystring
+     * @param query - Valid Lucene query string
      * @return GenBankRecord results of given query.
      * @throws LuceneSearcherException 
      * @throws InvalidLuceneQueryException 
@@ -114,13 +114,33 @@ public class ZooPhyController {
     }
     
     /**
-     * @param replyEmail
-     * @param jobName
-     * @param accessions
+     * Finds all of the parent locations for a specific record.
+     * Note: this will be removed when the pipeline is integrated into these services.
+     * @param accession - accession to check
+     * @return Set of Geoname IDs that are parents of the given record's location
+     * @throws LuceneSearcherException 
+     * @throws ParameterException 
+     */
+    @RequestMapping(value="/location/ancestors", method=RequestMethod.GET)
+    @ResponseStatus(value=HttpStatus.OK)
+    public Set<Long> getRecordLocationAncestors(@RequestParam(value="accession") String accession) throws LuceneSearcherException, ParameterException {
+    	if (security.checkParameter(accession, Parameter.ACCESSION)) {
+    		Set<Long> ancestors = indexSearcher.findLocatoinAncestors(accession);
+    		return ancestors;
+    	}
+    	else {
+    		throw new ParameterException(accession);
+    	}
+    }
+    
+    /**
+     * @param replyEmail - User email for results
+     * @param jobName - Custom job name (optional)
+     * @param accessions - List of accessions to to run the job on
      * @throws ParameterException
      */
     @RequestMapping(value="/run", method=RequestMethod.POST)
-    @ResponseStatus(value=HttpStatus.ACCEPTED)
+    @ResponseStatus(value=HttpStatus.NOT_IMPLEMENTED)//TODO: finish pipeline implementation
     public void runZooPhyJob(@RequestBody String replyEmail, @RequestBody(required=false) String jobName, @RequestBody List<String> accessions) throws ParameterException, PipelineException {
     	if (security.checkParameter(replyEmail, Parameter.EMAIL)) {
     		ZooPhyRunner zoophy;
