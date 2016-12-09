@@ -88,8 +88,8 @@ public class DocumentMapper {
 			rec.setGeonameLocation(loc);
 			Host host = new Host();
 			host.setAccession(acc);
-			if (doc.getField("Host Name") != null) {
-				host.setName(doc.getField("Host Name").stringValue());
+			if (doc.getField("Host_Name") != null) {
+				host.setName(doc.getField("Host_Name").stringValue());
 			}
 			if (doc.getFields("HostID") != null) {
 				for (Field f : doc.getFields("HostID")) {
@@ -111,13 +111,22 @@ public class DocumentMapper {
 			}
 			if (doc.getFields("Gene").length > 0) {
 				List<Gene> genes = rec.getGenes();
+				boolean isComplete = false;
 				for (Field f : doc.getFields("Gene")) {
-					if (!(f.stringValue().equalsIgnoreCase("complet") || f.stringValue().equalsIgnoreCase("complete"))) {
-						Gene g = new Gene();
-						g.setAccession(acc);
-						g.setName(f.stringValue());
-						genes.add(g);
+					if (f.stringValue().equalsIgnoreCase("Complete")) {
+						isComplete = true;
 					}
+					Gene g = new Gene();
+					g.setAccession(acc);
+					g.setName(f.stringValue());
+					genes.add(g);
+				}
+				if (isComplete) {
+					genes.clear();
+					Gene g = new Gene();
+					g.setAccession(acc);
+					g.setName("Complete");
+					genes.add(g);
 				}
 				rec.setGenes(genes);
 			}

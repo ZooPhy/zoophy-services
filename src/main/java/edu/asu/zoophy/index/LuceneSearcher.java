@@ -66,7 +66,7 @@ public class LuceneSearcher {
 		try {
 			indexSearcher = new IndexSearcher(indexDirectory, true);
 			query = queryParser.parse(querystring);
-			docs = indexSearcher.search(query, 10000);
+			docs = indexSearcher.search(query, 2500);
 			for (ScoreDoc scoreDoc : docs.scoreDocs) {
 				Document doc = indexSearcher.doc(scoreDoc.doc);
 				recs.add(DocumentMapper.mapRecord(doc));

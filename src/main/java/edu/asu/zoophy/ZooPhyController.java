@@ -60,11 +60,9 @@ public class ZooPhyController {
 	    	GenBankRecord gbr = null;
 	    	if (isFull) {
 	    		gbr = dao.retrieveFullRecord(accession);
-	    		System.out.println("getting full record");
 	    	}
 	    	else {
 	    		gbr = dao.retrieveLightRecord(accession);
-	    		System.out.println("getting light record");
 	    	}
 	    	return gbr;
     	}
@@ -120,12 +118,16 @@ public class ZooPhyController {
      * @return Set of Geoname IDs that are parents of the given record's location
      * @throws LuceneSearcherException 
      * @throws ParameterException 
+     * @throws DaoException 
+     * @throws GenBankRecordNotFoundException 
      */
     @RequestMapping(value="/location/ancestors", method=RequestMethod.GET)
     @ResponseStatus(value=HttpStatus.OK)
-    public Set<Long> getRecordLocationAncestors(@RequestParam(value="accession") String accession) throws LuceneSearcherException, ParameterException {
+    public Set<Long> getRecordLocationAncestors(@RequestParam(value="accession") String accession) throws LuceneSearcherException, ParameterException, GenBankRecordNotFoundException, DaoException {
     	if (security.checkParameter(accession, Parameter.ACCESSION)) {
+    		Location loc = dao.retrieveLocation(accession);
     		Set<Long> ancestors = indexSearcher.findLocationAncestors(accession);
+    		ancestors.remove(loc.getGeonameID());
     		return ancestors;
     	}
     	else {
@@ -139,7 +141,7 @@ public class ZooPhyController {
      * @param accessions - List of accessions to to run the job on
      * @throws ParameterException
      */
-    @RequestMapping(value="/run", method=RequestMethod.POST)
+    @RequestMapping(value="/run", method=RequestMethod.POST, headers="Accept=application/json")
     @ResponseStatus(value=HttpStatus.NOT_IMPLEMENTED)//TODO: finish pipeline implementation
     public void runZooPhyJob(@RequestBody String replyEmail, @RequestBody(required=false) String jobName, @RequestBody List<String> accessions) throws ParameterException, PipelineException {
     	if (security.checkParameter(replyEmail, Parameter.EMAIL)) {
