@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -45,10 +45,8 @@ public class ZooPhyController {
 	@Autowired
 	private SecurityHelper security;
 	
-	@Autowired
-	private Environment env;
-	
-	private final int JOB_MAX_ACCESSIONS = Integer.parseInt(env.getProperty("job.max.accessions"));
+	@Value("${job.max.accessions}")
+	private Integer JOB_MAX_ACCESSIONS;
 	
     /**
      * Retrieves the specified record from the database.

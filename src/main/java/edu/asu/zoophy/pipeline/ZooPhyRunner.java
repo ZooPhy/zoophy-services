@@ -1,8 +1,7 @@
 package edu.asu.zoophy.pipeline;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -14,7 +13,12 @@ public class ZooPhyRunner {
 	private ZooPhyJob job;
 	private ZooPhyMailer mailer;
 	
-	private static Set<String> ids = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
+	/**
+	 * Map for tracking running jobs
+	 * Key - generated JobID
+	 * Value - server PID
+	 */
+	protected static Map<String, Integer> ids = new ConcurrentHashMap<String, Integer>();
 	
 	public ZooPhyRunner(String replyEmail) {
 		job = new ZooPhyJob(generateID(),null,replyEmail);
@@ -50,11 +54,34 @@ public class ZooPhyRunner {
 	 */
 	private static String generateID() {
 		String id  = java.util.UUID.randomUUID().toString();
-		while (ids.contains(id)) {
+		while (ids.get(id) != null) {
 			id  = java.util.UUID.randomUUID().toString();
 		}
-		ids.add(id);
+		ids.put(id, null);
 		return id;
+	}
+	
+	/**
+	 * Kills the given ZooPhy Job
+	 * @param jobID - ID of ZooPhy job to kill
+	 * @throws PipelineException if the job does not exist
+	 */
+	public static void killJob(String jobID) throws PipelineException {
+		try {
+			Integer pid = ids.get(jobID);
+			if (pid == null || pid < 100) {
+				throw new PipelineException("ERROR! Tried to kill non-existent job: "+jobID, "Job Does Not Exist!");
+			}
+			ProcessBuilder builder = new ProcessBuilder("kill", "-9", pid.toString());
+			Process process = builder.start();
+			process.waitFor();
+			if (process.exitValue() != 0) {
+				throw new PipelineException("ERROR! Could not kill job: "+jobID+" with code: "+process.exitValue(), "Could Not Kill Job!");
+			}
+		}
+		catch (Exception e) {
+			throw new PipelineException("ERROR! Could not kill job: "+jobID+" : "+e.getMessage(), "Could Not Kill Job!");
+		}
 	}
 
 }

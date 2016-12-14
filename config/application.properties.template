@@ -17,5 +17,13 @@ email.from=<Email From Address>
 job.max.accessions=<Maximum Records per Job>
 job.max.locations=<Maximum Unique Locations per Job>
 
+# Pipeline Settings
+beastgen.templates.dir=<BeastGen templates folder path>
+beast.scripts.dir=<Beast scripts folder path>
+geojson.location=<Path to world.geojson file>
+spread.jar.locaton=<Path to SpreaD3.jar file>
+spread3.result.dir=<SpreaD3 results folder path>
+job.logs.dir=<ZooPhy job logs folder path>
+
 # Server HTTP port binding
 server.port=<Server HTTP Port #>
