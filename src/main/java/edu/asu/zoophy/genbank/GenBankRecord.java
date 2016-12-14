@@ -20,7 +20,6 @@ public class GenBankRecord {
 		genes = new LinkedList<Gene>();
 	}
 	
-
 	public String getAccession() {
 		return accession;
 	}
@@ -64,7 +63,6 @@ public class GenBankRecord {
 	public Publication getPublication() {
 		return publication;
 	}
-
 
 	public void setPublication(Publication publication) {
 		this.publication = publication;

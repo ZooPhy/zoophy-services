@@ -59,19 +59,19 @@ public class LuceneSearcher {
 	 * @throws InvalidLuceneQueryException 
 	 */
 	public List<GenBankRecord> searchIndex(String querystring) throws LuceneSearcherException, InvalidLuceneQueryException {
-		List<GenBankRecord> recs = new LinkedList<GenBankRecord>();
+		List<GenBankRecord> records = new LinkedList<GenBankRecord>();
 		IndexSearcher indexSearcher = null;
 		Query query;
-		TopDocs docs;
+		TopDocs documents;
 		try {
 			indexSearcher = new IndexSearcher(indexDirectory, true);
 			query = queryParser.parse(querystring);
-			docs = indexSearcher.search(query, 2500);
-			for (ScoreDoc scoreDoc : docs.scoreDocs) {
-				Document doc = indexSearcher.doc(scoreDoc.doc);
-				recs.add(DocumentMapper.mapRecord(doc));
+			documents = indexSearcher.search(query, 2500);
+			for (ScoreDoc scoreDoc : documents.scoreDocs) {
+				Document document = indexSearcher.doc(scoreDoc.doc);
+				records.add(DocumentMapper.mapRecord(document));
 			}
-			return recs;
+			return records;
 		}
 		catch (ParseException pe) {
 			throw new InvalidLuceneQueryException(pe.getMessage());
@@ -101,16 +101,16 @@ public class LuceneSearcher {
 		Set<Long> ancestors = new HashSet<Long>();
 		IndexSearcher indexSearcher = null;
 		Query query;
-		TopDocs docs;
+		TopDocs documents;
 		String querystring = "Accession:"+accession;
 		try {
 			indexSearcher = new IndexSearcher(indexDirectory, true);
 			query = queryParser.parse(querystring);
-			docs = indexSearcher.search(query, 1);
-			if (docs.scoreDocs != null && docs.scoreDocs.length == 1) {
-				Document doc = indexSearcher.doc(docs.scoreDocs[0].doc);
-				for (Field f : doc.getFields("GeonameID")) {
-					ancestors.add(Long.parseLong(f.stringValue()));
+			documents = indexSearcher.search(query, 1);
+			if (documents.scoreDocs != null && documents.scoreDocs.length == 1) {
+				Document document = indexSearcher.doc(documents.scoreDocs[0].doc);
+				for (Field field : document.getFields("GeonameID")) {
+					ancestors.add(Long.parseLong(field.stringValue()));
 				}
 			}
 			return ancestors;

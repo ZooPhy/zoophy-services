@@ -19,12 +19,12 @@ public class SecurityHelper {
 	
 	/**
 	 * Verifies parameters via regular expression
-	 * @param param - String parameter to check
+	 * @param parameter - String parameter to check
 	 * @param type - Type of allowed parameter
-	 * @return True if param passes regular expression validation
+	 * @return True if parameter passes regular expression validation
 	 */
-	public Boolean checkParameter(String param, Parameter type) {
-		if (param == null || param.trim().isEmpty()) {
+	public Boolean checkParameter(String parameter, Parameter type) {
+		if (parameter == null || parameter.trim().isEmpty()) {
 			return false;
 		}
 		Pattern regex;
@@ -44,8 +44,8 @@ public class SecurityHelper {
 			default:
 				return false;
 		}
-		Matcher match = regex.matcher(param);
-		return match.matches();
+		Matcher matcher = regex.matcher(parameter);
+		return matcher.matches();
 	}
 
 }

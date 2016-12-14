@@ -13,5 +13,9 @@ email.user=<Email Username>
 email.pass=<Email Password>
 email.from=<Email From Address>
 
+# Job Settings
+job.max.accessions=<Maximum Records per Job>
+job.max.locations=<Maximum Unique Locations per Job>
+
 # Server HTTP port binding
 server.port=<Server HTTP Port #>

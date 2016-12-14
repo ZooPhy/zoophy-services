@@ -9,11 +9,12 @@ import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 
 /**
- * Responsible for ZooPhy emails
+ * Responsible for sending ZooPhy email
  * @author devdemetri
  */
 public class ZooPhyMailer {
@@ -25,6 +26,7 @@ public class ZooPhyMailer {
 	private final String password;
 	private final String from;
 	private final ZooPhyJob job;
+	private Logger log = Logger.getLogger("BeastMailer");
 	
 	public ZooPhyMailer(ZooPhyJob job) {
 		this.username = env.getProperty("email.user");
@@ -38,6 +40,7 @@ public class ZooPhyMailer {
 	 * @throws MailerException 
 	 */
 	public void sendStartEmail() throws MailerException {
+		log.info("Sending start email to: "+job.getReplyEmail());
 		try {
 			String custom;
 			if (job.getJobName() != null) {
@@ -138,7 +141,7 @@ public class ZooPhyMailer {
 	        Transport.send(message);
 		}
 		catch (Exception e) {
-			// TODO: figure out what do to with e
+			log.error("Failed to send failure email to: "+job.getReplyEmail()+" : "+e.getMessage());
 		}
 	}
 	

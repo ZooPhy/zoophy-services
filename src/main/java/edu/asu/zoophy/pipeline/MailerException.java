@@ -12,8 +12,8 @@ public class MailerException extends PipelineException {
 
 	private static final long serialVersionUID = -5433642930007356206L;
 
-	public MailerException(String msg, String userMsg) {
-		super(msg, userMsg);
+	public MailerException(String message, String userMessage) {
+		super(message, userMessage);
 	}
 
 }

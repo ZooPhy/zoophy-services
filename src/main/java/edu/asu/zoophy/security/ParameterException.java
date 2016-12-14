@@ -12,8 +12,8 @@ public class ParameterException extends Exception {
 
 	private static final long serialVersionUID = -7398206364233388890L;
 	
-	public ParameterException(String param) {
-		super("Bad Parameter: "+param);
+	public ParameterException(String parameter) {
+		super("Bad Parameter: "+parameter);
 	}
 
 }

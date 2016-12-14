@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -44,6 +45,11 @@ public class ZooPhyController {
 	@Autowired
 	private SecurityHelper security;
 	
+	@Autowired
+	private Environment env;
+	
+	private final int JOB_MAX_ACCESSIONS = Integer.parseInt(env.getProperty("job.max.accessions"));
+	
     /**
      * Retrieves the specified record from the database.
      * @param accession - Accession of GenBankRecord to be retrieved
@@ -57,14 +63,14 @@ public class ZooPhyController {
     @ResponseStatus(value=HttpStatus.OK)
     public GenBankRecord getDatabaseRecord(@RequestParam(value="accession") String accession, @RequestParam(value="isfull", required=false, defaultValue="true") Boolean isFull) throws GenBankRecordNotFoundException, DaoException, ParameterException {
     	if (security.checkParameter(accession, Parameter.ACCESSION)) {
-	    	GenBankRecord gbr = null;
+	    	GenBankRecord record = null;
 	    	if (isFull) {
-	    		gbr = dao.retrieveFullRecord(accession);
+	    		record = dao.retrieveFullRecord(accession);
 	    	}
 	    	else {
-	    		gbr = dao.retrieveLightRecord(accession);
+	    		record = dao.retrieveLightRecord(accession);
 	    	}
-	    	return gbr;
+	    	return record;
     	}
     	else {
     		throw new ParameterException(accession);
@@ -83,8 +89,8 @@ public class ZooPhyController {
     @ResponseStatus(value=HttpStatus.OK)
     public Location getRecordLocation(@RequestParam(value="accession") String accession) throws GenBankRecordNotFoundException, DaoException, ParameterException {
     	if (security.checkParameter(accession, Parameter.ACCESSION)) {
-    		Location loc = dao.retrieveLocation(accession);
-    		return loc;
+    		Location location = dao.retrieveLocation(accession);
+    		return location;
     	}
     	else {
     		throw new ParameterException(accession);
@@ -112,30 +118,6 @@ public class ZooPhyController {
     }
     
     /**
-     * Finds all of the parent locations for a specific record.
-     * Note: this will be removed when the pipeline is integrated into these services.
-     * @param accession - accession to check
-     * @return Set of Geoname IDs that are parents of the given record's location
-     * @throws LuceneSearcherException 
-     * @throws ParameterException 
-     * @throws DaoException 
-     * @throws GenBankRecordNotFoundException 
-     */
-    @RequestMapping(value="/location/ancestors", method=RequestMethod.GET)
-    @ResponseStatus(value=HttpStatus.OK)
-    public Set<Long> getRecordLocationAncestors(@RequestParam(value="accession") String accession) throws LuceneSearcherException, ParameterException, GenBankRecordNotFoundException, DaoException {
-    	if (security.checkParameter(accession, Parameter.ACCESSION)) {
-    		Location loc = dao.retrieveLocation(accession);
-    		Set<Long> ancestors = indexSearcher.findLocationAncestors(accession);
-    		ancestors.remove(loc.getGeonameID());
-    		return ancestors;
-    	}
-    	else {
-    		throw new ParameterException(accession);
-    	}
-    }
-    
-    /**
      * @param replyEmail - User email for results
      * @param jobName - Custom job name (optional)
      * @param accessions - List of accessions to to run the job on
@@ -157,19 +139,19 @@ public class ZooPhyController {
 	    			throw new ParameterException(jobName);
 	    		}
 	    	}
-	    	Set<String> accs = new LinkedHashSet<String>(accessions.size());
-	    	for(String acc : accessions) {
-	    		if  (security.checkParameter(acc, Parameter.ACCESSION)) {
-	    			accs.add(acc);
+	    	Set<String> jobAccessions = new LinkedHashSet<String>(accessions.size());
+	    	for(String accession : accessions) {
+	    		if  (security.checkParameter(accession, Parameter.ACCESSION)) {
+	    			jobAccessions.add(accession);
 	    		}
 	    		else {
-	    			throw new ParameterException(acc);
+	    			throw new ParameterException(accession);
 	    		}
 	    	}
-	    	if (accs.size() > 500) {
+	    	if (jobAccessions.size() > JOB_MAX_ACCESSIONS) {
 	    		throw new ParameterException("accessions list is too long");
 	    	}
-	    	zoophy.runZooPhy(new ArrayList<String>(accs));
+	    	zoophy.runZooPhy(new ArrayList<String>(jobAccessions));
     	}
     	else {
     		throw new ParameterException(replyEmail);

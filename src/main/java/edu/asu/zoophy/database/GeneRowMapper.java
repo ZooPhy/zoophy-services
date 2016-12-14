@@ -14,10 +14,10 @@ import edu.asu.zoophy.genbank.Gene;
 public class GeneRowMapper implements RowMapper<Gene> {
 
 	@Override
-	public Gene mapRow(ResultSet rs, int rowNum) throws SQLException {
+	public Gene mapRow(ResultSet row, int rowNumber) throws SQLException {
 		Gene gene = new Gene();
-		gene.setAccession(rs.getString("Accession"));
-		gene.setName(rs.getString("Normalized_Gene_Name"));
+		gene.setAccession(row.getString("Accession"));
+		gene.setName(row.getString("Normalized_Gene_Name"));
 		return gene;
 	}
 

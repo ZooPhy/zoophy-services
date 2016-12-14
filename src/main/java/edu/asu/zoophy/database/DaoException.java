@@ -12,8 +12,8 @@ public class DaoException extends Exception {
 
 	private static final long serialVersionUID = 6604079125536697161L;
 	
-	public DaoException(String msg) {
-		super(msg);
+	public DaoException(String message) {
+		super(message);
 	}
 
 }

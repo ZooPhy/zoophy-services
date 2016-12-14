@@ -20,35 +20,35 @@ public class DocumentMapper {
 	
 	/**
 	 * Maps Lucene Document to GenBankRecord 
-	 * @param doc - Lucene Document
+	 * @param luceneDocument - Lucene Document to map
 	 * @throws LuceneSearcherException
 	 */
-	public static GenBankRecord mapRecord(Document doc) throws LuceneSearcherException {
-		GenBankRecord rec = new GenBankRecord();
+	public static GenBankRecord mapRecord(Document luceneDocument) throws LuceneSearcherException {
+		GenBankRecord record = new GenBankRecord();
 		try {
-			final String acc = doc.getField("Accession").stringValue();
-			rec.setAccession(acc);
-			Sequence seq = new Sequence();
-			seq.setAccession(acc);
-			if (doc.getField("Date") != null) {
-				seq.setCollectionDate(doc.getField("Date").stringValue());
+			final String recordAccession = luceneDocument.getField("Accession").stringValue();
+			record.setAccession(recordAccession);
+			Sequence sequence = new Sequence();
+			sequence.setAccession(recordAccession);
+			if (luceneDocument.getField("Date") != null) {
+				sequence.setCollectionDate(luceneDocument.getField("Date").stringValue());
 			}
-			if (doc.getField("Definition") != null) {
-				seq.setDefinition(doc.getField("Definition").stringValue());
+			if (luceneDocument.getField("Definition") != null) {
+				sequence.setDefinition(luceneDocument.getField("Definition").stringValue());
 			}
-			if (doc.getField("Organism") != null) {
-				seq.setOrganism(doc.getField("Organism").stringValue());
+			if (luceneDocument.getField("Organism") != null) {
+				sequence.setOrganism(luceneDocument.getField("Organism").stringValue());
 			}
-			if (doc.getField("SegmentLength") != null) {
-				seq.setSegmentLength(Integer.parseInt(doc.getField("SegmentLength").stringValue()));
+			if (luceneDocument.getField("SegmentLength") != null) {
+				sequence.setSegmentLength(Integer.parseInt(luceneDocument.getField("SegmentLength").stringValue()));
 			}
-			if (doc.getField("Strain") != null) {
-				seq.setStrain(doc.getField("Strain").stringValue());
+			if (luceneDocument.getField("Strain") != null) {
+				sequence.setStrain(luceneDocument.getField("Strain").stringValue());
 			}
-			if (doc.getFields("TaxonID") != null) {
-				for (Field f : doc.getFields("TaxonID")) {
+			if (luceneDocument.getFields("TaxonID") != null) {
+				for (Field field : luceneDocument.getFields("TaxonID")) {
 					try {
-						seq.setTaxID(Integer.parseInt(f.stringValue()));
+						sequence.setTaxID(Integer.parseInt(field.stringValue()));
 						break;
 					}
 					catch (Exception e) {
@@ -56,13 +56,13 @@ public class DocumentMapper {
 					}
 				}
 			}
-			rec.setSequence(seq);
-			Location loc = new Location();
-			loc.setAccession(acc);
-			if (doc.getFields("GeonameID") != null) {
-				for (Field f : doc.getFields("GeonameID")) {
+			record.setSequence(sequence);
+			Location location = new Location();
+			location.setAccession(recordAccession);
+			if (luceneDocument.getFields("GeonameID") != null) {
+				for (Field field : luceneDocument.getFields("GeonameID")) {
 					try {
-						loc.setGeonameID(Long.parseLong(f.stringValue()));
+						location.setGeonameID(Long.parseLong(field.stringValue()));
 						break;
 					}
 					catch (Exception e) {
@@ -70,29 +70,29 @@ public class DocumentMapper {
 					}
 				}
 			}
-			if (doc.getField("Location") != null) {
-				loc.setLocation(doc.getField("Location").stringValue());
+			if (luceneDocument.getField("Location") != null) {
+				location.setLocation(luceneDocument.getField("Location").stringValue());
 			}
-			if (doc.getField("LocationType") != null) {
-				loc.setGeonameType(doc.getField("LocationType").stringValue());
+			if (luceneDocument.getField("LocationType") != null) {
+				location.setGeonameType(luceneDocument.getField("LocationType").stringValue());
 			}
-			if (doc.getField("Latitude") != null) {
-				loc.setLatitude(Double.parseDouble(doc.getField("Latitude").stringValue()));
+			if (luceneDocument.getField("Latitude") != null) {
+				location.setLatitude(Double.parseDouble(luceneDocument.getField("Latitude").stringValue()));
 			}
-			if (doc.getField("Longitude") != null) {
-				loc.setLongitude(Double.parseDouble(doc.getField("Longitude").stringValue()));
+			if (luceneDocument.getField("Longitude") != null) {
+				location.setLongitude(Double.parseDouble(luceneDocument.getField("Longitude").stringValue()));
 			}
-			if (doc.getField("Country") != null) {
-				loc.setCountry(doc.getField("Country").stringValue()); 
+			if (luceneDocument.getField("Country") != null) {
+				location.setCountry(luceneDocument.getField("Country").stringValue()); 
 			}
-			rec.setGeonameLocation(loc);
+			record.setGeonameLocation(location);
 			Host host = new Host();
-			host.setAccession(acc);
-			if (doc.getField("Host_Name") != null) {
-				host.setName(doc.getField("Host_Name").stringValue());
+			host.setAccession(recordAccession);
+			if (luceneDocument.getField("Host_Name") != null) {
+				host.setName(luceneDocument.getField("Host_Name").stringValue());
 			}
-			if (doc.getFields("HostID") != null) {
-				for (Field f : doc.getFields("HostID")) {
+			if (luceneDocument.getFields("HostID") != null) {
+				for (Field f : luceneDocument.getFields("HostID")) {
 					try {
 						host.setTaxon(Integer.parseInt(f.stringValue()));
 						break;
@@ -103,34 +103,34 @@ public class DocumentMapper {
 				}
 			}
 			if (host.getTaxon() != null && host.getTaxon() != 1) {
-				rec.setHost(host);
+				record.setHost(host);
 			}
-			Publication pub = new Publication();
-			if (doc.getField("PubmedID") != null && !doc.getField("PubmedID").stringValue().equalsIgnoreCase("n/a")) {
-				pub.setPubMedID(Integer.parseInt(doc.getField("PubmedID").stringValue()));
+			Publication publication = new Publication();
+			if (luceneDocument.getField("PubmedID") != null && !luceneDocument.getField("PubmedID").stringValue().equalsIgnoreCase("n/a")) {
+				publication.setPubMedID(Integer.parseInt(luceneDocument.getField("PubmedID").stringValue()));
 			}
-			if (doc.getFields("Gene").length > 0) {
-				List<Gene> genes = rec.getGenes();
+			if (luceneDocument.getFields("Gene").length > 0) {
+				List<Gene> genes = record.getGenes();
 				boolean isComplete = false;
-				for (Field f : doc.getFields("Gene")) {
-					if (f.stringValue().equalsIgnoreCase("Complete")) {
+				for (Field field : luceneDocument.getFields("Gene")) {
+					if (field.stringValue().equalsIgnoreCase("Complete")) {
 						isComplete = true;
 					}
-					Gene g = new Gene();
-					g.setAccession(acc);
-					g.setName(f.stringValue());
-					genes.add(g);
+					Gene gene = new Gene();
+					gene.setAccession(recordAccession);
+					gene.setName(field.stringValue());
+					genes.add(gene);
 				}
 				if (isComplete) {
 					genes.clear();
-					Gene g = new Gene();
-					g.setAccession(acc);
-					g.setName("Complete");
-					genes.add(g);
+					Gene gene = new Gene();
+					gene.setAccession(recordAccession);
+					gene.setName("Complete");
+					genes.add(gene);
 				}
-				rec.setGenes(genes);
+				record.setGenes(genes);
 			}
-			return rec;
+			return record;
 		}
 		catch (Exception e) {
 			throw new LuceneSearcherException("Failed to map document to record: "+e.getCause() + " : " + e.getMessage());

@@ -14,14 +14,14 @@ import edu.asu.zoophy.genbank.Publication;
 public class PublicationRowMapper implements RowMapper<Publication> {
 
 	@Override
-	public Publication mapRow(ResultSet rs, int rowNum) throws SQLException {
-		Publication pub = new Publication();
-		pub.setAuthors(rs.getString("Authors"));
-		pub.setCentralID(rs.getString("Pubmed_Central_ID"));
-		pub.setJournal(rs.getString("Journal"));
-		pub.setPubMedID(rs.getInt("Pubmed_ID"));
-		pub.setTitle(rs.getString("Title"));
-		return pub;
+	public Publication mapRow(ResultSet row, int rowNumber) throws SQLException {
+		Publication publication = new Publication();
+		publication.setAuthors(row.getString("Authors"));
+		publication.setCentralID(row.getString("Pubmed_Central_ID"));
+		publication.setJournal(row.getString("Journal"));
+		publication.setPubMedID(row.getInt("Pubmed_ID"));
+		publication.setTitle(row.getString("Title"));
+		return publication;
 	}
 
 }
