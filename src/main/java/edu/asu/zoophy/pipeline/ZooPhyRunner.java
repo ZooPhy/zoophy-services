@@ -37,14 +37,17 @@ public class ZooPhyRunner {
 		try {
 			mailer = new ZooPhyMailer(job);
 			mailer.sendStartEmail();
-			//TODO: add rest of pipeline
-			// mailer.sendSuccessEmail();
+			SequenceAligner aligner = new SequenceAligner(job);
+			aligner.align(accessions);
+			BeastRunner beast = new BeastRunner(job, mailer);
+			beast.run();
+			mailer.sendSuccessEmail();
 		}
 		catch (PipelineException pe) {
 			mailer.sendFailureEmail(pe.getUserMessage());
 		}
 		catch (Exception e) {
-			mailer.sendFailureEmail("Server Error");
+			mailer.sendFailureEmail("Internal Server Error");
 		}
 	}
 	
@@ -54,7 +57,7 @@ public class ZooPhyRunner {
 	 */
 	private static String generateID() {
 		String id  = java.util.UUID.randomUUID().toString();
-		while (ids.get(id) != null) {
+		while (ids.keySet().contains(id)) {
 			id  = java.util.UUID.randomUUID().toString();
 		}
 		ids.put(id, null);

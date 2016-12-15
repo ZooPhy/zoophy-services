@@ -2,6 +2,8 @@ package edu.asu.zoophy.pipeline;
 
 import java.io.File;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -12,7 +14,6 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
-import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 
@@ -29,9 +30,10 @@ public class ZooPhyMailer {
 	private final String password;
 	private final String from;
 	private final ZooPhyJob job;
-	private Logger log = Logger.getLogger("BeastMailer");
+	private Logger log;
 	
 	public ZooPhyMailer(ZooPhyJob job) {
+		log = Logger.getLogger("ZooPhyMailer");
 		this.username = env.getProperty("email.user");
 		this.password = env.getProperty("email.pass");
 		this.from = env.getProperty("email.from");
@@ -73,6 +75,16 @@ public class ZooPhyMailer {
 	}
 	
 	/**
+	 * Sends a time estimate to user
+	 * @param finishTime
+	 * @param finalUpdate
+	 */
+	public void sendUpdateEmail(String finishTime, boolean finalUpdate) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	/**
 	 * Notifies user that their job failed
 	 * @param reason - Reason for the job failing
 	 * @throws MailerException 
@@ -96,7 +108,7 @@ public class ZooPhyMailer {
 	        sendEmail(msgText, null);
 		}
 		catch (Exception e) {
-			log.error("Failed to send failure email to: "+job.getReplyEmail()+" : "+e.getMessage());
+			log.log(Level.SEVERE, "Failed to send failure email to: "+job.getReplyEmail()+" : "+e.getMessage());
 		}
 	}
 	

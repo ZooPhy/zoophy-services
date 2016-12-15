@@ -6,16 +6,16 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import edu.asu.zoophy.pipeline.PipelineException;
 
 /**
- * Custom exception for Geoname Disjointer errors
+ * Custom exception for Pipeline Normalizer errors
  * @author devdemetri
  */
 @ResponseStatus(value=HttpStatus.INTERNAL_SERVER_ERROR)
-public class DisjointerException extends PipelineException {
+public class NormalizerException extends PipelineException {
 
-	private static final long serialVersionUID = -6481210949889573944L;
+	private static final long serialVersionUID = 4343167902900185061L;
 
-	public DisjointerException(String message, String userMessage) {
+	public NormalizerException(String message, String userMessage) {
 		super(message, userMessage);
 	}
-	
+
 }

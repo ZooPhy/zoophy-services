@@ -40,8 +40,13 @@ public class GeonameDisjointer {
 		ancestors = new HashMap<String,Set<Long>>();
 	}
 	
+	/**
+	 * 
+	 * @param recordsToCheck
+	 * @return
+	 * @throws DisjointerException
+	 */
 	public List<GenBankRecord> disjointRecords(List<GenBankRecord> recordsToCheck) throws DisjointerException {
-		
 		Map<Long,Long> disjoins = new HashMap<Long,Long>();
 		Set<Location> locations = new LinkedHashSet<Location>();
 		Map<String,Integer> types = new LinkedHashMap<String,Integer>();
@@ -49,7 +54,6 @@ public class GeonameDisjointer {
 		Map<Long,String> idToLocation = new HashMap<Long,String>();
 		String commonType = null;
 		int maxType = 0;
-		
 		for (int i = 0; i < recordsToCheck.size(); i++) {
 			GenBankRecord record = recordsToCheck.get(i);
 			if (record.getGeonameLocation() == null || Normalizer.normalizeLocation(record.getGeonameLocation()).equalsIgnoreCase("unknown") || record.getGeonameLocation().getGeonameType() == null) {
