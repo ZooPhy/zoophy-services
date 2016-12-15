@@ -6,6 +6,8 @@ spring.datasource.username=<DB User>
 spring.datasource.password=<DB Password>
 spring.datasource.tomcat.max-active=12
 spring.datasource.tomcat.test-on-borrow=true
+
+# Lucene info
 lucene.index.location=<Lucene Index Path>
 
 # Email info
@@ -19,9 +21,11 @@ job.max.locations=<Maximum Unique Locations per Job>
 
 # Pipeline Settings
 beastgen.template=<Path to BeastGen template file>
+beastgen.jar=<Path to beastgen.jar file>
 beast.scripts.dir=<Beast scripts folder path>
+figtree.template=<Path to FigTree template file>
 geojson.location=<Path to world.geojson file>
-spread.jar.locaton=<Path to SpreaD3.jar file>
+spread.jar.locaton=<Path to spread.jar file>
 spread3.result.dir=<SpreaD3 results folder path>
 job.logs.dir=<ZooPhy job logs folder path>
 

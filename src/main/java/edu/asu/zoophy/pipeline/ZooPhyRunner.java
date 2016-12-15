@@ -74,7 +74,7 @@ public class ZooPhyRunner {
 	}
 	
 	/**
-	 * Kills the given ZooPhy Job
+	 * Kills the given ZooPhy Job. NOTE: Currently only works on Unix based systems, NOT Windows.
 	 * @param jobID - ID of ZooPhy job to kill
 	 * @throws PipelineException if the job does not exist
 	 */
@@ -85,10 +85,10 @@ public class ZooPhyRunner {
 				throw new PipelineException("ERROR! Tried to kill non-existent job: "+jobID, "Job Does Not Exist!");
 			}
 			ProcessBuilder builder = new ProcessBuilder("kill", "-9", pid.toString());
-			Process process = builder.start();
-			process.waitFor();
-			if (process.exitValue() != 0) {
-				throw new PipelineException("ERROR! Could not kill job: "+jobID+" with code: "+process.exitValue(), "Could Not Kill Job!");
+			Process killProcess = builder.start();
+			killProcess.waitFor();
+			if (killProcess.exitValue() != 0) {
+				throw new PipelineException("ERROR! Could not kill job: "+jobID+" with code: "+killProcess.exitValue(), "Could Not Kill Job!");
 			}
 		}
 		catch (Exception e) {
