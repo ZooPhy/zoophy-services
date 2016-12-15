@@ -141,7 +141,9 @@ public class BeastRunner {
 		builder.redirectError(Redirect.appendTo(logFile));
 		log.info("Starting Process: "+builder.command().toString());
 		Process beastGenProcess = builder.start();
+		//TODO: ZooPhyRunner.setPID(job.getID(), beastGenProcessID);
 		beastGenProcess.waitFor();
+		//TODO: ZooPhyRunner.setPID(job.getID(), null);
 		if (beastGenProcess.exitValue() != 0) {
 			log.log(Level.SEVERE, "BeastGen failed! with code: "+beastGenProcess.exitValue());
 			throw new BeastException("BeastGen failed! with code: "+beastGenProcess.exitValue(), null);
@@ -169,9 +171,11 @@ public class BeastRunner {
 		tail = new Tailer(logFile, listener);
 		log.info("Starting Process: "+builder.command().toString());
 		Process beastProcess = builder.start();
+		//TODO: ZooPhyRunner.setPID(job.getID(), beastProcessID);
 		tail.run();
 		beastProcess.waitFor();
 		tail.stop();
+		//TODO: ZooPhyRunner.setPID(job.getID(), null);
 		if (beastProcess.exitValue() != 0) {
 			tail.stop();
 			log.log(Level.SEVERE, "BEAST failed! with code: "+beastProcess.exitValue());
@@ -188,9 +192,11 @@ public class BeastRunner {
 			builder.redirectError(Redirect.appendTo(logFile));
 			log.info("Starting Process: "+builder.command().toString());
 			Process beastRerunProcess = builder.start();
+			//TODO: ZooPhyRunner.setPID(job.getID(), beastProcessID);
 			tail.run();
 			beastRerunProcess.waitFor();
 			tail.stop();
+			//TODO: ZooPhyRunner.setPID(job.getID(), null);
 			if (beastRerunProcess.exitValue() != 0) {
 				tail.stop();
 				log.log(Level.SEVERE, "Always-scaling BEAST failed! with code: "+beastProcess.exitValue());
@@ -224,7 +230,9 @@ public class BeastRunner {
 		builder.redirectError(Redirect.appendTo(logFile));
 		log.info("Starting Process: "+builder.command().toString());
 		Process treeAnnotatorProcess = builder.start();
+		//TODO: ZooPhyRunner.setPID(job.getID(), treeAnnotatorProcessID);
 		treeAnnotatorProcess.waitFor();
+		//TODO: ZooPhyRunner.setPID(job.getID(), null);
 		if (treeAnnotatorProcess.exitValue() != 0) {
 			log.log(Level.SEVERE, "Tree Annotator failed! with code: "+treeAnnotatorProcess.exitValue());
 			throw new BeastException("Tree Annotator failed! with code: "+treeAnnotatorProcess.exitValue(), null);
@@ -282,7 +290,9 @@ public class BeastRunner {
 		builder.redirectError(Redirect.appendTo(logFile));
 		log.info("Starting Process: "+builder.command().toString());
 		Process spreadGenerationProcess = builder.start();
+		//TODO: ZooPhyRunner.setPID(job.getID(), spreadGeneratorProcessID);
 		spreadGenerationProcess.waitFor();
+		//TODO: ZooPhyRunner.setPID(job.getID(), null);
 		if (spreadGenerationProcess.exitValue() != 0) {
 			log.log(Level.SEVERE, "SpreaD3 generation failed! with code: "+spreadGenerationProcess.exitValue());
 			throw new BeastException("SpreaD3 generation failed! with code: "+spreadGenerationProcess.exitValue(), null);
@@ -295,7 +305,9 @@ public class BeastRunner {
 		builder.redirectError(Redirect.appendTo(logFile));
 		log.info("Starting Process: "+builder.command().toString());
 		Process spreadRenderProcess = builder.start();
+		//TODO: ZooPhyRunner.setPID(job.getID(), spreadRenderProcessID);
 		spreadRenderProcess.waitFor();
+		//TODO: ZooPhyRunner.setPID(job.getID(), null);
 		if (spreadRenderProcess.exitValue() != 0) {
 			log.log(Level.SEVERE, "SpreaD3 rendering failed! with code: "+spreadRenderProcess.exitValue());
 			throw new BeastException("SpreaD3 rendering failed! with code: "+spreadRenderProcess.exitValue(), null);

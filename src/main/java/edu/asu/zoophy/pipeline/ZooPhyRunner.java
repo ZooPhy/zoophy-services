@@ -18,7 +18,7 @@ public class ZooPhyRunner {
 	 * Key - generated JobID
 	 * Value - server PID
 	 */
-	protected static Map<String, Integer> ids = new ConcurrentHashMap<String, Integer>();
+	private static Map<String, Integer> ids = new ConcurrentHashMap<String, Integer>();
 	
 	public ZooPhyRunner(String replyEmail) {
 		job = new ZooPhyJob(generateID(),null,replyEmail);
@@ -49,6 +49,15 @@ public class ZooPhyRunner {
 		catch (Exception e) {
 			mailer.sendFailureEmail("Internal Server Error");
 		}
+	}
+	
+	/**
+	 * Update the pid for a ZooPhyJob
+	 * @param jobID
+	 * @param pid
+	 */
+	protected static void setPID(String jobID, Integer pid) {
+		ids.put(jobID, pid);
 	}
 	
 	/**
