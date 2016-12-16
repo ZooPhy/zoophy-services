@@ -3,6 +3,8 @@ package edu.asu.zoophy.pipeline;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Responsible for running ZooPhy jobs
@@ -12,6 +14,7 @@ public class ZooPhyRunner {
 	
 	private ZooPhyJob job;
 	private ZooPhyMailer mailer;
+	private Logger log;
 	
 	/**
 	 * Map for tracking running jobs
@@ -19,12 +22,10 @@ public class ZooPhyRunner {
 	 * Value - server PID
 	 */
 	private static Map<String, Integer> ids = new ConcurrentHashMap<String, Integer>();
-	
-	public ZooPhyRunner(String replyEmail) {
-		job = new ZooPhyJob(generateID(),null,replyEmail);
-	}
 
-	public ZooPhyRunner(String replyEmail, String jobName) {
+	public ZooPhyRunner(String replyEmail, String jobName) throws PipelineException {
+		log = Logger.getLogger("ZooPhyRunner");
+		log.info("Initializing ZooPhy Job");
 		job = new ZooPhyJob(generateID(),jobName,replyEmail);
 	}
 	
@@ -35,18 +36,30 @@ public class ZooPhyRunner {
 	 */
 	public void runZooPhy(List<String> accessions) throws PipelineException {
 		try {
+			log.info("Initializing ZooPhyMailer... : "+job.getID());
 			mailer = new ZooPhyMailer(job);
+			log.info("Sending Start Email... : "+job.getID());
 			mailer.sendStartEmail();
+			log.info("Initializing Sequence Aligner... : "+job.getID());
 			SequenceAligner aligner = new SequenceAligner(job);
+			log.info("Running Sequence Aligner... : "+job.getID());
 			aligner.align(accessions);
+			log.info("Initializing Beast Runner... : "+job.getID());
 			BeastRunner beast = new BeastRunner(job, mailer);
+			log.info("Starting Beast Runner... : "+job.getID());
 			beast.run();
+			log.info("Sending Results Email... : "+job.getID());
 			mailer.sendSuccessEmail();
+			log.info("ZooPhy Job Complete: "+job.getID());
 		}
 		catch (PipelineException pe) {
+			log.log(Level.SEVERE, "PipelineException for job: "+job.getID()+" : "+pe.getMessage());
+			log.info("Sending Failure Email... : "+job.getID());
 			mailer.sendFailureEmail(pe.getUserMessage());
 		}
 		catch (Exception e) {
+			log.log(Level.SEVERE, "Unhandled Exception for job: "+job.getID()+" : "+e.getMessage());
+			log.info("Sending Failure Email... : "+job.getID());
 			mailer.sendFailureEmail("Internal Server Error");
 		}
 	}
@@ -56,21 +69,31 @@ public class ZooPhyRunner {
 	 * @param jobID
 	 * @param pid
 	 */
-	protected static void setPID(String jobID, Integer pid) {
+	protected static void setPID(String jobID, int pid) {
 		ids.put(jobID, pid);
 	}
 	
 	/**
 	 * Generates a UUID to be used as a jobID
 	 * @return Unused UUID
+	 * @throws PipelineException 
 	 */
-	private static String generateID() {
-		String id  = java.util.UUID.randomUUID().toString();
-		while (ids.keySet().contains(id)) {
-			id  = java.util.UUID.randomUUID().toString();
+	private String generateID() throws PipelineException {
+		try {
+			log.info("Generating UID...");
+			String id  = java.util.UUID.randomUUID().toString();
+			log.info("Trying ID: "+id);
+			while (ids.keySet().contains(id)) {
+				id  = java.util.UUID.randomUUID().toString();
+			}
+			log.info("Assigned ID: "+id);
+			ids.put(id, 0);
+			return id;
 		}
-		ids.put(id, null);
-		return id;
+		catch (Exception e) {
+			log.log(Level.SEVERE, "Error generating job ID: "+e.getMessage());
+			throw new PipelineException("Error generating job ID: "+e.getMessage(), "Failed to start ZooPhy Job!");
+		}
 	}
 	
 	/**

@@ -66,12 +66,13 @@ public class ZoophyDAO {
 			try {
 				record = jdbc.queryForObject(PULL_RECORD_DETAILS, parameters, new GenBankRecordRowMapper());
 				record.setGenes(jdbc.query(PULL_RECORD_GENES, parameters, new GeneRowMapper()));
-				record.setPublication(jdbc.queryForObject(PULL_RECORD_PUBLICATION, parameters, new PublicationRowMapper()));
+				try {
+					record.setPublication(jdbc.queryForObject(PULL_RECORD_PUBLICATION, parameters, new PublicationRowMapper()));
+				}
+				catch (EmptyResultDataAccessException erdae){}
 			}
 			catch (EmptyResultDataAccessException erdae) {
-				if (record == null) {
-					throw new GenBankRecordNotFoundException(accession);
-				}
+				throw new GenBankRecordNotFoundException(accession);
 			}
 			return record;
 		}

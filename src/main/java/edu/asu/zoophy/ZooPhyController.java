@@ -122,23 +122,24 @@ public class ZooPhyController {
      * @throws ParameterException
      */
     @RequestMapping(value="/run", method=RequestMethod.POST, headers="Accept=application/json")
-    @ResponseStatus(value=HttpStatus.NOT_IMPLEMENTED)//TODO: finish pipeline implementation
-    public void runZooPhyJob(@RequestBody String replyEmail, @RequestBody(required=false) String jobName, @RequestBody List<String> accessions) throws ParameterException, PipelineException {
-    	if (security.checkParameter(replyEmail, Parameter.EMAIL)) {
+    @ResponseStatus(value=HttpStatus.ACCEPTED)
+    public void runZooPhyJob(@RequestBody JobParameters parameters) throws ParameterException, PipelineException {
+    	if (security.checkParameter(parameters.getReplyEmail(), Parameter.EMAIL)) {
     		ZooPhyRunner zoophy;
-	    	if (jobName == null) {
-	    			zoophy = new ZooPhyRunner(replyEmail);
+    		//TODO: fix NullPointerExceptions 
+	    	if (parameters.getJobName() == null) {
+	    			zoophy = new ZooPhyRunner(parameters.getReplyEmail(), null);
 	    	}
 	    	else {
-	    		if (security.checkParameter(jobName, Parameter.JOB_NAME)) {
-	    			zoophy = new ZooPhyRunner(replyEmail, jobName);
+	    		if (security.checkParameter(parameters.getJobName(), Parameter.JOB_NAME)) {
+	    			zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName());
 	    		}
 	    		else {
-	    			throw new ParameterException(jobName);
+	    			throw new ParameterException(parameters.getJobName());
 	    		}
 	    	}
-	    	Set<String> jobAccessions = new LinkedHashSet<String>(accessions.size());
-	    	for(String accession : accessions) {
+	    	Set<String> jobAccessions = new LinkedHashSet<String>(parameters.getAccessions().size());
+	    	for(String accession : parameters.getAccessions()) {
 	    		if  (security.checkParameter(accession, Parameter.ACCESSION)) {
 	    			jobAccessions.add(accession);
 	    		}
@@ -152,7 +153,7 @@ public class ZooPhyController {
 	    	zoophy.runZooPhy(new ArrayList<String>(jobAccessions));
     	}
     	else {
-    		throw new ParameterException(replyEmail);
+    		throw new ParameterException(parameters.getReplyEmail());
     	}
     }
     
