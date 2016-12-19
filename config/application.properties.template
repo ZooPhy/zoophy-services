@@ -20,10 +20,8 @@ job.max.accessions=<Maximum Records per Job>
 job.max.locations=<Maximum Unique Locations per Job>
 
 # Pipeline Settings
-beastgen.jar=<Path to beastgen.jar file>
 beast.scripts.dir=<Beast scripts folder path>
 geojson.location=<Path to world.geojson file>
-spread.jar.locaton=<Path to spread.jar file>
 spread3.result.dir=<SpreaD3 results folder path>
 job.logs.dir=<ZooPhy job logs folder path>
 
