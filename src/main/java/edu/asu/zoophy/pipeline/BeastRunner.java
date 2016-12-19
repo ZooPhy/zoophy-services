@@ -172,7 +172,7 @@ public class BeastRunner {
 		if (wasKilled) {
 			return;
 		}
-		File beastOutput = new File(System.getProperty("user.dir")+"/"+jobID+OUTPUT_TREES);
+		File beastOutput = new File(System.getProperty("user.dir")+"/ZooPhyJobs/"+jobID+OUTPUT_TREES);
 		if (!beastOutput.exists() || scanForBeastError()) {
 			log.log(Level.SEVERE, "BEAST did not produce output! Trying it in always scaling mode...");
 			builder = new ProcessBuilder(beast, "-beagle_scaling", "always", "-overwrite", beastDirPath + input).directory(beastDir);
@@ -189,7 +189,7 @@ public class BeastRunner {
 				log.log(Level.SEVERE, "Always-scaling BEAST failed! with code: "+beastProcess.exitValue());
 				throw new BeastException("Always-scaling BEAST failed! with code: "+beastProcess.exitValue(), null);
 			}
-			beastOutput = new File(System.getProperty("user.dir")+"/"+jobID+OUTPUT_TREES);
+			beastOutput = new File(System.getProperty("user.dir")+"/ZooPhyJobs/"+jobID+OUTPUT_TREES);
 			if (!beastOutput.exists()) {
 				log.log(Level.SEVERE, "Always-scaling BEAST did not produce output!");
 				throw new BeastException("Always-scaling BEAST did not produce output!", null);
@@ -208,7 +208,7 @@ public class BeastRunner {
 	 */
 	private String runTreeAnnotator(String trees) throws BeastException, IOException, InterruptedException {
 		String tree = trees.substring(0, trees.indexOf("-")) + RESULT_TREE;
-		String baseDir = System.getProperty("user.dir") + "/";
+		String baseDir = System.getProperty("user.dir") + "/ZooPhyJobs/";
 		String workingDir = baseDir+"ZooPhyJobs/";
 		String treeannotator = BEAST_SCRIPTS_DIR+"treeannotator";
 		log.info("Running Tree Annotator...");
@@ -265,7 +265,7 @@ public class BeastRunner {
 	 * @throws IOException
 	 */
 	private void runSpread() throws BeastException, InterruptedException, IOException {
-		String workingDir = System.getProperty("user.dir")+"/"+"ZooPhyJobs/"+job.getID();
+		String workingDir = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID();
 		log.info("Running SpreaD3 generator...");
 		String coordinatesFile = workingDir+"-coords.txt";
 		String treeFile = workingDir+".tree";
@@ -305,7 +305,7 @@ public class BeastRunner {
 	private void cleanupBeast() throws BeastException {
 		log.info("Cleaning up BEAST...");
 		try {
-			String baseDir = System.getProperty("user.dir") + "/";
+			String baseDir = System.getProperty("user.dir") + "/ZoophyJobs/";
 			Path fileToDelete = Paths.get(baseDir+job.getID()+OUTPUT_TREES);
 			Files.delete(fileToDelete);
 			fileToDelete = Paths.get(baseDir+job.getID()+"-aligned.log");
@@ -314,7 +314,6 @@ public class BeastRunner {
 			Files.delete(fileToDelete);
 			fileToDelete = Paths.get(baseDir+job.getID()+"-aligned.states.rates.log");
 			Files.delete(fileToDelete);
-			baseDir += "ZooPhyJobs/";
 			fileToDelete = Paths.get(baseDir+job.getID()+ALIGNED_FASTA);
 			Files.delete(fileToDelete);
 			log.info("Cleanup complete.");
@@ -411,7 +410,7 @@ public class BeastRunner {
 	 */
 	private boolean checkRateMatrix() {
 		try {
-			File rateLog = new File(System.getProperty("user.dir")+"/"+job.getID()+"-aligned.states.rates.log");
+			File rateLog = new File(System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"-aligned.states.rates.log");
 			if (rateLog.exists()) {
 				RateTailerListener rateListener = new RateTailerListener(); 
 				rateTail = new Tailer(rateLog, rateListener);
