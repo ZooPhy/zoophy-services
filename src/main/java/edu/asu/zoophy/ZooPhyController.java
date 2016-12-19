@@ -24,6 +24,7 @@ import edu.asu.zoophy.index.InvalidLuceneQueryException;
 import edu.asu.zoophy.index.LuceneSearcher;
 import edu.asu.zoophy.index.LuceneSearcherException;
 import edu.asu.zoophy.pipeline.PipelineException;
+import edu.asu.zoophy.pipeline.PipelineManager;
 import edu.asu.zoophy.pipeline.ZooPhyRunner;
 import edu.asu.zoophy.security.Parameter;
 import edu.asu.zoophy.security.ParameterException;
@@ -44,6 +45,9 @@ public class ZooPhyController {
 	
 	@Autowired
 	private SecurityHelper security;
+	
+	@Autowired
+	private PipelineManager manager;
 	
 	@Value("${job.max.accessions}")
 	private Integer JOB_MAX_ACCESSIONS;
@@ -119,14 +123,14 @@ public class ZooPhyController {
      * @param replyEmail - User email for results
      * @param jobName - Custom job name (optional)
      * @param accessions - List of accessions to to run the job on
+     * @return JobID for the started ZooPhy job
      * @throws ParameterException
      */
     @RequestMapping(value="/run", method=RequestMethod.POST, headers="Accept=application/json")
     @ResponseStatus(value=HttpStatus.ACCEPTED)
-    public void runZooPhyJob(@RequestBody JobParameters parameters) throws ParameterException, PipelineException {
+    public String runZooPhyJob(@RequestBody JobParameters parameters) throws ParameterException, PipelineException {
     	if (security.checkParameter(parameters.getReplyEmail(), Parameter.EMAIL)) {
     		ZooPhyRunner zoophy;
-    		//TODO: fix NullPointerExceptions 
 	    	if (parameters.getJobName() == null) {
 	    			zoophy = new ZooPhyRunner(parameters.getReplyEmail(), null);
 	    	}
@@ -150,7 +154,8 @@ public class ZooPhyController {
 	    	if (jobAccessions.size() > JOB_MAX_ACCESSIONS) {
 	    		throw new ParameterException("accessions list is too long");
 	    	}
-	    	zoophy.runZooPhy(new ArrayList<String>(jobAccessions));
+	    	manager.startZooPhyPipeline(zoophy, new ArrayList<String>(jobAccessions));
+	    	return zoophy.getJobID();
     	}
     	else {
     		throw new ParameterException(parameters.getReplyEmail());

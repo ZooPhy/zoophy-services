@@ -6,26 +6,26 @@ package edu.asu.zoophy.pipeline;
  */
 public final class ZooPhyJob {
 	
-	private String id;
-	private String jobName;
-	private String replyEmail;
+	private final String ID;
+	private final String JOB_NAME;
+	private final String REPLY_EMAIL;
 	
 	public ZooPhyJob(String id, String name, String email) {
-		this.id = id;
-		this.jobName = name;
-		this.replyEmail = email;
+		ID = id;
+		JOB_NAME = name;
+		REPLY_EMAIL = email;
 	}
 	
 	public String getID() {
-		return id;
+		return ID;
 	}
 	
 	public String getJobName() {
-		return jobName;
+		return JOB_NAME;
 	}
 	
 	public String getReplyEmail() {
-		return replyEmail;
+		return REPLY_EMAIL;
 	}
 	
 }

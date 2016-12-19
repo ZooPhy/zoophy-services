@@ -26,20 +26,20 @@ import org.w3c.dom.NodeList;
  */
 public class DiscreteTraitInserter {
 	
-	private ZooPhyJob job;
+	private final String DOCUMENT_PATH;
+	private final ZooPhyJob job;
 	private Set<String> locations;
 	private Document document;
-	private String documentPath;
 	private Node beastNode;
 
 	public DiscreteTraitInserter(ZooPhyJob job) throws TraitException {
 		try {
 			this.job = job;
-			documentPath = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+".xml";
+			DOCUMENT_PATH = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+".xml";
 			locations = new HashSet<String>();
 			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
 			DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-			document = docBuilder.parse(documentPath);
+			document = docBuilder.parse(DOCUMENT_PATH);
 			beastNode = document.getElementsByTagName("beast").item(0);
 		}
 		catch (Exception e) {
@@ -469,7 +469,7 @@ public class DiscreteTraitInserter {
 			TransformerFactory transformerFactory = TransformerFactory.newInstance();
 			Transformer transformer = transformerFactory.newTransformer();
 			DOMSource source = new DOMSource(document);
-			StreamResult result = new StreamResult(new File(documentPath));
+			StreamResult result = new StreamResult(new File(DOCUMENT_PATH));
 			transformer.transform(source, result);
 			beastNode = null;
 			document = null;

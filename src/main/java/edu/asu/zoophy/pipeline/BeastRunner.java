@@ -20,7 +20,6 @@ import java.util.logging.SimpleFormatter;
 
 import org.apache.commons.io.input.Tailer;
 import org.apache.commons.io.input.TailerListenerAdapter;
-import org.springframework.beans.factory.annotation.Value;
 
 /**
  * Responsible for running BEAST processes
@@ -28,45 +27,38 @@ import org.springframework.beans.factory.annotation.Value;
  */
 public class BeastRunner {
 	
-	@Value("${job.logs.dir}")
-	private static String jobLogDir;
-	
-	@Value("${beast.scripts.dir}")
-	private static String beastScripts;
-	
-	@Value("${spread.jar.locaton}")
-	private static String spreaD3;
-	
-	@Value("${geojson.location}")
-	private static String worldGeojson;
-	
-	@Value("${spread3.result.dir}")
-	private static String renderFolder;
-	
-	@Value("${beastgen.jar}")
-	private static String beastGenJar;
-	
-	@Value("${beastgen.template}")
-	private static String beastGenTemplate;
-	
-	@Value("${figtree.template}")
-	private static String figtreeTemplate;
-	
+	private final String JOB_LOG_DIR;
+	private final String BEAST_SCRIPTS_DIR;
+	private final String SPREAD3;
+	private final String WORLD_GEOJSON;
+	private final String RENDER_DIR;
+	private final String BEASTGEN_JAR;
+	private final String BEASTGEN_TEMPLATE;
+	private final String FIGTREE_TEMPLATE;
 	private final static String ALIGNED_FASTA = "-aligned.fasta";
 	private final static String INPUT_XML = ".xml";
 	private final static String OUTPUT_TREES = "-aligned.trees";
 	private final static String RESULT_TREE = ".tree";
 	
-	private Logger log;
+	private final Logger log;
+	private final ZooPhyMailer mailer;
+	private final ZooPhyJob job;
 	private File logFile;
 	private Tailer tail = null;
 	private Tailer rateTail = null;
 	private Process beastProcess;
-	private ZooPhyMailer mailer;
-	private ZooPhyJob job;
 	private boolean wasKilled = false;
 	
-	public BeastRunner(ZooPhyJob job, ZooPhyMailer mailer) {
+	public BeastRunner(ZooPhyJob job, ZooPhyMailer mailer) throws PipelineException {
+		PropertyProvider provider = PropertyProvider.getInstance();
+		JOB_LOG_DIR = provider.getProperty("job.logs.dir");
+		BEAST_SCRIPTS_DIR = provider.getProperty("beast.scripts.dir");
+		SPREAD3 = provider.getProperty("spread.jar.locaton");
+		WORLD_GEOJSON = provider.getProperty("geojson.location");
+		RENDER_DIR = provider.getProperty("spread3.result.dir");
+		BEASTGEN_JAR = provider.getProperty("beastgen.jar");
+		BEASTGEN_TEMPLATE = System.getProperty("user.dir")+"/Templates/beastGen.template";
+		FIGTREE_TEMPLATE = System.getProperty("user.dir")+"/Templates/figtreeBlock.template";
 		log = Logger.getLogger("BeastRunner");
 		this.mailer = mailer;
 		this.job = job;
@@ -80,8 +72,8 @@ public class BeastRunner {
 		String resultingTree = null;
 		FileHandler fileHandler = null;
 		try {
-			logFile = new File(jobLogDir+job.getID()+".log");
-			fileHandler = new FileHandler(jobLogDir+job.getID()+".log", true);
+			logFile = new File(JOB_LOG_DIR+job.getID()+".log");
+			fileHandler = new FileHandler(JOB_LOG_DIR+job.getID()+".log", true);
 			SimpleFormatter formatter = new SimpleFormatter();
 	        fileHandler.setFormatter(formatter);
 	        log.addHandler(fileHandler);
@@ -136,14 +128,13 @@ public class BeastRunner {
 	private void runBeastGen(String fastaFile, String beastInput) throws BeastException, IOException, InterruptedException {
 		String workingDir =  System.getProperty("user.dir")+"/ZooPhyJobs/";
 		log.info("Running BEASTGen...");
-		ProcessBuilder builder = new ProcessBuilder("java", "-jar", beastGenJar, "-date_order", "4", beastGenTemplate, workingDir+fastaFile, workingDir+beastInput);
+		ProcessBuilder builder = new ProcessBuilder("java", "-jar", BEASTGEN_JAR, "-date_order", "4", BEASTGEN_TEMPLATE, workingDir+fastaFile, workingDir+beastInput);
 		builder.redirectOutput(Redirect.appendTo(logFile));
 		builder.redirectError(Redirect.appendTo(logFile));
 		log.info("Starting Process: "+builder.command().toString());
 		Process beastGenProcess = builder.start();
-		//TODO: ZooPhyRunner.setPID(job.getID(), beastGenProcessID);
+		PipelineManager.setProcess(job.getID(), beastGenProcess);
 		beastGenProcess.waitFor();
-		//TODO: ZooPhyRunner.setPID(job.getID(), null);
 		if (beastGenProcess.exitValue() != 0) {
 			log.log(Level.SEVERE, "BeastGen failed! with code: "+beastGenProcess.exitValue());
 			throw new BeastException("BeastGen failed! with code: "+beastGenProcess.exitValue(), null);
@@ -161,7 +152,7 @@ public class BeastRunner {
 	private void runBeast(String jobID) throws BeastException, IOException, InterruptedException {
 		String input = jobID+INPUT_XML;
 		String testDir = System.getProperty("user.dir")+"/ZooPhyJobs/";
-		String beast = beastScripts+"beast";
+		String beast = BEAST_SCRIPTS_DIR+"beast";
 		log.info("Running BEAST...");
 		ProcessBuilder builder;
 		builder = new ProcessBuilder(beast, testDir + input);
@@ -171,11 +162,10 @@ public class BeastRunner {
 		tail = new Tailer(logFile, listener);
 		log.info("Starting Process: "+builder.command().toString());
 		Process beastProcess = builder.start();
-		//TODO: ZooPhyRunner.setPID(job.getID(), beastProcessID);
+		PipelineManager.setProcess(job.getID(), beastProcess);
 		tail.run();
 		beastProcess.waitFor();
 		tail.stop();
-		//TODO: ZooPhyRunner.setPID(job.getID(), null);
 		if (beastProcess.exitValue() != 0) {
 			tail.stop();
 			log.log(Level.SEVERE, "BEAST failed! with code: "+beastProcess.exitValue());
@@ -192,11 +182,10 @@ public class BeastRunner {
 			builder.redirectError(Redirect.appendTo(logFile));
 			log.info("Starting Process: "+builder.command().toString());
 			Process beastRerunProcess = builder.start();
-			//TODO: ZooPhyRunner.setPID(job.getID(), beastProcessID);
+			PipelineManager.setProcess(job.getID(), beastRerunProcess);
 			tail.run();
 			beastRerunProcess.waitFor();
 			tail.stop();
-			//TODO: ZooPhyRunner.setPID(job.getID(), null);
 			if (beastRerunProcess.exitValue() != 0) {
 				tail.stop();
 				log.log(Level.SEVERE, "Always-scaling BEAST failed! with code: "+beastProcess.exitValue());
@@ -223,16 +212,15 @@ public class BeastRunner {
 		String tree = trees.substring(0, trees.indexOf("-")) + RESULT_TREE;
 		String baseDir = System.getProperty("user.dir") + "/";
 		String workingDir = baseDir+"ZooPhyJobs/";
-		String treeannotator = beastScripts+"treeannotator";
+		String treeannotator = BEAST_SCRIPTS_DIR+"treeannotator";
 		log.info("Running Tree Annotator...");
 		ProcessBuilder builder = new ProcessBuilder(treeannotator,"-burnin", "1000", baseDir+trees, workingDir+tree);
 		builder.redirectOutput(Redirect.appendTo(logFile));
 		builder.redirectError(Redirect.appendTo(logFile));
 		log.info("Starting Process: "+builder.command().toString());
 		Process treeAnnotatorProcess = builder.start();
-		//TODO: ZooPhyRunner.setPID(job.getID(), treeAnnotatorProcessID);
+		PipelineManager.setProcess(job.getID(), treeAnnotatorProcess);
 		treeAnnotatorProcess.waitFor();
-		//TODO: ZooPhyRunner.setPID(job.getID(), null);
 		if (treeAnnotatorProcess.exitValue() != 0) {
 			log.log(Level.SEVERE, "Tree Annotator failed! with code: "+treeAnnotatorProcess.exitValue());
 			throw new BeastException("Tree Annotator failed! with code: "+treeAnnotatorProcess.exitValue(), null);
@@ -253,7 +241,7 @@ public class BeastRunner {
 			FileWriter filewRiter = new FileWriter(treeFile, true);
 			BufferedWriter bufferWriter = new BufferedWriter(filewRiter);
 		    PrintWriter printer = new PrintWriter(bufferWriter);
-		    Scanner scan = new Scanner(new File(figtreeTemplate));
+		    Scanner scan = new Scanner(new File(FIGTREE_TEMPLATE));
 		    while (scan.hasNext()) {
 		    	String line = scan.nextLine();
 		    	if (line.contains(ageOffset)) {
@@ -285,29 +273,27 @@ public class BeastRunner {
 		String treeFile = workingDir+".tree";
 		String youngestDate = findYougestAge(treeFile);
 		String spreadFile = workingDir+"-spread3.json";
-		ProcessBuilder builder = new ProcessBuilder("java","-jar",spreaD3,"-parse","-locations",coordinatesFile,"-header","false","-tree",treeFile,"-locationTrait","states","-intervals","10","-mrsd",youngestDate,"-geojson",worldGeojson,"-output",spreadFile);
+		ProcessBuilder builder = new ProcessBuilder("java","-jar",SPREAD3,"-parse","-locations",coordinatesFile,"-header","false","-tree",treeFile,"-locationTrait","states","-intervals","10","-mrsd",youngestDate,"-geojson",WORLD_GEOJSON,"-output",spreadFile);
 		builder.redirectOutput(Redirect.appendTo(logFile));
 		builder.redirectError(Redirect.appendTo(logFile));
 		log.info("Starting Process: "+builder.command().toString());
 		Process spreadGenerationProcess = builder.start();
-		//TODO: ZooPhyRunner.setPID(job.getID(), spreadGeneratorProcessID);
+		PipelineManager.setProcess(job.getID(), spreadGenerationProcess);
 		spreadGenerationProcess.waitFor();
-		//TODO: ZooPhyRunner.setPID(job.getID(), null);
 		if (spreadGenerationProcess.exitValue() != 0) {
 			log.log(Level.SEVERE, "SpreaD3 generation failed! with code: "+spreadGenerationProcess.exitValue());
 			throw new BeastException("SpreaD3 generation failed! with code: "+spreadGenerationProcess.exitValue(), null);
 		}
 		log.info("SpreaD3 finished.");
 		log.info("Running SpreaD3 render...");
-		String renderPath = renderFolder+"/"+job.getID();
-		builder = new ProcessBuilder("java","-jar", spreaD3,"-render","d3","-json",spreadFile,"-output",renderPath);
+		String renderPath = RENDER_DIR+"/"+job.getID();
+		builder = new ProcessBuilder("java","-jar", SPREAD3,"-render","d3","-json",spreadFile,"-output",renderPath);
 		builder.redirectOutput(Redirect.appendTo(logFile));
 		builder.redirectError(Redirect.appendTo(logFile));
 		log.info("Starting Process: "+builder.command().toString());
 		Process spreadRenderProcess = builder.start();
-		//TODO: ZooPhyRunner.setPID(job.getID(), spreadRenderProcessID);
+		PipelineManager.setProcess(job.getID(), spreadRenderProcess);
 		spreadRenderProcess.waitFor();
-		//TODO: ZooPhyRunner.setPID(job.getID(), null);
 		if (spreadRenderProcess.exitValue() != 0) {
 			log.log(Level.SEVERE, "SpreaD3 rendering failed! with code: "+spreadRenderProcess.exitValue());
 			throw new BeastException("SpreaD3 rendering failed! with code: "+spreadRenderProcess.exitValue(), null);

@@ -1,21 +1,19 @@
 package edu.asu.zoophy.pipeline.utils;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
 
 import edu.asu.zoophy.genbank.GenBankRecord;
 import edu.asu.zoophy.genbank.Location;
 import edu.asu.zoophy.index.LuceneSearcher;
 import edu.asu.zoophy.index.LuceneSearcherException;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.LinkedHashMap;
+import edu.asu.zoophy.pipeline.PipelineException;
+import edu.asu.zoophy.pipeline.PropertyProvider;
 
 
 /**
@@ -23,20 +21,16 @@ import java.util.LinkedHashMap;
  * @author devdemetri
  */
 public class GeonameDisjointer {
-	
-	@Autowired
-	private LuceneSearcher indexSearcher;
-	
-	@Autowired
-	private Environment env;
 
+	private final LuceneSearcher indexSearcher;
 	private static final GeoHierarchy hierarchy = GeoHierarchy.getInstance();
-	
-	private final int MAX_STATES = Integer.parseInt(env.getProperty("job.max.locations"));
-	
+	private final int MAX_STATES;
 	private Map<String,Set<Long>> ancestors;
 	
-	public GeonameDisjointer() {
+	public GeonameDisjointer(LuceneSearcher indexSearcher) throws PipelineException {
+		this.indexSearcher = indexSearcher;
+		PropertyProvider provider = PropertyProvider.getInstance();
+		MAX_STATES = Integer.parseInt(provider.getProperty("job.max.locations"));
 		ancestors = new HashMap<String,Set<Long>>();
 	}
 	

@@ -16,14 +16,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-
 import edu.asu.zoophy.database.DaoException;
 import edu.asu.zoophy.database.GenBankRecordNotFoundException;
 import edu.asu.zoophy.database.ZoophyDAO;
 import edu.asu.zoophy.genbank.GenBankRecord;
-import edu.asu.zoophy.pipeline.utils.DisjointerException;
+import edu.asu.zoophy.index.LuceneSearcher;
 import edu.asu.zoophy.pipeline.utils.GeonameDisjointer;
 import edu.asu.zoophy.pipeline.utils.Normalizer;
 import edu.asu.zoophy.pipeline.utils.NormalizerException;
@@ -34,21 +31,21 @@ import edu.asu.zoophy.pipeline.utils.NormalizerException;
  */
 public class SequenceAligner {
 
-	@Autowired
-	private ZoophyDAO dao;
-	
-	private Logger log;
+	private final String JOB_LOG_DIR;
+	private final String JOB_ID;
+	private final ZoophyDAO dao;
+	private final LuceneSearcher indexSearcher;
+	private final Logger log;
 	private File logFile;
-	
-	@Value("${job.logs.dir}")
-	private static String jobLogDir;
-	
 	private List<String> uniqueGeonames;
 	private Map<String,String> geonameCoordinates;
-	private final String jobID;
 	
-	public SequenceAligner(ZooPhyJob job) {
-		jobID = job.getID();
+	public SequenceAligner(ZooPhyJob job, ZoophyDAO dao, LuceneSearcher indexSearcher) throws PipelineException {
+		this.dao = dao;
+		this.indexSearcher = indexSearcher;
+		JOB_ID = job.getID();
+		PropertyProvider provider = PropertyProvider.getInstance();
+		JOB_LOG_DIR = provider.getProperty("job.logs.dir");
 		log = Logger.getLogger("MafftAligner");
 		uniqueGeonames = new LinkedList<String>();
 		geonameCoordinates = new HashMap<String,String>();
@@ -58,21 +55,21 @@ public class SequenceAligner {
 		String alignedFasta;
 		FileHandler fh = null;
 		try {
-			logFile = new File(jobLogDir+jobID+".log");
-			fh = new FileHandler(jobLogDir+jobID+".log", true);
+			logFile = new File(JOB_LOG_DIR+JOB_ID+".log");
+			fh = new FileHandler(JOB_LOG_DIR+JOB_ID+".log", true);
 			SimpleFormatter formatter = new SimpleFormatter();  
 	        fh.setFormatter(formatter);
 	        log.addHandler(fh);
 	        log.setUseParentHandlers(false);
-			log.info("Starting Mafft Job: "+jobID);
+			log.info("Starting Mafft Job: "+JOB_ID);
 			List<GenBankRecord>recs = loadSequences(accessions, true);
 			String rawFasta = fastaFormat(recs);
 			createCoordinatesFile();
 			alignedFasta = runMafft(rawFasta);
-			log.info("Mafft Job: "+jobID+" has finished.");
+			log.info("Mafft Job: "+JOB_ID+" has finished.");
 			log.info("Deleting raw fasta...");
 			try {
-				Path path = Paths.get(System.getProperty("user.dir")+"/ZooPhyJobs/"+jobID+"-raw.fasta");
+				Path path = Paths.get(System.getProperty("user.dir")+"/ZooPhyJobs/"+JOB_ID+"-raw.fasta");
 				Files.delete(path);
 			}
 			catch (IOException e) {
@@ -101,7 +98,7 @@ public class SequenceAligner {
 			coordinates.append("\n");
 		}
 		coordinates.trimToSize();
-		String dir = System.getProperty("user.dir")+"/ZooPhyJobs/"+jobID+"-";
+		String dir = System.getProperty("user.dir")+"/ZooPhyJobs/"+JOB_ID+"-";
 		try {
 			PrintWriter out = new PrintWriter(dir+"coords.txt");
 			out.write(coordinates.toString());
@@ -112,7 +109,7 @@ public class SequenceAligner {
 		}
 	}
 
-	protected List<GenBankRecord> loadSequences(List<String> accessions, boolean isDisjoint) throws GenBankRecordNotFoundException, DaoException, DisjointerException {
+	protected List<GenBankRecord> loadSequences(List<String> accessions, boolean isDisjoint) throws GenBankRecordNotFoundException, DaoException, PipelineException {
 		log.info("Loading records for Mafft...");
 		List<GenBankRecord> records = new LinkedList<GenBankRecord>();
 		for (String accession : accessions) {
@@ -128,7 +125,7 @@ public class SequenceAligner {
 		}
 		log.info("Records loaded.");
 		if (isDisjoint) {
-		GeonameDisjointer disjointer  = new GeonameDisjointer();
+		GeonameDisjointer disjointer  = new GeonameDisjointer(indexSearcher);
 			return disjointer.disjointRecords(records);
 		}
 		else {
@@ -148,8 +145,8 @@ public class SequenceAligner {
 	 * @throws Exception 
 	 */
 	private String runMafft(String rawFasta) throws AlignerException {
-		log.info("Setting up Mafft for job: "+jobID);
-		String dir = System.getProperty("user.dir")+"/ZooPhyJobs/"+jobID+"-";
+		log.info("Setting up Mafft for job: "+JOB_ID);
+		String dir = System.getProperty("user.dir")+"/ZooPhyJobs/"+JOB_ID+"-";
 		try {
 			PrintWriter out = new PrintWriter(dir+"raw.fasta");
 			out.write(rawFasta);
@@ -162,15 +159,16 @@ public class SequenceAligner {
 		String outPath = dir+"aligned.fasta";
 		File outFile = new File(outPath);
 		try {
-			ProcessBuilder pb = new ProcessBuilder("mafft", "--auto", rawFile);
-			pb.redirectOutput(Redirect.appendTo(outFile));
-			pb.redirectError(Redirect.appendTo(logFile));
+			ProcessBuilder builder = new ProcessBuilder("mafft", "--auto", rawFile);
+			builder.redirectOutput(Redirect.appendTo(outFile));
+			builder.redirectError(Redirect.appendTo(logFile));
 			log.info("Running Mafft...");
-			Process pr = pb.start();
-			pr.waitFor();
-			if (pr.exitValue() != 0) {
-				log.log(Level.SEVERE, "Mafft failed! with code: "+pr.exitValue());
-				throw new Exception("Mafft failed! with code: "+pr.exitValue());
+			Process mafftProcess = builder.start();
+			PipelineManager.setProcess(JOB_ID, mafftProcess);
+			mafftProcess.waitFor();
+			if (mafftProcess.exitValue() != 0) {
+				log.log(Level.SEVERE, "Mafft failed! with code: "+mafftProcess.exitValue());
+				throw new Exception("Mafft failed! with code: "+mafftProcess.exitValue());
 			}
 			log.info("Mafft finished.");
 		} 

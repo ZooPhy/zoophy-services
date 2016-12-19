@@ -1,10 +1,11 @@
 package edu.asu.zoophy.pipeline;
 
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import edu.asu.zoophy.database.ZoophyDAO;
+import edu.asu.zoophy.index.LuceneSearcher;
 
 /**
  * Responsible for running ZooPhy jobs
@@ -12,36 +13,31 @@ import java.util.logging.Logger;
  */
 public class ZooPhyRunner {
 	
-	private ZooPhyJob job;
-	private ZooPhyMailer mailer;
-	private Logger log;
-	
-	/**
-	 * Map for tracking running jobs
-	 * Key - generated JobID
-	 * Value - server PID
-	 */
-	private static Map<String, Integer> ids = new ConcurrentHashMap<String, Integer>();
+	private final ZooPhyJob job;
+	private final ZooPhyMailer mailer;
+	private final Logger log;
 
 	public ZooPhyRunner(String replyEmail, String jobName) throws PipelineException {
 		log = Logger.getLogger("ZooPhyRunner");
 		log.info("Initializing ZooPhy Job");
 		job = new ZooPhyJob(generateID(),jobName,replyEmail);
+		log.info("Initializing ZooPhyMailer... : "+job.getID());
+		mailer = new ZooPhyMailer(job);
 	}
 	
 	/**
 	 * Runs the ZooPhy pipeline on the given Accessions
 	 * @param accessions
+	 * @param dao 
+	 * @param indexSearcher 
 	 * @throws PipelineException
 	 */
-	public void runZooPhy(List<String> accessions) throws PipelineException {
+	public void runZooPhy(List<String> accessions, ZoophyDAO dao, LuceneSearcher indexSearcher) throws PipelineException {
 		try {
-			log.info("Initializing ZooPhyMailer... : "+job.getID());
-			mailer = new ZooPhyMailer(job);
 			log.info("Sending Start Email... : "+job.getID());
 			mailer.sendStartEmail();
 			log.info("Initializing Sequence Aligner... : "+job.getID());
-			SequenceAligner aligner = new SequenceAligner(job);
+			SequenceAligner aligner = new SequenceAligner(job, dao, indexSearcher);
 			log.info("Running Sequence Aligner... : "+job.getID());
 			aligner.align(accessions);
 			log.info("Initializing Beast Runner... : "+job.getID());
@@ -50,6 +46,7 @@ public class ZooPhyRunner {
 			beast.run();
 			log.info("Sending Results Email... : "+job.getID());
 			mailer.sendSuccessEmail();
+			PipelineManager.removeProcess(job.getID());
 			log.info("ZooPhy Job Complete: "+job.getID());
 		}
 		catch (PipelineException pe) {
@@ -65,15 +62,6 @@ public class ZooPhyRunner {
 	}
 	
 	/**
-	 * Update the pid for a ZooPhyJob
-	 * @param jobID
-	 * @param pid
-	 */
-	protected static void setPID(String jobID, int pid) {
-		ids.put(jobID, pid);
-	}
-	
-	/**
 	 * Generates a UUID to be used as a jobID
 	 * @return Unused UUID
 	 * @throws PipelineException 
@@ -82,12 +70,7 @@ public class ZooPhyRunner {
 		try {
 			log.info("Generating UID...");
 			String id  = java.util.UUID.randomUUID().toString();
-			log.info("Trying ID: "+id);
-			while (ids.keySet().contains(id)) {
-				id  = java.util.UUID.randomUUID().toString();
-			}
 			log.info("Assigned ID: "+id);
-			ids.put(id, 0);
 			return id;
 		}
 		catch (Exception e) {
@@ -95,28 +78,12 @@ public class ZooPhyRunner {
 			throw new PipelineException("Error generating job ID: "+e.getMessage(), "Failed to start ZooPhy Job!");
 		}
 	}
-	
+
 	/**
-	 * Kills the given ZooPhy Job. NOTE: Currently only works on Unix based systems, NOT Windows.
-	 * @param jobID - ID of ZooPhy job to kill
-	 * @throws PipelineException if the job does not exist
+	 * @return generated ID for the ZooPhy job being run
 	 */
-	public static void killJob(String jobID) throws PipelineException {
-		try {
-			Integer pid = ids.get(jobID);
-			if (pid == null || pid < 100) {
-				throw new PipelineException("ERROR! Tried to kill non-existent job: "+jobID, "Job Does Not Exist!");
-			}
-			ProcessBuilder builder = new ProcessBuilder("kill", "-9", pid.toString());
-			Process killProcess = builder.start();
-			killProcess.waitFor();
-			if (killProcess.exitValue() != 0) {
-				throw new PipelineException("ERROR! Could not kill job: "+jobID+" with code: "+killProcess.exitValue(), "Could Not Kill Job!");
-			}
-		}
-		catch (Exception e) {
-			throw new PipelineException("ERROR! Could not kill job: "+jobID+" : "+e.getMessage(), "Could Not Kill Job!");
-		}
+	public String getJobID() {
+		return job.getID();
 	}
 
 }

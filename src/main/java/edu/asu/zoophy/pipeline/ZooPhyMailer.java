@@ -14,30 +14,26 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
-
 /**
  * Responsible for sending ZooPhy email
  * @author devdemetri
  */
 public class ZooPhyMailer {
 	
-	@Autowired
-	private Environment env;
+	private final String USERNAME;
+	private final String PASSWORD;
+	private final String FROM;
 	
-	private final String username;
-	private final String password;
-	private final String from;
 	private final ZooPhyJob job;
-	private Logger log;
+	private final Logger log;
 	
-	public ZooPhyMailer(ZooPhyJob job) {
+	public ZooPhyMailer(ZooPhyJob job) throws PipelineException {
 		log = Logger.getLogger("ZooPhyMailer");
-		this.username = env.getProperty("email.user");
-		this.password = env.getProperty("email.pass");
-		this.from = env.getProperty("email.from");
 		this.job = job;
+		PropertyProvider property = PropertyProvider.getInstance();
+		USERNAME = property.getProperty("email.user");
+		PASSWORD = property.getProperty("email.pass");
+		FROM = property.getProperty("email.from");
 	}
 	
 	/**
@@ -128,11 +124,11 @@ public class ZooPhyMailer {
 		Session session = Session.getInstance(properties,
 	    new javax.mail.Authenticator() {
 		  protected PasswordAuthentication getPasswordAuthentication() {
-			  return new PasswordAuthentication(username, password);
+			  return new PasswordAuthentication(USERNAME, PASSWORD);
 		  }
 	    });
         Message message = new MimeMessage(session);
-        message.setFrom(new InternetAddress(from));
+        message.setFrom(new InternetAddress(FROM));
         message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(job.getReplyEmail()));
         message.setSubject("ZooPhy Job: "+getCustomName());
         messageText = messageText.replaceAll("\n", "<br/>");
