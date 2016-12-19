@@ -53,13 +53,13 @@ public class SequenceAligner {
 	
 	public String align(List<String> accessions) throws AlignerException {
 		String alignedFasta;
-		FileHandler fh = null;
+		FileHandler fileHandler = null;
 		try {
 			logFile = new File(JOB_LOG_DIR+JOB_ID+".log");
-			fh = new FileHandler(JOB_LOG_DIR+JOB_ID+".log", true);
+			fileHandler = new FileHandler(JOB_LOG_DIR+JOB_ID+".log", true);
 			SimpleFormatter formatter = new SimpleFormatter();  
-	        fh.setFormatter(formatter);
-	        log.addHandler(fh);
+	        fileHandler.setFormatter(formatter);
+	        log.addHandler(fileHandler);
 	        log.setUseParentHandlers(false);
 			log.info("Starting Mafft Job: "+JOB_ID);
 			List<GenBankRecord>recs = loadSequences(accessions, true);
@@ -77,15 +77,15 @@ public class SequenceAligner {
 				throw e;
 			}
 			log.info("Mafft process complete");
-			fh.close();
+			fileHandler.close();
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "ERROR! Mafft process failed: "+e.getMessage());
 			throw new AlignerException(e.getMessage(), null);
 		}
 		finally {
-			if (fh != null) {
-				fh.close();
+			if (fileHandler != null) {
+				fileHandler.close();
 			}
 		}
 		return alignedFasta;
@@ -148,18 +148,18 @@ public class SequenceAligner {
 		log.info("Setting up Mafft for job: "+JOB_ID);
 		String dir = System.getProperty("user.dir")+"/ZooPhyJobs/"+JOB_ID+"-";
 		try {
-			PrintWriter out = new PrintWriter(dir+"raw.fasta");
-			out.write(rawFasta);
-			out.close();
+			PrintWriter printer = new PrintWriter(dir+"raw.fasta");
+			printer.write(rawFasta);
+			printer.close();
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "Error setting up raw.fasta: "+e.getMessage());
 		}
-		String rawFile = dir + "raw.fasta";
-		String outPath = dir+"aligned.fasta";
-		File outFile = new File(outPath);
+		String rawFilePath = dir + "raw.fasta";
+		String alignedFilePath = dir+"aligned.fasta";
+		File outFile = new File(alignedFilePath);
 		try {
-			ProcessBuilder builder = new ProcessBuilder("mafft", "--auto", rawFile);
+			ProcessBuilder builder = new ProcessBuilder("mafft", "--auto", rawFilePath);
 			builder.redirectOutput(Redirect.appendTo(outFile));
 			builder.redirectError(Redirect.appendTo(logFile));
 			log.info("Running Mafft...");
@@ -176,7 +176,7 @@ public class SequenceAligner {
 			log.log(Level.SEVERE, "Error running mafft: "+e.getMessage());
 			throw new AlignerException("Error running mafft: "+e.getMessage(), null);
 		}
-		return outPath;
+		return alignedFilePath;
 	}
 
 	/**
@@ -253,9 +253,9 @@ public class SequenceAligner {
 	 */
 	private List<String> breakUp(String sequence) throws AlignerException {
 		LinkedList<String> segments = new LinkedList<String>();
-		int len = sequence.length();
+		int length = sequence.length();
 		int i;
-		for (i = 0; i+80 < len; i+=80) {
+		for (i = 0; i+80 < length; i+=80) {
 			segments.add(sequence.substring(i, i+80));
 		}
 		segments.add(sequence.substring(i));
@@ -263,9 +263,9 @@ public class SequenceAligner {
 		for (String s : segments) {
 			count+= s.length();
 		}
-		if (count != len) {
+		if (count != length) {
 			log.log(Level.SEVERE, "Error breaking up sequence. Did not break correctly.");
-			throw new AlignerException("Error breaking up sequence. Result was "+count+" length instead of the expected "+len+" length.", null);
+			throw new AlignerException("Error breaking up sequence. Result was "+count+" length instead of the expected "+length+" length.", null);
 		}
 		return segments;
 	}

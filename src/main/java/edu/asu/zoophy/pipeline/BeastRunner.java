@@ -32,8 +32,6 @@ public class BeastRunner {
 	private final String SPREAD3;
 	private final String WORLD_GEOJSON;
 	private final String RENDER_DIR;
-	private final String BEASTGEN_JAR;
-	private final String BEASTGEN_TEMPLATE;
 	private final String FIGTREE_TEMPLATE;
 	private final static String ALIGNED_FASTA = "-aligned.fasta";
 	private final static String INPUT_XML = ".xml";
@@ -53,19 +51,17 @@ public class BeastRunner {
 		PropertyProvider provider = PropertyProvider.getInstance();
 		JOB_LOG_DIR = provider.getProperty("job.logs.dir");
 		BEAST_SCRIPTS_DIR = provider.getProperty("beast.scripts.dir");
-		SPREAD3 = provider.getProperty("spread.jar.locaton");
 		WORLD_GEOJSON = provider.getProperty("geojson.location");
 		RENDER_DIR = provider.getProperty("spread3.result.dir");
-		BEASTGEN_JAR = provider.getProperty("beastgen.jar");
-		BEASTGEN_TEMPLATE = System.getProperty("user.dir")+"/Templates/beastGen.template";
 		FIGTREE_TEMPLATE = System.getProperty("user.dir")+"/Templates/figtreeBlock.template";
+		SPREAD3 = System.getProperty("user.dir")+"/spread.jar";
 		log = Logger.getLogger("BeastRunner");
 		this.mailer = mailer;
 		this.job = job;
 	}
 	
 	/**
-	 * 
+	 * Runs the BEAST process
 	 * @throws BeastException
 	 */
 	public void run() throws BeastException {
@@ -126,9 +122,10 @@ public class BeastRunner {
 	 * @throws InterruptedException 
 	 */
 	private void runBeastGen(String fastaFile, String beastInput) throws BeastException, IOException, InterruptedException {
-		String workingDir =  System.getProperty("user.dir")+"/ZooPhyJobs/";
+		String workingDir =  "../ZooPhyJobs/";
+		File beastGenDir = new File(System.getProperty("user.dir")+"/BeastGen");
 		log.info("Running BEASTGen...");
-		ProcessBuilder builder = new ProcessBuilder("java", "-jar", BEASTGEN_JAR, "-date_order", "4", BEASTGEN_TEMPLATE, workingDir+fastaFile, workingDir+beastInput);
+		ProcessBuilder builder = new ProcessBuilder("java", "-jar", "beastgen.jar", "-date_order", "4", "beastgen.template", workingDir+fastaFile, workingDir+beastInput).directory(beastGenDir);
 		builder.redirectOutput(Redirect.appendTo(logFile));
 		builder.redirectError(Redirect.appendTo(logFile));
 		log.info("Starting Process: "+builder.command().toString());
@@ -151,11 +148,12 @@ public class BeastRunner {
 	 */
 	private void runBeast(String jobID) throws BeastException, IOException, InterruptedException {
 		String input = jobID+INPUT_XML;
-		String testDir = System.getProperty("user.dir")+"/ZooPhyJobs/";
+		String beastDirPath = System.getProperty("user.dir")+"/ZooPhyJobs/";
 		String beast = BEAST_SCRIPTS_DIR+"beast";
 		log.info("Running BEAST...");
+		File beastDir = new File(System.getProperty("user.dir")+"/ZooPhyJobs");
 		ProcessBuilder builder;
-		builder = new ProcessBuilder(beast, testDir + input);
+		builder = new ProcessBuilder(beast, beastDirPath + input).directory(beastDir);
 		builder.redirectOutput(Redirect.appendTo(logFile));
 		builder.redirectError(Redirect.appendTo(logFile));
 		BeastTailerListener listener = new BeastTailerListener();
@@ -177,7 +175,7 @@ public class BeastRunner {
 		File beastOutput = new File(System.getProperty("user.dir")+"/"+jobID+OUTPUT_TREES);
 		if (!beastOutput.exists() || scanForBeastError()) {
 			log.log(Level.SEVERE, "BEAST did not produce output! Trying it in always scaling mode...");
-			builder = new ProcessBuilder(beast, "-beagle_scaling", "always", "-overwrite", testDir + input);
+			builder = new ProcessBuilder(beast, "-beagle_scaling", "always", "-overwrite", beastDirPath + input).directory(beastDir);
 			builder.redirectOutput(Redirect.appendTo(logFile));
 			builder.redirectError(Redirect.appendTo(logFile));
 			log.info("Starting Process: "+builder.command().toString());
