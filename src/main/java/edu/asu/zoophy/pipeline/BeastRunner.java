@@ -62,9 +62,10 @@ public class BeastRunner {
 	
 	/**
 	 * Runs the BEAST process
+	 * @return resulting Tree File
 	 * @throws BeastException
 	 */
-	public void run() throws BeastException {
+	public File run() throws BeastException {
 		String resultingTree = null;
 		FileHandler fileHandler = null;
 		try {
@@ -96,7 +97,7 @@ public class BeastRunner {
 				log.log(Level.SEVERE, "TreeAnnotator did not proudce .tree file!");
 				throw new Exception("TreeAnnotator did not proudce .tree file!");
 			}
-			fileHandler.close();
+			return tree;
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "BEAST process failed: "+e.getMessage());
@@ -201,13 +202,13 @@ public class BeastRunner {
 	/**
 	 * Runs the Tree Annotator to generate the final .tree file
 	 * @param trees
-	 * @return
+	 * @return File path to resulting Tree File
 	 * @throws BeastException
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
 	private String runTreeAnnotator(String trees) throws BeastException, IOException, InterruptedException {
-		String tree = trees.substring(0, trees.indexOf("-")) + RESULT_TREE;
+		String tree = trees.substring(0, trees.indexOf("-aligned")) + RESULT_TREE;
 		String baseDir = System.getProperty("user.dir") + "/ZooPhyJobs/";
 		String workingDir = baseDir+"ZooPhyJobs/";
 		String treeannotator = BEAST_SCRIPTS_DIR+"treeannotator";

@@ -5,14 +5,21 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.activation.DataHandler;
+import javax.activation.DataSource;
+import javax.activation.FileDataSource;
+import javax.mail.BodyPart;
 import javax.mail.Message;
 import javax.mail.MessagingException;
+import javax.mail.Multipart;
 import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 import javax.mail.Transport;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
 
 /**
  * Responsible for sending ZooPhy email
@@ -61,9 +68,19 @@ public class ZooPhyMailer {
 	 * Sends successful results to user
 	 * @throws MailerException 
 	 */
-	public void sendSuccessEmail() throws MailerException {
+	public void sendSuccessEmail(File treeFile) throws MailerException {
+		log.info("Sending results email to: "+job.getReplyEmail());
 		try {
-			
+			String messageText;
+			if (!getCustomName().equals(job.getID())) {
+				messageText = "\nHere are your results for ZooPhy Job Name: "+getCustomName()+".\nNote: The Job ID for your ZooPhy Job is: "+job.getID();
+	        }
+	        else {
+	        	messageText = "\nHere are your results for ZooPhy Job ID: "+job.getID()+".";
+	        }
+			messageText += "\nThe SpreaD3 simulation for your job is available <a href=\"http://zodo.asu.edu:7070/spread3/"+job.getID()+"/renderers/d3/d3renderer/index.html\">here</a>.\n";
+			messageText += "\nThank You,\nZooPhy Lab";
+			sendEmail(messageText, treeFile);
 		}
 		catch (Exception e) {
 			throw new MailerException(e.getMessage(), "Failed to send Success Email");
@@ -76,8 +93,18 @@ public class ZooPhyMailer {
 	 * @param finalUpdate
 	 */
 	public void sendUpdateEmail(String finishTime, boolean finalUpdate) {
-		// TODO Auto-generated method stub
-		
+		log.info("Sending update email to: "+job.getReplyEmail());
+		try {
+			String messageText = "Your ZooPhy job is estimated to finish by "+finishTime+".";
+	    	if (!finalUpdate) {
+	    		messageText += "\nAnother time estimate will be sent midway through the process.";
+	    	}
+	    	messageText += "\n\nThank You,\nZooPhy Lab";
+	    	sendEmail(messageText, null);
+		}
+		catch (Exception e) {
+			log.log(Level.WARNING, "Failed to send update email to: "+job.getReplyEmail()+" : "+e.getMessage());
+		}
 	}
 	
 	/**
@@ -86,12 +113,13 @@ public class ZooPhyMailer {
 	 * @throws MailerException 
 	 */
 	public void sendFailureEmail(String reason) {
+		log.info("Sending failure email to: "+job.getReplyEmail());
 		try {
 	        String msgText;
 	        String err = "";
 	        if (reason != null) {
 	        	err = "\nError Cause: "+reason+"\n";
-	        	err += "\nYou can retry your ZooPhy job <a href=\"http://zodo.asu.edu:8080/zoophy/\">here.</a>";
+	        	err += "\nYou can retry your ZooPhy job <a href=\"http://zodo.asu.edu:7070/zoophy/\">here.</a>";
 	        }
 	        if (!getCustomName().equals(job.getID())) {
 	        	msgText = "\nThere was an error processing ZooPhy Job Name: "+getCustomName()+"."+err+"\nSorry for the inconvenience.\nNote: The Job ID for your ZooPhy Job is: "+job.getID()+"\n\nThank You,\n\nZooPhy Lab";
@@ -99,8 +127,6 @@ public class ZooPhyMailer {
 	        else {
 	        	msgText = "\nThere was an error processing ZooPhy Job ID: "+job.getID()+"."+err+"\nSorry for the inconvenience.\n\nThank You,\n\nZooPhy Lab";
 	        }
-	        msgText = msgText.replaceAll("\n", "<br/>");
-	        msgText = msgText.replaceAll("\t", "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
 	        sendEmail(msgText, null);
 		}
 		catch (Exception e) {
@@ -127,17 +153,34 @@ public class ZooPhyMailer {
 			  return new PasswordAuthentication(USERNAME, PASSWORD);
 		  }
 	    });
-        Message message = new MimeMessage(session);
+		Message message = new MimeMessage(session);
         message.setFrom(new InternetAddress(FROM));
         message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(job.getReplyEmail()));
         message.setSubject("ZooPhy Job: "+getCustomName());
         messageText = messageText.replaceAll("\n", "<br/>");
         messageText = messageText.replaceAll("\t", "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
-        message.setContent(messageText, "text/html");
-        if (attachement != null) {
-        	//TODO: add attachments
-        }
-        Transport.send(message);
+		if (attachement == null) {
+	        message.setContent(messageText, "text/html");
+	        Transport.send(message);
+		}
+		else {
+			BodyPart messageBodyPart = new MimeBodyPart();
+			messageBodyPart.setContent(messageText, "text/html");
+	        Multipart multipart = new MimeMultipart();
+	        multipart.addBodyPart(messageBodyPart);
+	        messageBodyPart = new MimeBodyPart();
+	        DataSource source = new FileDataSource(attachement.getAbsolutePath());
+	        messageBodyPart.setDataHandler(new DataHandler(source));
+	        String ending = "";
+	        if (attachement.getName().contains(".")) {
+	        	ending = attachement.getName().substring(attachement.getName().lastIndexOf(".")).trim();
+	        }
+	        messageBodyPart.setFileName(getCustomName()+ending);
+	        multipart.addBodyPart(messageBodyPart);
+	        message.setContent(multipart);
+	        Transport.send(message);
+	        log.info("Email successfully sent to :"+job.getReplyEmail());
+		}
 	}
 	
 	/**

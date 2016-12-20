@@ -69,10 +69,12 @@ public class PipelineManager {
 	 public void killJob(String jobID) throws PipelineException {
 		try {
 			Process jobProcess = processes.get(jobID);
-			if (jobProcess == null || !jobProcess.isAlive()) {
+			if (jobProcess != null && jobProcess.isAlive()) {
+				jobProcess.destroy();
+			}
+			else {
 				throw new PipelineException("ERROR! Tried to kill non-existent job: "+jobID, "Job Does Not Exist!");
 			}
-			jobProcess.destroy();
 		}
 		catch (Exception e) {
 			throw new PipelineException("ERROR! Could not kill job: "+jobID+" : "+e.getMessage(), "Could Not Kill Job!");

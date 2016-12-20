@@ -1,5 +1,6 @@
 package edu.asu.zoophy.pipeline;
 
+import java.io.File;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -43,9 +44,9 @@ public class ZooPhyRunner {
 			log.info("Initializing Beast Runner... : "+job.getID());
 			BeastRunner beast = new BeastRunner(job, mailer);
 			log.info("Starting Beast Runner... : "+job.getID());
-			beast.run();
+			File treeFile = beast.run();
 			log.info("Sending Results Email... : "+job.getID());
-			mailer.sendSuccessEmail();
+			mailer.sendSuccessEmail(treeFile);
 			PipelineManager.removeProcess(job.getID());
 			log.info("ZooPhy Job Complete: "+job.getID());
 		}
