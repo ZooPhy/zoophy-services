@@ -210,10 +210,9 @@ public class BeastRunner {
 	private String runTreeAnnotator(String trees) throws BeastException, IOException, InterruptedException {
 		String tree = trees.substring(0, trees.indexOf("-aligned")) + RESULT_TREE;
 		String baseDir = System.getProperty("user.dir") + "/ZooPhyJobs/";
-		String workingDir = baseDir+"ZooPhyJobs/";
 		String treeannotator = BEAST_SCRIPTS_DIR+"treeannotator";
 		log.info("Running Tree Annotator...");
-		ProcessBuilder builder = new ProcessBuilder(treeannotator,"-burnin", "1000", baseDir+trees, workingDir+tree);
+		ProcessBuilder builder = new ProcessBuilder(treeannotator,"-burnin", "1000", baseDir+trees, baseDir+tree);
 		builder.redirectOutput(Redirect.appendTo(logFile));
 		builder.redirectError(Redirect.appendTo(logFile));
 		log.info("Starting Process: "+builder.command().toString());
@@ -225,7 +224,7 @@ public class BeastRunner {
 			throw new BeastException("Tree Annotator failed! with code: "+treeAnnotatorProcess.exitValue(), null);
 		}
 		log.info("Tree Annotator finished.");
-		return workingDir+tree;
+		return baseDir+tree;
 	}
 	
 	/**
