@@ -2,6 +2,7 @@ package edu.asu.zoophy;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -120,6 +121,45 @@ public class ZooPhyController {
     }
     
     /**
+     * As a results of HTTP Header size conflicts, this service is meant to query a long specific list of Accession.
+     * @param accessions - Accessions to query
+     * @return list of index GenBankRecords for the given accessions
+     * @throws ParameterException
+     * @throws LuceneSearcherException
+     * @throws InvalidLuceneQueryException
+     */
+    @RequestMapping(value="/search/accessions", method=RequestMethod.POST)
+    @ResponseStatus(value=HttpStatus.OK)
+    public List<GenBankRecord> queryAccessions(@RequestBody List<String> accessions) throws ParameterException, LuceneSearcherException, InvalidLuceneQueryException {
+    	List<GenBankRecord> records = null;
+    	if (accessions != null && accessions.size() > 0 && accessions.size() < 1023) {
+    		Set<String> uniqueAccessions = new LinkedHashSet<String>(accessions.size());
+    		for (String accession : accessions) {
+    			if (security.checkParameter(accession, Parameter.ACCESSION)) {
+    				uniqueAccessions.add(accession);
+    			}
+    			else {
+    				throw new ParameterException(accession);
+    			}
+    		}
+    		List<String> usableAccessions = new LinkedList<String>(uniqueAccessions);
+    		uniqueAccessions.clear();
+    		StringBuilder queryBuilder = new StringBuilder("Accession: (");
+    		queryBuilder.append(usableAccessions.get(0));
+    		usableAccessions.remove(0);
+    		for (String accession : usableAccessions) {
+    			queryBuilder.append(" OR ");
+    			queryBuilder.append(accession);
+    		}
+    		usableAccessions.clear();
+    		queryBuilder.append(")");
+    		// TODO: Need to use a different method to allow over 1024 accessions down the road. 
+    		records = indexSearcher.searchIndex(queryBuilder.toString());
+    	}
+    	return records;
+    }
+    
+    /**
      * @param replyEmail - User email for results
      * @param jobName - Custom job name (optional)
      * @param accessions - List of accessions to to run the job on
@@ -159,6 +199,23 @@ public class ZooPhyController {
     	}
     	else {
     		throw new ParameterException(parameters.getReplyEmail());
+    	}
+    }
+    
+    /**
+     * Stop a running ZooPhyJob by the Job ID
+     * @param jobID - ID of Job to be stopped
+     * @throws PipelineException
+     * @throws ParameterException
+     */
+    @RequestMapping(value="/stop", method=RequestMethod.GET)
+    @ResponseStatus(value=HttpStatus.OK)
+    public void stopZooPhyJob(@RequestParam(value="id") String jobID) throws PipelineException, ParameterException {
+    	if (security.checkParameter(jobID, Parameter.JOB_ID)) {
+    		manager.killJob(jobID);
+    	}
+    	else {
+    		throw new ParameterException(jobID);
     	}
     }
     

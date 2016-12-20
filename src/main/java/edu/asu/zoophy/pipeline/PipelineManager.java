@@ -64,7 +64,7 @@ public class PipelineManager {
 	 * @param jobID - ID of ZooPhy job to kill
 	 * @throws PipelineException if the job does not exist
 	 */
-	public static void killJob(String jobID) throws PipelineException {
+	public void killJob(String jobID) throws PipelineException {
 		try {
 			Process jobProcess = processes.get(jobID);
 			if (jobProcess == null || !jobProcess.isAlive()) {

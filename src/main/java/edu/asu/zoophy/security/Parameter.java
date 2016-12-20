@@ -8,5 +8,6 @@ public enum Parameter {
 	ACCESSION,
 	LUCENE_QUERY, 
 	EMAIL,
-	JOB_NAME
+	JOB_NAME, 
+	JOB_ID
 }
