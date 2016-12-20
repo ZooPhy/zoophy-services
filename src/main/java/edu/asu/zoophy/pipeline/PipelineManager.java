@@ -6,7 +6,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Repository;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.stereotype.Component;
 
 import edu.asu.zoophy.database.ZoophyDAO;
 import edu.asu.zoophy.index.LuceneSearcher;
@@ -15,7 +16,8 @@ import edu.asu.zoophy.index.LuceneSearcher;
  * Manages ZooPhy Pipeline jobs
  * @author devdemetri
  */
-@Repository("PipelineManager")
+@EnableAsync
+@Component("PipelineManager")
 public class PipelineManager {
 	
 	@Autowired
@@ -64,7 +66,7 @@ public class PipelineManager {
 	 * @param jobID - ID of ZooPhy job to kill
 	 * @throws PipelineException if the job does not exist
 	 */
-	public void killJob(String jobID) throws PipelineException {
+	 public void killJob(String jobID) throws PipelineException {
 		try {
 			Process jobProcess = processes.get(jobID);
 			if (jobProcess == null || !jobProcess.isAlive()) {
