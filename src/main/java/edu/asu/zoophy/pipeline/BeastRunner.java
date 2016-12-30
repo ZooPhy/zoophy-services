@@ -12,7 +12,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.LinkedHashSet;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -41,6 +43,7 @@ public class BeastRunner {
 	private final Logger log;
 	private final ZooPhyMailer mailer;
 	private final ZooPhyJob job;
+	private Set<String> filesToCleanup;
 	private File logFile;
 	private Tailer tail = null;
 	private Tailer rateTail = null;
@@ -58,6 +61,7 @@ public class BeastRunner {
 		log = Logger.getLogger("BeastRunner");
 		this.mailer = mailer;
 		this.job = job;
+		filesToCleanup = new LinkedHashSet<String>();
 	}
 	
 	/**
@@ -101,7 +105,6 @@ public class BeastRunner {
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "BEAST process failed: "+e.getMessage());
-			fileHandler.close();
 			throw new BeastException("BEAST process failed: "+e.getMessage(), null);
 		}
 		finally {
@@ -125,6 +128,7 @@ public class BeastRunner {
 	private void runBeastGen(String fastaFile, String beastInput) throws BeastException, IOException, InterruptedException {
 		String workingDir =  "../ZooPhyJobs/";
 		File beastGenDir = new File(System.getProperty("user.dir")+"/BeastGen");
+		filesToCleanup.add(workingDir+fastaFile);
 		log.info("Running BEASTGen...");
 		ProcessBuilder builder = new ProcessBuilder("java", "-jar", "beastgen.jar", "-date_order", "4", "beastgen.template", workingDir+fastaFile, workingDir+beastInput).directory(beastGenDir);
 		builder.redirectOutput(Redirect.appendTo(logFile));
@@ -137,6 +141,7 @@ public class BeastRunner {
 			log.log(Level.SEVERE, "BeastGen failed! with code: "+beastGenProcess.exitValue());
 			throw new BeastException("BeastGen failed! with code: "+beastGenProcess.exitValue(), null);
 		}
+		filesToCleanup.add(workingDir+beastInput);
 		log.info("BEAST input created.");
 	}
 	
@@ -149,10 +154,11 @@ public class BeastRunner {
 	 */
 	private void runBeast(String jobID) throws BeastException, IOException, InterruptedException {
 		String input = jobID+INPUT_XML;
-		String beastDirPath = System.getProperty("user.dir")+"/ZooPhyJobs/";
+		final String currentDir = System.getProperty("user.dir");
+		String beastDirPath = currentDir+"/ZooPhyJobs/";
 		String beast = BEAST_SCRIPTS_DIR+"beast";
 		log.info("Running BEAST...");
-		File beastDir = new File(System.getProperty("user.dir")+"/ZooPhyJobs");
+		File beastDir = new File(currentDir+"/ZooPhyJobs");
 		ProcessBuilder builder;
 		builder = new ProcessBuilder(beast, beastDirPath + input).directory(beastDir);
 		builder.redirectOutput(Redirect.appendTo(logFile));
@@ -173,7 +179,7 @@ public class BeastRunner {
 		if (wasKilled) {
 			return;
 		}
-		File beastOutput = new File(System.getProperty("user.dir")+"/ZooPhyJobs/"+jobID+OUTPUT_TREES);
+		File beastOutput = new File(currentDir+"/ZooPhyJobs/"+jobID+OUTPUT_TREES);
 		if (!beastOutput.exists() || scanForBeastError()) {
 			log.log(Level.SEVERE, "BEAST did not produce output! Trying it in always scaling mode...");
 			builder = new ProcessBuilder(beast, "-beagle_scaling", "always", "-overwrite", beastDirPath + input).directory(beastDir);
@@ -190,12 +196,16 @@ public class BeastRunner {
 				log.log(Level.SEVERE, "Always-scaling BEAST failed! with code: "+beastProcess.exitValue());
 				throw new BeastException("Always-scaling BEAST failed! with code: "+beastProcess.exitValue(), null);
 			}
-			beastOutput = new File(System.getProperty("user.dir")+"/ZooPhyJobs/"+jobID+OUTPUT_TREES);
+			beastOutput = new File(currentDir+"/ZooPhyJobs/"+jobID+OUTPUT_TREES);
 			if (!beastOutput.exists()) {
 				log.log(Level.SEVERE, "Always-scaling BEAST did not produce output!");
 				throw new BeastException("Always-scaling BEAST did not produce output!", null);
 			}
 		}
+		filesToCleanup.add(currentDir+"/ZooPhyJobs/"+jobID+OUTPUT_TREES);
+		filesToCleanup.add(currentDir+"/ZooPhyJobs/"+jobID+"-aligned.log");
+		filesToCleanup.add(currentDir+"/ZooPhyJobs/"+jobID+"-aligned.ops");
+		filesToCleanup.add(currentDir+"/ZooPhyJobs/"+jobID+"-aligned.states.rates.log");
 		log.info("BEAST finished.");
 	}
 
@@ -305,22 +315,16 @@ public class BeastRunner {
 	private void cleanupBeast() throws BeastException {
 		log.info("Cleaning up BEAST...");
 		try {
-			String baseDir = System.getProperty("user.dir") + "/ZoophyJobs/";
-			Path fileToDelete = Paths.get(baseDir+job.getID()+OUTPUT_TREES);
-			Files.delete(fileToDelete);
-			fileToDelete = Paths.get(baseDir+job.getID()+"-aligned.log");
-			Files.delete(fileToDelete);
-			fileToDelete = Paths.get(baseDir+job.getID()+"-aligned.ops");
-			Files.delete(fileToDelete);
-			fileToDelete = Paths.get(baseDir+job.getID()+"-aligned.states.rates.log");
-			Files.delete(fileToDelete);
-			fileToDelete = Paths.get(baseDir+job.getID()+ALIGNED_FASTA);
-			Files.delete(fileToDelete);
+			Path fileToDelete;
+			for (String filePath : filesToCleanup) {
+				fileToDelete = Paths.get(filePath);
+				Files.delete(fileToDelete);
+				filesToCleanup.remove(filePath);
+			}
 			log.info("Cleanup complete.");
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "Cleanup failed: "+e.getMessage());
-			throw new BeastException("Cleanup failed: "+e.getMessage(), null);
 		}
 	}
 	
