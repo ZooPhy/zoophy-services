@@ -48,7 +48,7 @@ The current services may be used via GET requests. They return data in JSON form
 * Example Lucene Query: TaxonID:114727 AND Gene:(HA NOT Complete) AND Date:[2007 TO 20081231] AND HostID:9606 AND GeonameID: (5551752 OR 5332921 OR 5855797 OR 5509151) AND SegmentLength:[1650 TO 9999] 
 * Example Request:  http://zodo.asu.edu:7007/search?query=TaxonID%3A114727%20AND%20Gene%3A(HA%20NOT%20Complete)%20AND%20Date%3A%5B2007%20TO%2020081231%5D%20AND%20HostID%3A9606%20AND%20GeonameID%3A%20(5551752%20OR%205332921%20OR%205855797%20OR%205509151)%20AND%20SegmentLength%3A%5B1650%20TO%209999%5D 
 * Details on Lucene Query syntax can be found [here](https://lucene.apache.org/core/2_9_4/queryparsersyntax.html).
-* Note: Index records DO NOT contain all of the record details, just the common details used by our Lucene powered Search Engine. 
+* Note: Index records DO NOT contain all of the record details, just the common details used by our Lucene powered Search Engine. This service returns the top 2500 results. 
 
 ### Lucene query for specific list of Accessions
 * Type: POST
@@ -59,7 +59,7 @@ The current services may be used via GET requests. They return data in JSON form
 ['GQ258462','CY055940','CY055932','CY055788','CY055780','CY055740','CY055661','HQ712184','HM624085']
 ```
 
-* Note: This service is a work around for searching long specific lists of accessions, rather than using absurdly long GET request URLs. Unfortunately, the current limit is 1000 accessions. This will be refactored in a future PR.* 
+* Note: This service is a work around for searching long specific lists of accessions, rather than using absurdly long GET request URLs. Unfortunately, the current limit is 1000 accessions. This will be refactored in a future PR.
 
 ### Start ZooPhy Job
 * Type: POST
@@ -71,7 +71,7 @@ The current services may be used via GET requests. They return data in JSON form
 * Example POST Body:
 ```
 {
-  "replyEmail": 'fake@gmail.com',
+  "replyEmail": 'fake@email.com',
   "jobName": 'Australia H1N1 Human HA 09',
   "accessions": ['GQ258462','CY055940','CY055932','CY055788','CY055780','CY055740','CY055661','HQ712184','HM624085']
 }
