@@ -88,9 +88,9 @@ The current services may be used via HTTP requests. They return data in JSON for
 ### Generate GenBankRecord data download
 * Type: POST
 * Path: /download?format=\<file format>
- * Note: The currently supported formats are CSV and FASTA
+ * Note: The currently supported formats are CSV and FASTA.
  * Example Request URL: http://zodo.asu.edu:7007/download?format=fasta
-* Required POST Body Data: JSON list of valid accession Strings
+* Required POST Body Data: JSON list of valid accession Strings (Limit 2500)
 * Example POST body: 
 ```
 ['GQ258462','CY055940','CY055932','CY055788','CY055780','CY055740','CY055661','HQ712184','HM624085']
