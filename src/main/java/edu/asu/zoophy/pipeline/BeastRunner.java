@@ -87,7 +87,6 @@ public class BeastRunner {
 			log.info("Location trait added.");
 			runBeast(job.getID());
 			if (wasKilled || !PipelineManager.checkProcess(job.getID())) {
-				cleanupBeast();
 				throw new BeastException("Job was stopped!", "Job was stopped!");
 			}
 			resultingTree = runTreeAnnotator(job.getID()+OUTPUT_TREES);
@@ -95,7 +94,6 @@ public class BeastRunner {
 			if (tree.exists()) {
 				annotateTreeFile(resultingTree);
 				runSpread();
-				cleanupBeast();
 				log.info("BEAST process complete.");
 			}
 			else {
@@ -112,9 +110,13 @@ public class BeastRunner {
 			if (tail != null) {
 				tail.stop();
 			}
+			if (rateTail != null) {
+				rateTail.stop();
+			}
 			if (fileHandler != null) {
 				fileHandler.close();
 			}
+			cleanupBeast();
 		}
 	}
 	

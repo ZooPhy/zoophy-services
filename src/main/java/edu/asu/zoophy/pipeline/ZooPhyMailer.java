@@ -100,7 +100,8 @@ public class ZooPhyMailer {
 	    	if (!finalUpdate) {
 	    		messageText += "\nAnother time estimate will be sent midway through the process.";
 	    	}
-	    	messageText += "\nIf the estimated finish time is too long, you can stop the job by clicking <a href=\"http://zodo.asu.edu:7007/stop?id="+job.getID()+"\">here</a>.";
+	    	//TODO: Email filters seem to be auto-clicking links and killing jobs. This route is not feasible. Find a work around. 
+	    	//messageText += "\nIf the estimated finish time is too long, you can stop the job by clicking <a href=\"http://zodo.asu.edu:7007/stop?id="+job.getID()+"\">here</a>.";
 	    	messageText += "\n\nThank You,\nZooPhy Lab";
 	    	sendEmail(messageText, null);
 		}
