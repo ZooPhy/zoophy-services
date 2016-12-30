@@ -84,3 +84,16 @@ The current services may be used via HTTP requests. They return data in JSON for
 * Path: /stop?id=\<Zoophy Job ID>
 * Example Request: http://zodo.asu.edu:7007/stop?id=cbb6b262-44c6-4291-8262-76da11b4f07d 
 * Note: Security/Authentication to prevent malicously killing jobs will be added in a future PR. For now we are relying on the randomy generated UUID's.
+
+### Generate GenBankRecord data download
+* Type: POST
+* Path: /download?format=\<file format>
+ * Note: The currently supported formats are CSV and FASTA
+ * Example Request URL: http://zodo.asu.edu:7007/download?format=fasta
+* Required POST Body Data: JSON list of valid accession Strings
+* Example POST body: 
+```
+['GQ258462','CY055940','CY055932','CY055788','CY055780','CY055740','CY055661','HQ712184','HM624085']
+```
+
+* Note: This service will not return an actual File, just a JSON String ready to be written into a file. 
