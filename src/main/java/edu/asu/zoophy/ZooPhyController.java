@@ -27,6 +27,9 @@ import edu.asu.zoophy.index.LuceneSearcherException;
 import edu.asu.zoophy.pipeline.PipelineException;
 import edu.asu.zoophy.pipeline.PipelineManager;
 import edu.asu.zoophy.pipeline.ZooPhyRunner;
+import edu.asu.zoophy.pipeline.utils.DownloadFormat;
+import edu.asu.zoophy.pipeline.utils.DownloadFormatter;
+import edu.asu.zoophy.pipeline.utils.FormatterException;
 import edu.asu.zoophy.security.Parameter;
 import edu.asu.zoophy.security.ParameterException;
 import edu.asu.zoophy.security.SecurityHelper;
@@ -52,6 +55,9 @@ public class ZooPhyController {
 	
 	@Value("${job.max.accessions}")
 	private Integer JOB_MAX_ACCESSIONS;
+	
+	@Autowired
+	private DownloadFormatter formatter;
 	
     /**
      * Retrieves the specified record from the database.
@@ -132,7 +138,10 @@ public class ZooPhyController {
     @ResponseStatus(value=HttpStatus.OK)
     public List<GenBankRecord> queryAccessions(@RequestBody List<String> accessions) throws ParameterException, LuceneSearcherException, InvalidLuceneQueryException {
     	List<GenBankRecord> records = null;
-    	if (accessions != null && accessions.size() > 0 && accessions.size() < 1023) {
+    	if (accessions != null && accessions.size() > 0) {
+    		if (accessions.size() > 1023) {
+    			throw new ParameterException("accessions list is too long");
+    		}
     		Set<String> uniqueAccessions = new LinkedHashSet<String>(accessions.size());
     		for (String accession : accessions) {
     			if (security.checkParameter(accession, Parameter.ACCESSION)) {
@@ -222,6 +231,50 @@ public class ZooPhyController {
     	}
     	else {
     		throw new ParameterException(jobID);
+    	}
+    }
+    
+    /**
+     * Generate the contents of GenBankRecords download in the specified format
+     * @param format 
+     * @param accessions
+     * @return String of GenBankRecords download in the specified format
+     * @throws ParameterException
+     * @throws FormatterException
+     */
+    @RequestMapping(value="/download", method=RequestMethod.POST)
+    @ResponseStatus(value=HttpStatus.OK)
+    public String retrieveDownload(@RequestParam(value="format") String format, @RequestBody List<String> accessions) throws ParameterException, FormatterException {
+    	if (format != null) {
+    		if (accessions == null || accessions.size() == 0) {
+    			return null;
+    		}
+    		if (accessions.size() > 2500) {
+    			throw new ParameterException("accessions list is too long");
+    		}
+    		Set<String> downloadAccessions = new LinkedHashSet<String>(accessions.size());
+    		for (String accession : accessions) {
+    			if  (security.checkParameter(accession, Parameter.ACCESSION)) {
+    				downloadAccessions.add(accession);
+	    		}
+	    		else {
+	    			throw new ParameterException(accession);
+	    		} 
+    		}
+    		accessions = new LinkedList<String>(downloadAccessions);
+    		downloadAccessions.clear();
+    		if (format.equalsIgnoreCase("CSV")) {
+    			return formatter.generateDownload(accessions, DownloadFormat.CSV);
+    		}
+    		else if (format.equalsIgnoreCase("FASTA")) {
+    			return formatter.generateDownload(accessions, DownloadFormat.FASTA);
+    		}
+    		else {
+    			throw new ParameterException(format);
+    		}
+    	}
+    	else {
+    		throw new ParameterException(format);
     	}
     }
     

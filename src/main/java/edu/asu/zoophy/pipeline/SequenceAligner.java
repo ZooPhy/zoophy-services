@@ -51,6 +51,25 @@ public class SequenceAligner {
 		geonameCoordinates = new HashMap<String,String>();
 	}
 	
+	/**
+	 * NOTE: Only use this constructor for generating downloadable FASTA, not for ZooPhy Jobs
+	 * @param dao
+	 * @param indexSearcher
+	 */
+	public SequenceAligner(ZoophyDAO dao, LuceneSearcher indexSearcher) {
+		log = Logger.getLogger("MafftAligner");
+		this.dao = dao;
+		this.indexSearcher = indexSearcher;
+		JOB_ID = null;
+		JOB_LOG_DIR = null;
+	}
+	
+	/**
+	 * 
+	 * @param accessions
+	 * @return
+	 * @throws AlignerException
+	 */
 	public String align(List<String> accessions) throws AlignerException {
 		String alignedFasta;
 		FileHandler fileHandler = null;
@@ -109,7 +128,16 @@ public class SequenceAligner {
 		}
 	}
 
-	protected List<GenBankRecord> loadSequences(List<String> accessions, boolean isDisjoint) throws GenBankRecordNotFoundException, DaoException, PipelineException {
+	/**
+	 * 
+	 * @param accessions
+	 * @param isDisjoint
+	 * @return
+	 * @throws GenBankRecordNotFoundException
+	 * @throws DaoException
+	 * @throws PipelineException
+	 */
+	private List<GenBankRecord> loadSequences(List<String> accessions, boolean isDisjoint) throws GenBankRecordNotFoundException, DaoException, PipelineException {
 		log.info("Loading records for Mafft...");
 		List<GenBankRecord> records = new LinkedList<GenBankRecord>();
 		for (String accession : accessions) {
@@ -185,7 +213,7 @@ public class SequenceAligner {
 	 * @throws AlignerException 
 	 * @throws Exception 
 	 */
-	protected String fastaFormat(List<GenBankRecord> records) throws AlignerException {
+	private String fastaFormat(List<GenBankRecord> records) throws AlignerException {
 		log.info("Starting Fasta formatting");
 		StringBuilder builder = new StringBuilder();
 		StringBuilder tempBuilder;
@@ -227,7 +255,6 @@ public class SequenceAligner {
 	}
 	
 	/**
-	 * 
 	 * @param collectionDate
 	 * @return decimal date
 	 * @throws AlignerException 
@@ -264,10 +291,22 @@ public class SequenceAligner {
 			count+= s.length();
 		}
 		if (count != length) {
-			log.log(Level.SEVERE, "Error breaking up sequence. Did not break correctly.");
 			throw new AlignerException("Error breaking up sequence. Result was "+count+" length instead of the expected "+length+" length.", null);
 		}
 		return segments;
+	}
+	
+	/**
+	 * Generate raw FASTA for downlaods
+	 * @param accessions
+	 * @return raw FASTA
+	 * @throws GenBankRecordNotFoundException
+	 * @throws DaoException
+	 * @throws PipelineException
+	 */
+	public String generateDownloadableRawFasta(List<String> accessions) throws GenBankRecordNotFoundException, DaoException, PipelineException {
+		List<GenBankRecord> records = loadSequences(accessions, false);
+		return fastaFormat(records);
 	}
 
 }
