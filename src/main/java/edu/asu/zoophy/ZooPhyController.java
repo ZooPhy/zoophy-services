@@ -27,6 +27,7 @@ import edu.asu.zoophy.index.LuceneSearcherException;
 import edu.asu.zoophy.pipeline.PipelineException;
 import edu.asu.zoophy.pipeline.PipelineManager;
 import edu.asu.zoophy.pipeline.ZooPhyRunner;
+import edu.asu.zoophy.pipeline.utils.DownloadFormatter;
 import edu.asu.zoophy.security.Parameter;
 import edu.asu.zoophy.security.ParameterException;
 import edu.asu.zoophy.security.SecurityHelper;
@@ -52,6 +53,9 @@ public class ZooPhyController {
 	
 	@Value("${job.max.accessions}")
 	private Integer JOB_MAX_ACCESSIONS;
+	
+	@Autowired
+	private DownloadFormatter formatter;
 	
     /**
      * Retrieves the specified record from the database.
@@ -224,5 +228,7 @@ public class ZooPhyController {
     		throw new ParameterException(jobID);
     	}
     }
+    
+    
     
 }

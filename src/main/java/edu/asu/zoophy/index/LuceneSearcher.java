@@ -129,5 +129,43 @@ public class LuceneSearcher {
 			}
 		}
 	}
+
+	/**
+	 * Retrieves a single GenBankRecord from the Index
+	 * @param accession
+	 * @return The GenBankRecord from the Index if it exists, otherwise null
+	 * @throws LuceneSearcherException
+	 */
+	public GenBankRecord getRecord(String accession) throws LuceneSearcherException {
+		IndexSearcher indexSearcher = null;
+		Query query;
+		TopDocs documents;
+		String querystring = "Accession:"+accession;
+		try {
+			indexSearcher = new IndexSearcher(indexDirectory, true);
+			query = queryParser.parse(querystring);
+			documents = indexSearcher.search(query, 1);
+			if (documents.scoreDocs != null && documents.scoreDocs.length == 1) {
+				Document document = indexSearcher.doc(documents.scoreDocs[0].doc);
+				return DocumentMapper.mapRecord(document);
+			}
+			else {
+				return null;
+			}
+		}
+		catch (Exception e) {
+			throw new LuceneSearcherException(e.getMessage());
+		}
+		finally {
+			try {
+				if (indexSearcher != null) {
+					indexSearcher.close();
+				}
+			}
+			catch (IOException ioe) {
+				//just going to ignore this for now...
+			}
+		}
+	}
 	
 }
