@@ -78,7 +78,8 @@ public class ZooPhyMailer {
 	        else {
 	        	messageText = "\nHere are your results for ZooPhy Job ID: "+job.getID()+".";
 	        }
-			messageText += "\nThe SpreaD3 simulation for your job is available <a href=\"http://zodo.asu.edu:7070/spread3/"+job.getID()+"/renderers/d3/d3renderer/index.html\">here</a>.\n";
+			messageText += "\nThe SpreaD3 simulation for your job is available <a href=\"http://zodo.asu.edu:7070/spread3/"+job.getID()+"/renderers/d3/d3renderer/index.html\">here</a>.";
+			messageText += "\nFor viewing the attached .tree file, we recommend downloading the latest version of <a href=\"http://tree.bio.ed.ac.uk/software/figtree/\">FigTree</a>.\n";
 			messageText += "\nThank You,\nZooPhy Lab";
 			sendEmail(messageText, treeFile);
 		}
