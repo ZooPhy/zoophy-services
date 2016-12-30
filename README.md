@@ -45,6 +45,7 @@ The current services may be used via HTTP requests. They return data in JSON for
 * Type: GET
 * Path: /search?query=\<URL Encoded Lucene Query>
 * Lucene Terms: TaxonID, GeonameID, HostID, Gene, SegmentLength, Date, etc.
+ * Note: TaxonID is the taxonomy ID for the actual virus. Both the TaxonID and HostID are from the [NCBI Taxonomy database](https://www.ncbi.nlm.nih.gov/taxonomy). The GeonameID is a location ID from [Geonames] (http://www.geonames.org/).
 * Example Lucene Query: TaxonID:114727 AND Gene:(HA NOT Complete) AND Date:[2007 TO 20081231] AND HostID:9606 AND GeonameID: (5551752 OR 5332921 OR 5855797 OR 5509151) AND SegmentLength:[1650 TO 9999] 
 * Example Request:  http://zodo.asu.edu:7007/search?query=TaxonID%3A114727%20AND%20Gene%3A(HA%20NOT%20Complete)%20AND%20Date%3A%5B2007%20TO%2020081231%5D%20AND%20HostID%3A9606%20AND%20GeonameID%3A%20(5551752%20OR%205332921%20OR%205855797%20OR%205509151)%20AND%20SegmentLength%3A%5B1650%20TO%209999%5D 
 * Details on Lucene Query syntax can be found [here](https://lucene.apache.org/core/2_9_4/queryparsersyntax.html).
