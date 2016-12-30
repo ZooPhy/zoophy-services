@@ -1,7 +1,29 @@
 # Template for Spring Properties file. Original should NEVER be commited to GitHub
+
+# SQL connection info
 spring.datasource.url=jdbc:postgresql://<Host URL>/<DB Name>
 spring.datasource.username=<DB User>
 spring.datasource.password=<DB Password>
 spring.datasource.tomcat.max-active=12
 spring.datasource.tomcat.test-on-borrow=true
+
+# Lucene info
 lucene.index.location=<Lucene Index Path>
+
+# Email info
+email.user=<Email Username>
+email.pass=<Email Password>
+email.from=<Email From Address>
+
+# Job Settings
+job.max.accessions=<Maximum Records per Job>
+job.max.locations=<Maximum Unique Locations per Job>
+
+# Pipeline Settings
+beast.scripts.dir=<Beast scripts folder path>
+geojson.location=<Path to world.geojson file>
+spread3.result.dir=<SpreaD3 results folder path>
+job.logs.dir=<ZooPhy job logs folder path>
+
+# Server HTTP port binding
+server.port=<Server HTTP Port #>
