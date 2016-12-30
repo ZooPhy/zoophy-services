@@ -138,7 +138,10 @@ public class ZooPhyController {
     @ResponseStatus(value=HttpStatus.OK)
     public List<GenBankRecord> queryAccessions(@RequestBody List<String> accessions) throws ParameterException, LuceneSearcherException, InvalidLuceneQueryException {
     	List<GenBankRecord> records = null;
-    	if (accessions != null && accessions.size() > 0 && accessions.size() < 1023) {
+    	if (accessions != null && accessions.size() > 0) {
+    		if (accessions.size() > 1023) {
+    			throw new ParameterException("accessions list is too long");
+    		}
     		Set<String> uniqueAccessions = new LinkedHashSet<String>(accessions.size());
     		for (String accession : accessions) {
     			if (security.checkParameter(accession, Parameter.ACCESSION)) {
@@ -245,6 +248,9 @@ public class ZooPhyController {
     	if (format != null) {
     		if (accessions == null || accessions.size() == 0) {
     			return null;
+    		}
+    		if (accessions.size() > 2500) {
+    			throw new ParameterException("accessions list is too long");
     		}
     		Set<String> downloadAccessions = new LinkedHashSet<String>(accessions.size());
     		for (String accession : accessions) {
