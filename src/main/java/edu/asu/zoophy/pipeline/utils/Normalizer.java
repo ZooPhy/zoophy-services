@@ -19,7 +19,6 @@ public class Normalizer {
 	private final static DecimalFormat df4 = new DecimalFormat(".####");
 	private static Logger log = Logger.getLogger("Normalizer");
 	
-	
 	/**
 	 * Normalizes location names
 	 * @param location - Location to normalize
@@ -72,7 +71,6 @@ public class Normalizer {
 					day += 30.0;
 				case "Nov":
 					day += 31.0;
-					break;
 				case "Oct":
 					day += 30.0;
 				case "Sep":
@@ -112,8 +110,8 @@ public class Normalizer {
 			if (parts.length < 2) {
 				date += "Jan"; 
 			}
-			for (String p : parts) {
-				date += p;
+			for (String part : parts) {
+				date += part;
 			}
 			return date;
 		}
@@ -131,12 +129,12 @@ public class Normalizer {
 	public static String geneListToCSVString(List<Gene> genes) {
 		if (genes != null) {
 			List<String> geneStrings = new LinkedList<String>();
-			for (Gene g : genes) {
-				if (g.getName() != null) {
-					if (g.getName().equalsIgnoreCase("Complete")) {
+			for (Gene gene : genes) {
+				if (gene.getName() != null) {
+					if (gene.getName().equalsIgnoreCase("Complete")) {
 						return "Complete";
 					}
-					geneStrings.add(g.getName());
+					geneStrings.add(gene.getName());
 				}
 			}
 			Collections.sort(geneStrings);
@@ -144,8 +142,8 @@ public class Normalizer {
 			if (geneStrings.size() > 0) {
 				result = geneStrings.get(0).toUpperCase();
 				geneStrings.remove(0);
-				for (String str : geneStrings) {
-					result += " "+str;
+				for (String gene : geneStrings) {
+					result += " "+gene;
 				}
 			}
 			geneStrings.clear();

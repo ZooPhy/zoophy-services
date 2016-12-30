@@ -60,9 +60,9 @@ public class DownloadFormatter {
 	}
 	
 	/**
-	 * 
+	 * Generates a CSV String for downloads
 	 * @param accessions
-	 * @return
+	 * @return CSV String for downloads
 	 * @throws LuceneSearcherException
 	 */
 	private String generateCSV(List<String> accessions) throws LuceneSearcherException {
@@ -94,9 +94,9 @@ public class DownloadFormatter {
 	}
 
 	/**
-	 * 
+	 * Generates a FASTA String for downloads
 	 * @param accessions
-	 * @return
+	 * @return FASTA String for downloads
 	 * @throws FormatterException
 	 */
 	private String generateFASTA(List<String> accessions) throws FormatterException {
