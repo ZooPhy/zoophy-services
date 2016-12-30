@@ -210,9 +210,15 @@ public class ZooPhyController {
      */
     @RequestMapping(value="/stop", method=RequestMethod.GET)
     @ResponseStatus(value=HttpStatus.OK)
-    public void stopZooPhyJob(@RequestParam(value="id") String jobID) throws PipelineException, ParameterException {
+    public String stopZooPhyJob(@RequestParam(value="id") String jobID) throws PipelineException, ParameterException {
     	if (security.checkParameter(jobID, Parameter.JOB_ID)) {
-    		manager.killJob(jobID);
+    		try {
+	    		manager.killJob(jobID);
+	    		return "Successfully stopped ZooPhy Job: "+jobID;
+    		}
+    		catch (PipelineException pe) {
+    			throw new ParameterException(jobID);
+    		}
     	}
     	else {
     		throw new ParameterException(jobID);

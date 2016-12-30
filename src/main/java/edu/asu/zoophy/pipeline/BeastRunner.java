@@ -86,8 +86,9 @@ public class BeastRunner {
 			traitInserter.addLocation();
 			log.info("Location trait added.");
 			runBeast(job.getID());
-			if (wasKilled) {
+			if (wasKilled || !PipelineManager.checkProcess(job.getID())) {
 				cleanupBeast();
+				throw new BeastException("Job was stopped!", "Job was stopped!");
 			}
 			resultingTree = runTreeAnnotator(job.getID()+OUTPUT_TREES);
 			File tree = new File(resultingTree);
@@ -99,7 +100,7 @@ public class BeastRunner {
 			}
 			else {
 				log.log(Level.SEVERE, "TreeAnnotator did not proudce .tree file!");
-				throw new Exception("TreeAnnotator did not proudce .tree file!");
+				throw new BeastException("TreeAnnotator did not proudce .tree file!", null);
 			}
 			return tree;
 		}
@@ -436,8 +437,8 @@ public class BeastRunner {
 	}
 	
 	/**
-	 * 
-	 * @param reason
+	 * Kill the running Beast job
+	 * @param reason - Reason for stopping the job
 	 */
 	private void killBeast(String reason) {
 		if (tail != null) {
@@ -449,6 +450,7 @@ public class BeastRunner {
 		mailer.sendFailureEmail(reason);
 		wasKilled = true;
 		beastProcess.destroy();
+		PipelineManager.removeProcess(job.getID());
 	}
 	
 	/**
@@ -459,35 +461,43 @@ public class BeastRunner {
 	  boolean reached = false;
 	  String checkPoint = "100000";
 	  boolean finalUpdate = false;
+	  
 	  public void handle(String line) {
 		  if (line != null && !(line.trim().isEmpty() || line.contains("INFO:") || line.contains("usa.ac.asu.dbi.diego.viralcontamination3"))) {
 			  if (line.contains("hours/million states") && (line.trim().startsWith(checkPoint) || reached)) {
-				  System.out.println("\nTailer Reading: "+line);
-				  reached = true;
-				  try {
-					  String[] beastColumns = line.split("\t");
-					  if (beastColumns.length > 0) {
-						  String progressRate = beastColumns[beastColumns.length-1].trim();
-						  int estimatedHoursToGo;
-						  if (finalUpdate) {
-							  estimatedHoursToGo = (int)(Double.parseDouble(progressRate.substring(0, progressRate.indexOf('h')))*5.0)+1;
-						  }
-						  else {
-							  estimatedHoursToGo = (int)(Double.parseDouble(progressRate.substring(0, progressRate.indexOf('h')))*9.9)+1;
-						  }
-				  		  Date currentDate = new Date();
-				  		  Calendar calendar = Calendar.getInstance();
-				  		  calendar.setTime(currentDate);
-				  		  calendar.add(Calendar.HOUR, estimatedHoursToGo);
-				  		  String finishTime = calendar.getTime().toString();
-				  		  sendUpdate(finishTime, finalUpdate);
-				  		  reached = false;
-				  		  checkPoint = "5000000";
-				  		  finalUpdate = true;
-				  	  }
+				  if (!PipelineManager.checkProcess(job.getID())) {
+					  tail.stop();
+					  killBeast("Process was already terminated.");
 				  }
-				  catch (Exception e) {
-					  log.log(Level.WARNING, "Failed to extract Beast time: "+e.getMessage());
+				  else {
+					  System.out.println("\nTailer Reading: "+line);
+					  reached = true;
+					  try {
+						  String[] beastColumns = line.split("\t");
+						  if (beastColumns.length > 0) {
+							  String progressRate = beastColumns[beastColumns.length-1].trim();
+							  int estimatedHoursToGo;
+							  if (finalUpdate) {
+								  estimatedHoursToGo = (int)(Double.parseDouble(progressRate.substring(0, progressRate.indexOf('h')))*5.0)+1;
+								  tail.stop();
+							  }
+							  else {
+								  estimatedHoursToGo = (int)(Double.parseDouble(progressRate.substring(0, progressRate.indexOf('h')))*9.9)+1;
+							  }
+					  		  Date currentDate = new Date();
+					  		  Calendar calendar = Calendar.getInstance();
+					  		  calendar.setTime(currentDate);
+					  		  calendar.add(Calendar.HOUR, estimatedHoursToGo);
+					  		  String finishTime = calendar.getTime().toString();
+					  		  sendUpdate(finishTime, finalUpdate);
+					  		  reached = false;
+					  		  checkPoint = "5000000";
+					  		  finalUpdate = true;
+					  	  }
+					  }
+					  catch (Exception e) {
+						  log.log(Level.WARNING, "Failed to extract Beast time: "+e.getMessage());
+					  }
 				  }
 			  }
 			  else if (line.contains("java.lang.RuntimeException")) {
@@ -495,6 +505,7 @@ public class BeastRunner {
 			  }
 		  }
 	  }
+	  
 	}
 	
 	/**
@@ -502,31 +513,38 @@ public class BeastRunner {
 	 * @author devdemetri
 	 */
 	private class RateTailerListener extends TailerListenerAdapter {
+		
 		public void handle(String line) {
 			boolean isFailing = true;
 			final double standard = 1.0;
 			if (line != null && line.startsWith("15000")) {
 				rateTail.stop();
-				System.out.println("\nRateTailer read: "+line.trim());
-				try {
-					String[] row = line.trim().split("\t");
-					for (int i = 1; i < row.length; i++) {
-						double col = Double.parseDouble(row[i].trim());
-						if (col != standard) {
-							isFailing = false;
+				if (!PipelineManager.checkProcess(job.getID())) {
+					  killBeast("Process was already terminated.");
+				}
+				else {
+					System.out.println("\nRateTailer read: "+line.trim());
+					try {
+						String[] row = line.trim().split("\t");
+						for (int i = 1; i < row.length; i++) {
+							double col = Double.parseDouble(row[i].trim());
+							if (col != standard) {
+								isFailing = false;
+							}
+						}
+						if (isFailing) {
+							killBeast("Rate Matrix Error. Try reducing discrete states.");
 						}
 					}
-					if (isFailing) {
-						killBeast("Rate Matrix Error. Try reducing discrete states.");
+					catch (Exception e) {
+						rateTail.stop();
+						System.err.println("ERROR checking rate matrix file: "+e.getMessage());
+						throw e;
 					}
-				}
-				catch (Exception e) {
-					rateTail.stop();
-					System.err.println("ERROR checking rate matrix file: "+e.getMessage());
-					throw e;
 				}
 			}
 		}
+		
 	}
 	
 }

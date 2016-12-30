@@ -58,11 +58,21 @@ public class PipelineManager {
 	}
 	
 	/**
-	 * Remove the Process for a finished ZooPhyJob
+	 * Remove the Process for a finished or stopped ZooPhyJob
 	 * @param jobID
+	 * @return True if the Process existed, False otherwise
 	 */
-	protected static void removeProcess(String jobID) {
-		processes.remove(jobID);
+	protected static boolean removeProcess(String jobID) {
+		return (processes.remove(jobID) != null);
+	}
+	
+	/**
+	 * Check if the Job is still running
+	 * @param jobID
+	 * @return True if it has not been stopped/finished, False otherwise
+	 */
+	protected static boolean checkProcess(String jobID) {
+		return (processes.get(jobID) != null);
 	}
 	
 	/**
@@ -72,11 +82,10 @@ public class PipelineManager {
 	 */
 	 public void killJob(String jobID) throws PipelineException {
 		try {
-			Process jobProcess = processes.get(jobID);
+			Process jobProcess = processes.remove(jobID);
 			if (jobProcess != null) {
 				log.info("Killing job: "+jobID);
 				jobProcess.destroy();
-				processes.remove(jobProcess);
 			}
 			else {
 				log.warning("Attempted to kill non-existent job: "+jobID);
