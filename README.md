@@ -7,7 +7,7 @@ RESTful services for [ZooPhy] (http://zodo.asu.edu:7070/zoophy/). This consists 
 
 3) Starting/Stopping ZooPhy Pipeline jobs
 
-## Requirements:
+## Dependencies:
 * [JDK 1.7.x] (http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html)
 * [Maven 3.x] (https://maven.apache.org/download.cgi)
 * [PostgreSQL 9.x] (https://www.postgresql.org/download/) for SQL Database
@@ -29,7 +29,7 @@ RESTful services for [ZooPhy] (http://zodo.asu.edu:7070/zoophy/). This consists 
 4) The build should run successfully and generate a runnable jar in the target folder. This can be run via terminal, or in Spring Tool Suite click Run As "Spring Boot App"
 
 ## Using Services
-The current services may be used via GET requests. They return data in JSON format:
+The current services may be used via HTTP requests. They return data in JSON format:
 
 ### Get GenBankRecord:
 * Type: GET
