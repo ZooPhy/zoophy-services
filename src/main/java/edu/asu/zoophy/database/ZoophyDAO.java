@@ -19,7 +19,7 @@ public class ZoophyDAO {
     private JdbcTemplate jdbc;
 	
 	private static final String PULL_RECORD_DETAILS = "SELECT \"Sequence_Details\".\"Accession\", \"Collection_Date\", \"Comment\", \"Definition\", \"Isolate\", \"Tax_ID\", \"Organism\", \"Strain\", \"Sequence\", \"Segment_Length\", \"Host_Name\", \"Host_taxon\", \"Geoname_ID\", \"Location\", \"Latitude\", \"Longitude\", \"Type\", \"Country\" FROM \"Sequence_Details\" JOIN \"Host\" ON \"Sequence_Details\".\"Accession\"=\"Host\".\"Accession\" JOIN \"Location_Geoname\" ON \"Sequence_Details\".\"Accession\"=\"Location_Geoname\".\"Accession\" JOIN \"Sequence\" ON \"Sequence_Details\".\"Accession\"=\"Sequence\".\"Accession\" WHERE \"Sequence_Details\".\"Accession\"=?";
-	private static final String PULL_RECORD_GENES = "SELECT \"Accession\", \"Normalized_Gene_Name\" FROM \"Gene\" WHERE \"Accession\"=?";
+	private static final String PULL_RECORD_GENES = "SELECT \"Accession\", \"Normalized_Gene_Name\" FROM \"Gene\" WHERE \"Accession\"=?  AND \"Normalized_Gene_Name\" IS NOT NULL";
 	private static final String PULL_RECORD_PUBLICATION = "SELECT \"Accession\", \"Pubmed_ID\", \"Pubmed_Central_ID\", \"Authors\", \"Title\", \"Journal\" FROM \"Sequence_Publication\" JOIN \"Publication\" ON \"Sequence_Publication\".\"Pub_ID\"=\"Publication\".\"Pubmed_ID\" WHERE \"Accession\"=?";
 	private static final String PULL_RECORD_LOCATION = "SELECT \"Accession\", \"Geoname_ID\", \"Location\", \"Latitude\", \"Longitude\", \"Type\", \"Country\" FROM \"Location_Geoname\" WHERE \"Accession\"=?";
 	

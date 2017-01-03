@@ -149,7 +149,9 @@ public class Normalizer {
 			geneStrings.clear();
 			return result;
 		}
-		return "None";
+		else {
+			return "None";
+		}
 	}
 	
 	/**

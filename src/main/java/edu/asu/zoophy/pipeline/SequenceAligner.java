@@ -46,7 +46,7 @@ public class SequenceAligner {
 		JOB_ID = job.getID();
 		PropertyProvider provider = PropertyProvider.getInstance();
 		JOB_LOG_DIR = provider.getProperty("job.logs.dir");
-		log = Logger.getLogger("MafftAligner");
+		log = Logger.getLogger("SequenceAligner");
 		uniqueGeonames = new LinkedList<String>();
 		geonameCoordinates = new HashMap<String,String>();
 	}
@@ -57,7 +57,7 @@ public class SequenceAligner {
 	 * @param indexSearcher
 	 */
 	public SequenceAligner(ZoophyDAO dao, LuceneSearcher indexSearcher) {
-		log = Logger.getLogger("MafftAligner");
+		log = Logger.getLogger("SequenceAligner");
 		this.dao = dao;
 		this.indexSearcher = indexSearcher;
 		JOB_ID = null;

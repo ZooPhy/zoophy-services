@@ -64,33 +64,50 @@ public class DownloadFormatter {
 	 * @param accessions
 	 * @return CSV String for downloads
 	 * @throws LuceneSearcherException
+	 * @throws FormatterException 
 	 */
-	private String generateCSV(List<String> accessions) throws LuceneSearcherException {
-		List<GenBankRecord> records = new LinkedList<GenBankRecord>();
-		for (String accession : accessions) {
-			GenBankRecord record = indexSearcher.getRecord(accession);
-			if (record != null) {
-				records.add(record);
+	private String generateCSV(List<String> accessions) throws LuceneSearcherException, FormatterException {
+		try {
+			List<GenBankRecord> records = new LinkedList<GenBankRecord>();
+			for (String accession : accessions) {
+				GenBankRecord record = indexSearcher.getRecord(accession);
+				if (record != null) {
+					records.add(record);
+				}
 			}
+			StringBuilder csv = new StringBuilder("Accession,Genes,Virus,Date,Host,Country,Segment Length\n");
+			for (GenBankRecord record : records) {
+				csv.append(Normalizer.csvify(record.getAccession()));
+				csv.append(",");
+				csv.append(Normalizer.csvify(Normalizer.geneListToCSVString(record.getGenes())));
+				csv.append(",");
+				csv.append(Normalizer.csvify(Normalizer.simplifyOrganism(record.getSequence().getOrganism())));
+				csv.append(",");
+				csv.append(Normalizer.csvify(Normalizer.normalizeDate(record.getSequence().getCollectionDate())));
+				csv.append(",");
+				if (record.getHost() != null && record.getHost().getName() != null) {
+					csv.append(Normalizer.csvify(record.getHost().getName()));
+				}
+				else {
+					csv.append(Normalizer.csvify("unknown"));
+				}
+				csv.append(",");
+				if (record.getGeonameLocation() != null && record.getGeonameLocation().getCountry() != null) {
+					csv.append(Normalizer.csvify(record.getGeonameLocation().getCountry()));
+				}
+				else {
+					csv.append(Normalizer.csvify("unknown"));
+				}
+				csv.append(",");
+				csv.append(Normalizer.csvify(String.valueOf(record.getSequence().getSegmentLength())));
+				csv.append("\n");
+			}
+			return csv.toString();
 		}
-		StringBuilder csv = new StringBuilder("Accession,Genes,Virus,Date,Host,Country,Segment Length\n");
-		for (GenBankRecord record : records) {
-			csv.append(Normalizer.csvify(record.getAccession()));
-			csv.append(",");
-			csv.append(Normalizer.csvify(Normalizer.geneListToCSVString(record.getGenes())));
-			csv.append(",");
-			csv.append(Normalizer.csvify(Normalizer.simplifyOrganism(record.getSequence().getOrganism())));
-			csv.append(",");
-			csv.append(Normalizer.csvify(Normalizer.normalizeDate(record.getSequence().getCollectionDate())));
-			csv.append(",");
-			csv.append(Normalizer.csvify(record.getHost().getName()));
-			csv.append(",");
-			csv.append(Normalizer.csvify(record.getGeonameLocation().getCountry()));
-			csv.append(",");
-			csv.append(Normalizer.csvify(String.valueOf(record.getSequence().getSegmentLength())));
-			csv.append("\n");
+		catch (Exception e) {
+			log.log(Level.SEVERE, "Error generating CSV: "+e.getMessage());
+			throw new FormatterException("Error Generating CSV!");
 		}
-		return csv.toString();
 	}
 
 	/**
