@@ -16,6 +16,7 @@ public class Sequence {
 	private String comment;
 	private String rawSequence;
 	private Integer segmentLength;
+	private Boolean isPH1N1;
 	
 	public Sequence() {
 		
@@ -98,6 +99,14 @@ public class Sequence {
 	
 	public void setSegmentLength(Integer segmentLength) {
 		this.segmentLength = segmentLength;
+	}
+
+	public Boolean getIsPH1N1() {
+		return isPH1N1;
+	}
+
+	public void setPH1N1(Boolean isPH1N1) {
+		this.isPH1N1 = isPH1N1;
 	}
 
 }

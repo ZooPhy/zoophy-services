@@ -32,6 +32,7 @@ public class GenBankRecordRowMapper implements RowMapper<GenBankRecord> {
 		sequence.setRawSequence(row.getString("Sequence"));
 		sequence.setStrain(row.getString("Strain"));
 		sequence.setTaxID(row.getInt("Tax_ID"));
+		sequence.setPH1N1(row.getBoolean("pH1N1"));
 		record.setSequence(sequence);
 		Location location = new Location();
 		location.setAccession(recordAccession);

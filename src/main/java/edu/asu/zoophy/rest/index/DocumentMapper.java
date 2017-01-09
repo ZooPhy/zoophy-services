@@ -56,6 +56,9 @@ public class DocumentMapper {
 					}
 				}
 			}
+			if (luceneDocument.getField("PH1N1") != null) {
+				sequence.setPH1N1(Boolean.valueOf(luceneDocument.getField("PH1N1").stringValue()));
+			}
 			record.setSequence(sequence);
 			Location location = new Location();
 			location.setAccession(recordAccession);
