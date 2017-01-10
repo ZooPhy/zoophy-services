@@ -9,7 +9,8 @@ import java.util.Set;
 
 import org.apache.lucene.analysis.KeywordAnalyzer;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
+import org.apache.lucene.document.Fieldable;
+import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.queryParser.ParseException;
 import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
@@ -39,13 +40,14 @@ public class LuceneSearcher {
 			File index = new File(indexLocation);
 			if (index.exists() && index.isDirectory()) {
 				indexDirectory = FSDirectory.open(index);
-				IndexSearcher indexSearcher = new IndexSearcher(indexDirectory, true);
+				IndexReader reader = IndexReader.open(indexDirectory);
+				IndexSearcher indexSearcher = new IndexSearcher(reader);
 				indexSearcher.close();
 			}
 			else {
 				throw new LuceneSearcherException("No Lucene Index at: "+indexLocation);
 			}
-			queryParser = new QueryParser(Version.LUCENE_30, "text", new KeywordAnalyzer());
+			queryParser = new QueryParser(Version.LUCENE_36, "text", new KeywordAnalyzer());
 		}
 		catch (IOException ioe) {
 			throw new LuceneSearcherException("Could not open Lucene Index at: "+indexLocation+ " : "+ioe.getMessage());
@@ -64,7 +66,8 @@ public class LuceneSearcher {
 		Query query;
 		TopDocs documents;
 		try {
-			indexSearcher = new IndexSearcher(indexDirectory, true);
+			IndexReader reader = IndexReader.open(indexDirectory);
+			indexSearcher = new IndexSearcher(reader);
 			query = queryParser.parse(querystring);
 			documents = indexSearcher.search(query, 2500);
 			for (ScoreDoc scoreDoc : documents.scoreDocs) {
@@ -104,12 +107,13 @@ public class LuceneSearcher {
 		TopDocs documents;
 		String querystring = "Accession:"+accession;
 		try {
-			indexSearcher = new IndexSearcher(indexDirectory, true);
+			IndexReader reader = IndexReader.open(indexDirectory);
+			indexSearcher = new IndexSearcher(reader);
 			query = queryParser.parse(querystring);
 			documents = indexSearcher.search(query, 1);
 			if (documents.scoreDocs != null && documents.scoreDocs.length == 1) {
 				Document document = indexSearcher.doc(documents.scoreDocs[0].doc);
-				for (Field field : document.getFields("GeonameID")) {
+				for (Fieldable field : document.getFieldables("GeonameID")) {
 					ancestors.add(Long.parseLong(field.stringValue()));
 				}
 			}
@@ -142,7 +146,8 @@ public class LuceneSearcher {
 		TopDocs documents;
 		String querystring = "Accession:"+accession;
 		try {
-			indexSearcher = new IndexSearcher(indexDirectory, true);
+			IndexReader reader = IndexReader.open(indexDirectory);
+			indexSearcher = new IndexSearcher(reader);
 			query = queryParser.parse(querystring);
 			documents = indexSearcher.search(query, 1);
 			if (documents.scoreDocs != null && documents.scoreDocs.length == 1) {
