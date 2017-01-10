@@ -6,13 +6,16 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-import org.apache.lucene.analysis.KeywordAnalyzer;
+import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Fieldable;
+import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.queryParser.ParseException;
-import org.apache.lucene.queryParser.QueryParser;
+import org.apache.lucene.index.IndexableField;
+import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
@@ -34,22 +37,21 @@ public class LuceneSearcher {
 	
 	private Directory indexDirectory;
 	private QueryParser queryParser;
+	private Logger log = Logger.getLogger("LuceneSearcher");
 	
 	public LuceneSearcher(@Value("${lucene.index.location}") String indexLocation) throws LuceneSearcherException {
 		try {
 			File index = new File(indexLocation);
 			if (index.exists() && index.isDirectory()) {
 				indexDirectory = FSDirectory.open(index);
-				IndexReader reader = IndexReader.open(indexDirectory);
-				IndexSearcher indexSearcher = new IndexSearcher(reader);
-				indexSearcher.close();
 			}
 			else {
 				throw new LuceneSearcherException("No Lucene Index at: "+indexLocation);
 			}
-			queryParser = new QueryParser(Version.LUCENE_36, "text", new KeywordAnalyzer());
+			queryParser = new QueryParser(Version.LUCENE_40, "text", new KeywordAnalyzer());
 		}
 		catch (IOException ioe) {
+			log.log(Level.SEVERE, "Could not open Lucene Index at: "+indexLocation+ " : "+ioe.getMessage());
 			throw new LuceneSearcherException("Could not open Lucene Index at: "+indexLocation+ " : "+ioe.getMessage());
 		}
 	}
@@ -62,11 +64,12 @@ public class LuceneSearcher {
 	 */
 	public List<GenBankRecord> searchIndex(String querystring) throws LuceneSearcherException, InvalidLuceneQueryException {
 		List<GenBankRecord> records = new LinkedList<GenBankRecord>();
+		IndexReader reader = null;
 		IndexSearcher indexSearcher = null;
 		Query query;
 		TopDocs documents;
 		try {
-			IndexReader reader = IndexReader.open(indexDirectory);
+			reader = DirectoryReader.open(indexDirectory);
 			indexSearcher = new IndexSearcher(reader);
 			query = queryParser.parse(querystring);
 			documents = indexSearcher.search(query, 2500);
@@ -84,12 +87,12 @@ public class LuceneSearcher {
 		}
 		finally {
 			try {
-				if (indexSearcher != null) {
-					indexSearcher.close();
+				if (reader != null) {
+					reader.close();
 				}
 			}
 			catch (IOException ioe) {
-				//just going to ignore this for now...
+				log.warning("Could not close IndexReader: "+ioe.getMessage()); 
 			}
 		}
 	}
@@ -102,18 +105,19 @@ public class LuceneSearcher {
 	 */
 	public Set<Long> findLocationAncestors(String accession) throws LuceneSearcherException {
 		Set<Long> ancestors = new HashSet<Long>();
+		IndexReader reader = null;
 		IndexSearcher indexSearcher = null;
 		Query query;
 		TopDocs documents;
 		String querystring = "Accession:"+accession;
 		try {
-			IndexReader reader = IndexReader.open(indexDirectory);
+			reader = DirectoryReader.open(indexDirectory);
 			indexSearcher = new IndexSearcher(reader);
 			query = queryParser.parse(querystring);
 			documents = indexSearcher.search(query, 1);
 			if (documents.scoreDocs != null && documents.scoreDocs.length == 1) {
 				Document document = indexSearcher.doc(documents.scoreDocs[0].doc);
-				for (Fieldable field : document.getFieldables("GeonameID")) {
+				for (IndexableField field : document.getFields("GeonameID")) {
 					ancestors.add(Long.parseLong(field.stringValue()));
 				}
 			}
@@ -124,12 +128,12 @@ public class LuceneSearcher {
 		}
 		finally {
 			try {
-				if (indexSearcher != null) {
-					indexSearcher.close();
+				if (reader != null) {
+					reader.close();
 				}
 			}
 			catch (IOException ioe) {
-				//just going to ignore this for now...
+				log.warning("Could not close IndexReader: "+ioe.getMessage()); 
 			}
 		}
 	}
@@ -142,11 +146,12 @@ public class LuceneSearcher {
 	 */
 	public GenBankRecord getRecord(String accession) throws LuceneSearcherException {
 		IndexSearcher indexSearcher = null;
+		IndexReader reader = null;
 		Query query;
 		TopDocs documents;
 		String querystring = "Accession:"+accession;
 		try {
-			IndexReader reader = IndexReader.open(indexDirectory);
+			reader = DirectoryReader.open(indexDirectory);
 			indexSearcher = new IndexSearcher(reader);
 			query = queryParser.parse(querystring);
 			documents = indexSearcher.search(query, 1);
@@ -163,12 +168,12 @@ public class LuceneSearcher {
 		}
 		finally {
 			try {
-				if (indexSearcher != null) {
-					indexSearcher.close();
+				if (reader != null) {
+					reader.close();
 				}
 			}
 			catch (IOException ioe) {
-				//just going to ignore this for now...
+				log.warning("Could not close IndexReader: "+ioe.getMessage()); 
 			}
 		}
 	}

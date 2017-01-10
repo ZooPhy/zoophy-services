@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Fieldable;
+import org.apache.lucene.index.IndexableField;
 
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.genbank.Gene;
@@ -38,7 +38,7 @@ public class DocumentMapper {
 			sequence.setOrganism(luceneDocument.get("Organism"));
 			sequence.setSegmentLength(Integer.parseInt(luceneDocument.get("SegmentLength")));
 			sequence.setStrain(luceneDocument.get("Strain"));
-			for (Fieldable field : luceneDocument.getFieldables("TaxonID")) {
+			for (IndexableField field : luceneDocument.getFields("TaxonID")) {
 				try {
 					sequence.setTaxID(Integer.parseInt(field.stringValue()));
 					break;
@@ -51,7 +51,7 @@ public class DocumentMapper {
 			record.setSequence(sequence);
 			Location location = new Location();
 			location.setAccession(recordAccession);
-			for (Fieldable field : luceneDocument.getFieldables("GeonameID")) {
+			for (IndexableField field : luceneDocument.getFields("GeonameID")) {
 				try {
 					location.setGeonameID(Long.parseLong(field.stringValue()));
 					break;
@@ -73,7 +73,7 @@ public class DocumentMapper {
 			Host host = new Host();
 			host.setAccession(recordAccession);
 			host.setName(luceneDocument.get("Host_Name"));
-			for (Fieldable field : luceneDocument.getFieldables("HostID")) {
+			for (IndexableField field : luceneDocument.getFields("HostID")) {
 				try {
 					host.setTaxon(Integer.parseInt(field.stringValue()));
 					break;
@@ -89,10 +89,10 @@ public class DocumentMapper {
 			if (luceneDocument.get("PubmedID") != null && !luceneDocument.get("PubmedID").equalsIgnoreCase("n/a")) {
 				publication.setPubMedID(Integer.parseInt(luceneDocument.get("PubmedID")));
 			}
-			if (luceneDocument.getFieldables("Gene").length > 0) {
+			if (luceneDocument.getFields("Gene").length > 0) {
 				List<Gene> genes = record.getGenes();
 				boolean isComplete = false;
-				for (Fieldable field : luceneDocument.getFieldables("Gene")) {
+				for (IndexableField field : luceneDocument.getFields("Gene")) {
 					if (field.stringValue().equalsIgnoreCase("Complete")) {
 						isComplete = true;
 					}
