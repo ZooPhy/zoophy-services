@@ -11,7 +11,7 @@ RESTful services for [ZooPhy] (http://zodo.asu.edu:7070/zoophy/). This consists 
 * [JDK 1.7.x] (http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html)
 * [Maven 3.x] (https://maven.apache.org/download.cgi)
 * [PostgreSQL 9.x] (https://www.postgresql.org/download/) for SQL Database
-* [Lucene 3.x] (http://archive.apache.org/dist/lucene/java/3.0.3/) for Lucene Index
+* [Lucene 5.x] (http://archive.apache.org/dist/lucene/java/3.0.3/) for Lucene Index
 * Java IDE, [Spring Tool Suite] (https://spring.io/tools) is heavily recommended for best Spring integration
 * [MAFFT 7.x] (http://mafft.cbrc.jp/alignment/software/)
 * [BeastGen 1.0.2] (http://beast.bio.ed.ac.uk/beastgen)
