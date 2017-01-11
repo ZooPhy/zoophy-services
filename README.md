@@ -8,10 +8,10 @@ RESTful services for [ZooPhy] (http://zodo.asu.edu:7070/zoophy/). This consists 
 3) Starting/Stopping ZooPhy Pipeline jobs
 
 ## Dependencies:
-* [JDK 1.7.x] (http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html)
-* [Maven 3.x] (https://maven.apache.org/download.cgi)
-* [PostgreSQL 9.x] (https://www.postgresql.org/download/) for SQL Database
-* [Lucene 5.x] (http://archive.apache.org/dist/lucene/java/3.0.3/) for Lucene Index
+* [JDK 1.7.x] (http://www.oracle.com/technetwork/java/javase/overview/index.html)
+* [Maven 3.x] (https://maven.apache.org/index.html)
+* [PostgreSQL 9.x] (https://www.postgresql.org/) for SQL Database
+* [Lucene 5.x] (https://lucene.apache.org/core/5_5_0/) for Lucene Index
 * Java IDE, [Spring Tool Suite] (https://spring.io/tools) is heavily recommended for best Spring integration
 * [MAFFT 7.x] (http://mafft.cbrc.jp/alignment/software/)
 * [BeastGen 1.0.2] (http://beast.bio.ed.ac.uk/beastgen)
