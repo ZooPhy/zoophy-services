@@ -1,7 +1,8 @@
 package edu.asu.zoophy.rest.index;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -22,7 +23,6 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.util.Version;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
@@ -41,14 +41,10 @@ public class LuceneSearcher {
 	
 	public LuceneSearcher(@Value("${lucene.index.location}") String indexLocation) throws LuceneSearcherException {
 		try {
-			File index = new File(indexLocation);
-			if (index.exists() && index.isDirectory()) {
-				indexDirectory = FSDirectory.open(index);
-			}
-			else {
-				throw new LuceneSearcherException("No Lucene Index at: "+indexLocation);
-			}
-			queryParser = new QueryParser(Version.LUCENE_40, "text", new KeywordAnalyzer());
+			Path index = Paths.get(indexLocation);
+			indexDirectory = FSDirectory.open(index);
+			queryParser = new QueryParser("Accession", new KeywordAnalyzer());
+			log.info("Connected to Index at: "+indexLocation);
 		}
 		catch (IOException ioe) {
 			log.log(Level.SEVERE, "Could not open Lucene Index at: "+indexLocation+ " : "+ioe.getMessage());

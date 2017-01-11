@@ -39,12 +39,14 @@ public class DocumentMapper {
 			sequence.setSegmentLength(Integer.parseInt(luceneDocument.get("SegmentLength")));
 			sequence.setStrain(luceneDocument.get("Strain"));
 			for (IndexableField field : luceneDocument.getFields("TaxonID")) {
-				try {
-					sequence.setTaxID(Integer.parseInt(field.stringValue()));
-					break;
-				}
-				catch (Exception e) {
-					log.warning("Could not parse TaxID: "+e.getMessage());
+				if (field.stringValue().matches("[0-9]{1,12}+")) {
+					try {
+						sequence.setTaxID(Integer.parseInt(field.stringValue()));
+						break;
+					}
+					catch (Exception e) {
+						log.warning("Could not parse TaxID: "+e.getMessage());
+					}
 				}
 			}
 			sequence.setPH1N1(Boolean.valueOf(luceneDocument.get("PH1N1")));
@@ -52,12 +54,14 @@ public class DocumentMapper {
 			Location location = new Location();
 			location.setAccession(recordAccession);
 			for (IndexableField field : luceneDocument.getFields("GeonameID")) {
-				try {
-					location.setGeonameID(Long.parseLong(field.stringValue()));
-					break;
-				}
-				catch (Exception e) {
-					log.warning("Could not parse GeonameID: "+e.getMessage());
+				if (field.stringValue().matches("[0-9]{1,12}+")) {
+					try {
+						location.setGeonameID(Long.parseLong(field.stringValue()));
+						break;
+					}
+					catch (Exception e) {
+						log.warning("Could not parse GeonameID: "+e.getMessage());
+					}
 				}
 			}
 			location.setLocation(luceneDocument.get("Location"));
@@ -74,12 +78,14 @@ public class DocumentMapper {
 			host.setAccession(recordAccession);
 			host.setName(luceneDocument.get("Host_Name"));
 			for (IndexableField field : luceneDocument.getFields("HostID")) {
-				try {
-					host.setTaxon(Integer.parseInt(field.stringValue()));
-					break;
-				}
-				catch (Exception e) {
-					log.warning("Could not parse HostID: "+e.getMessage());
+				if (field.stringValue().matches("[0-9]{1,12}+")) {
+					try {
+						host.setTaxon(Integer.parseInt(field.stringValue()));
+						break;
+					}
+					catch (Exception e) {
+						log.warning("Could not parse HostID: "+e.getMessage());
+					}
 				}
 			}
 			if (host.getTaxon() != null && host.getTaxon() != 1) {
