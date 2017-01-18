@@ -11,6 +11,7 @@ public class JobParameters {
 	private String replyEmail;
 	private String jobName;
 	private List<String> accessions;
+	private boolean useGLM = false;
 	
 	public JobParameters() {
 		
@@ -38,6 +39,14 @@ public class JobParameters {
 
 	public void setAccessions(List<String> accessions) {
 		this.accessions = accessions;
+	}
+
+	public boolean isUsingGLM() {
+		return useGLM;
+	}
+
+	public void setUseGLM(boolean useGLM) {
+		this.useGLM = useGLM;
 	}
 	
 }

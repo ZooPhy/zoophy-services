@@ -203,11 +203,11 @@ public class ZooPhyController {
     	if (security.checkParameter(parameters.getReplyEmail(), Parameter.EMAIL)) {
     		ZooPhyRunner zoophy;
 	    	if (parameters.getJobName() == null) {
-	    			zoophy = new ZooPhyRunner(parameters.getReplyEmail(), null);
+	    			zoophy = new ZooPhyRunner(parameters.getReplyEmail(), null, parameters.isUsingGLM());
 	    	}
 	    	else {
 	    		if (security.checkParameter(parameters.getJobName(), Parameter.JOB_NAME)) {
-	    			zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName());
+	    			zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM());
 	    		}
 	    		else {
 	    			log.warning("Bad job name parameter: "+parameters.getJobName());

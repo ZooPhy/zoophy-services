@@ -18,10 +18,10 @@ public class ZooPhyRunner {
 	private final ZooPhyMailer mailer;
 	private final Logger log;
 
-	public ZooPhyRunner(String replyEmail, String jobName) throws PipelineException {
+	public ZooPhyRunner(String replyEmail, String jobName, boolean useGLM) throws PipelineException {
 		log = Logger.getLogger("ZooPhyRunner");
 		log.info("Initializing ZooPhy Job");
-		job = new ZooPhyJob(generateID(),jobName,replyEmail);
+		job = new ZooPhyJob(generateID(),jobName,replyEmail, useGLM);
 		log.info("Initializing ZooPhyMailer... : "+job.getID());
 		mailer = new ZooPhyMailer(job);
 	}
@@ -42,7 +42,7 @@ public class ZooPhyRunner {
 			log.info("Running Sequence Aligner... : "+job.getID());
 			aligner.align(accessions);
 			log.info("Initializing Beast Runner... : "+job.getID());
-			BeastRunner beast = new BeastRunner(job, mailer);
+			BeastRunner beast = new BeastRunner(job, mailer, dao);
 			log.info("Starting Beast Runner... : "+job.getID());
 			File treeFile = beast.run();
 			log.info("Sending Results Email... : "+job.getID());

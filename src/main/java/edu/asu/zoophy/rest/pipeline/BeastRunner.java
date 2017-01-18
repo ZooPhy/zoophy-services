@@ -23,6 +23,10 @@ import java.util.logging.SimpleFormatter;
 import org.apache.commons.io.input.Tailer;
 import org.apache.commons.io.input.TailerListenerAdapter;
 
+import edu.asu.zoophy.rest.database.ZoophyDAO;
+import edu.asu.zoophy.rest.pipeline.glm.GLMException;
+import edu.asu.zoophy.rest.pipeline.glm.PredictorGenerator;
+
 /**
  * Responsible for running BEAST processes
  * @author devdemetri
@@ -35,6 +39,8 @@ public class BeastRunner {
 	private final String WORLD_GEOJSON;
 	private final String RENDER_DIR;
 	private final String FIGTREE_TEMPLATE;
+	private final String GLM_PATH;
+	private final String GLM_SCRIPT;
 	private final static String ALIGNED_FASTA = "-aligned.fasta";
 	private final static String INPUT_XML = ".xml";
 	private final static String OUTPUT_TREES = "-aligned.trees";
@@ -49,8 +55,9 @@ public class BeastRunner {
 	private Tailer rateTail = null;
 	private Process beastProcess;
 	private boolean wasKilled = false;
+	private final ZoophyDAO dao;
 	
-	public BeastRunner(ZooPhyJob job, ZooPhyMailer mailer) throws PipelineException {
+	public BeastRunner(ZooPhyJob job, ZooPhyMailer mailer, ZoophyDAO dao) throws PipelineException {
 		PropertyProvider provider = PropertyProvider.getInstance();
 		JOB_LOG_DIR = provider.getProperty("job.logs.dir");
 		BEAST_SCRIPTS_DIR = provider.getProperty("beast.scripts.dir");
@@ -58,9 +65,12 @@ public class BeastRunner {
 		RENDER_DIR = provider.getProperty("spread3.result.dir");
 		FIGTREE_TEMPLATE = System.getProperty("user.dir")+"/Templates/figtreeBlock.template";
 		SPREAD3 = System.getProperty("user.dir")+"/spread.jar";
+		GLM_PATH = provider.getProperty("glm.dir");
+		GLM_SCRIPT = provider.getProperty("glm.script");
 		log = Logger.getLogger("BeastRunner");
 		this.mailer = mailer;
 		this.job = job;
+		this.dao = dao;
 		filesToCleanup = new LinkedHashSet<String>();
 	}
 	
@@ -85,6 +95,14 @@ public class BeastRunner {
 			DiscreteTraitInserter traitInserter = new DiscreteTraitInserter(job);
 			traitInserter.addLocation();
 			log.info("Location trait added.");
+			if (job.isUsingGLM()) {
+				log.info("Adding GLM Predictors...");
+				runGLM();
+				log.info("GLM Predictors added.");
+			}
+			else {
+				log.info("Job is not using GLM.");
+			}
 			runBeast(job.getID());
 			if (wasKilled || !PipelineManager.checkProcess(job.getID())) {
 				throw new BeastException("Job was stopped!", "Job was stopped!");
@@ -146,6 +164,38 @@ public class BeastRunner {
 		}
 		filesToCleanup.add(workingDir+beastInput);
 		log.info("BEAST input created.");
+	}
+	
+	/**
+	 * Adds GLM predictors to the BEAST XML input file
+	 * @throws IOException 
+	 * @throws InterruptedException 
+	 * @throws GLMException 
+	 */
+	private void runGLM() throws IOException, InterruptedException, GLMException {
+		log.info("Running BEAST_GLM...");
+		//TODO need to generate predictors for US States with real values
+		final File PREDICTORS_FILE = PredictorGenerator.generatePredictorsFile(GLM_PATH+job.getID()+".csv", 1996, 2016, dao);
+		if (PREDICTORS_FILE.exists()) {
+			final String BEAST_INPUT = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+INPUT_XML;
+			ProcessBuilder builder = new ProcessBuilder("python3", GLM_SCRIPT, BEAST_INPUT, "state", PREDICTORS_FILE.getAbsolutePath());
+			builder.redirectOutput(Redirect.appendTo(logFile));
+			builder.redirectError(Redirect.appendTo(logFile));
+			log.info("Starting Process: "+builder.command().toString());
+			Process beastGLMProcess = builder.start();
+			PipelineManager.setProcess(job.getID(), beastGLMProcess);
+			beastGLMProcess.waitFor();
+			//TODO: handle input prompts for some scenarios
+			if (beastGLMProcess.exitValue() != 0) {
+				log.log(Level.SEVERE, "BEAST_GLM failed! with code: "+beastGLMProcess.exitValue());
+				throw new GLMException("BEAST_GLM failed! with code: "+beastGLMProcess.exitValue(), null);
+			}
+			log.info("BEAST_GLM finished.");
+		}
+		else {
+			log.log(Level.SEVERE, "Predictors file does not exist: "+GLM_PATH+job.getID()+".csv");
+			throw new GLMException("No Predictors file found: "+PREDICTORS_FILE.getAbsolutePath(), "GLM Error! No Predictors file found.");
+		}
 	}
 	
 	/**
