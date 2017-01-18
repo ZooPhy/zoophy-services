@@ -4,7 +4,9 @@
 spring.datasource.url=jdbc:postgresql://<Host URL>/<DB Name>
 spring.datasource.username=<DB User>
 spring.datasource.password=<DB Password>
-spring.datasource.tomcat.max-active=12
+spring.datasource.tomcat.max-active=30
+spring.datasource.tomcat.max-idle=20
+spring.datasource.tomcat.min-idle=10
 spring.datasource.tomcat.test-on-borrow=true
 
 # Lucene info
