@@ -23,7 +23,7 @@ import java.util.logging.SimpleFormatter;
 import org.apache.commons.io.input.Tailer;
 import org.apache.commons.io.input.TailerListenerAdapter;
 
-import edu.asu.zoophy.rest.database.ZoophyDAO;
+import edu.asu.zoophy.rest.database.ZooPhyDAO;
 import edu.asu.zoophy.rest.pipeline.glm.GLMException;
 import edu.asu.zoophy.rest.pipeline.glm.PredictorGenerator;
 
@@ -55,9 +55,9 @@ public class BeastRunner {
 	private Tailer rateTail = null;
 	private Process beastProcess;
 	private boolean wasKilled = false;
-	private final ZoophyDAO dao;
+	private final ZooPhyDAO dao;
 	
-	public BeastRunner(ZooPhyJob job, ZooPhyMailer mailer, ZoophyDAO dao) throws PipelineException {
+	public BeastRunner(ZooPhyJob job, ZooPhyMailer mailer, ZooPhyDAO dao) throws PipelineException {
 		PropertyProvider provider = PropertyProvider.getInstance();
 		JOB_LOG_DIR = provider.getProperty("job.logs.dir");
 		BEAST_SCRIPTS_DIR = provider.getProperty("beast.scripts.dir");

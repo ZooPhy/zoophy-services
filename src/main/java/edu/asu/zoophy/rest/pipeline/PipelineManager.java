@@ -10,7 +10,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Component;
 
-import edu.asu.zoophy.rest.database.ZoophyDAO;
+import edu.asu.zoophy.rest.database.ZooPhyDAO;
 import edu.asu.zoophy.rest.index.LuceneSearcher;
 
 /**
@@ -22,7 +22,7 @@ import edu.asu.zoophy.rest.index.LuceneSearcher;
 public class PipelineManager {
 	
 	@Autowired
-	private ZoophyDAO dao;
+	private ZooPhyDAO dao;
 	
 	@Autowired
 	private LuceneSearcher indexSearcher;

@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import edu.asu.zoophy.rest.database.ZoophyDAO;
+import edu.asu.zoophy.rest.database.ZooPhyDAO;
 import edu.asu.zoophy.rest.index.LuceneSearcher;
 
 /**
@@ -33,7 +33,7 @@ public class ZooPhyRunner {
 	 * @param indexSearcher 
 	 * @throws PipelineException
 	 */
-	public void runZooPhy(List<String> accessions, ZoophyDAO dao, LuceneSearcher indexSearcher) throws PipelineException {
+	public void runZooPhy(List<String> accessions, ZooPhyDAO dao, LuceneSearcher indexSearcher) throws PipelineException {
 		try {
 			log.info("Sending Start Email... : "+job.getID());
 			mailer.sendStartEmail();

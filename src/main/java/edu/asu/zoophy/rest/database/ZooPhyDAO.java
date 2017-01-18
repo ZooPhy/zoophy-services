@@ -1,5 +1,7 @@
 package edu.asu.zoophy.rest.database;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -7,13 +9,14 @@ import org.springframework.stereotype.Repository;
 
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.genbank.Location;
+import edu.asu.zoophy.rest.pipeline.glm.Predictor;
 
 /**
  * Responsible for retrieving data from the SQL database.
  * @author devdemetri
  */
 @Repository("ZoophyDAO")
-public class ZoophyDAO {
+public class ZooPhyDAO {
 	
 	@Autowired
     private JdbcTemplate jdbc;
@@ -22,6 +25,7 @@ public class ZoophyDAO {
 	private static final String PULL_RECORD_GENES = "SELECT \"Accession\", \"Normalized_Gene_Name\" FROM \"Gene\" WHERE \"Accession\"=?  AND \"Normalized_Gene_Name\" IS NOT NULL";
 	private static final String PULL_RECORD_PUBLICATION = "SELECT \"Accession\", \"Pubmed_ID\", \"Pubmed_Central_ID\", \"Authors\", \"Title\", \"Journal\" FROM \"Sequence_Publication\" JOIN \"Publication\" ON \"Sequence_Publication\".\"Pub_ID\"=\"Publication\".\"Pubmed_ID\" WHERE \"Accession\"=?";
 	private static final String PULL_RECORD_LOCATION = "SELECT \"Accession\", \"Geoname_ID\", \"Location\", \"Latitude\", \"Longitude\", \"Type\", \"Country\" FROM \"Location_Geoname\" WHERE \"Accession\"=?";
+	private static final String PULL_STATE_PREDICTORS = "SELECT \"Key\", \"Value\", \"State\", \"Year\" FROM \"Predictor\" WHERE \"State\"=?";
 	
 	/**
 	 * Retrieve the specified GenBankRecord from the database without Gene or Publication details
@@ -112,6 +116,23 @@ public class ZoophyDAO {
 			else {
 				throw e;
 			}
+		}
+	}
+	
+	/**
+	 * Retrieve the specified US State's GLM predictors from the database
+	 * @param state
+	 * @return
+	 * @throws DaoException
+	 */
+	public List<Predictor> retrievePredictors(String state) throws DaoException {
+		try {
+			final String[] parameters = {state};
+			List<Predictor> predictors = jdbc.query(PULL_STATE_PREDICTORS, parameters, new PredictorRowMapper());
+			return predictors;
+		}
+		catch (Exception e) {
+			throw new DaoException(e.getMessage());
 		}
 	}
 	

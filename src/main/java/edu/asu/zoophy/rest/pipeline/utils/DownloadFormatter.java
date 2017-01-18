@@ -8,7 +8,7 @@ import java.util.logging.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import edu.asu.zoophy.rest.database.ZoophyDAO;
+import edu.asu.zoophy.rest.database.ZooPhyDAO;
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.index.LuceneSearcher;
 import edu.asu.zoophy.rest.index.LuceneSearcherException;
@@ -19,7 +19,7 @@ import edu.asu.zoophy.rest.security.ParameterException;
 public class DownloadFormatter {
 	
 	@Autowired
-	private ZoophyDAO dao;
+	private ZooPhyDAO dao;
 	
 	@Autowired
 	private LuceneSearcher indexSearcher;

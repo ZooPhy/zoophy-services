@@ -18,7 +18,7 @@ import java.util.logging.SimpleFormatter;
 
 import edu.asu.zoophy.rest.database.DaoException;
 import edu.asu.zoophy.rest.database.GenBankRecordNotFoundException;
-import edu.asu.zoophy.rest.database.ZoophyDAO;
+import edu.asu.zoophy.rest.database.ZooPhyDAO;
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.index.LuceneSearcher;
 import edu.asu.zoophy.rest.pipeline.utils.GeonameDisjointer;
@@ -33,14 +33,14 @@ public class SequenceAligner {
 
 	private final String JOB_LOG_DIR;
 	private final String JOB_ID;
-	private final ZoophyDAO dao;
+	private final ZooPhyDAO dao;
 	private final LuceneSearcher indexSearcher;
 	private final Logger log;
 	private File logFile;
 	private List<String> uniqueGeonames;
 	private Map<String,String> geonameCoordinates;
 	
-	public SequenceAligner(ZooPhyJob job, ZoophyDAO dao, LuceneSearcher indexSearcher) throws PipelineException {
+	public SequenceAligner(ZooPhyJob job, ZooPhyDAO dao, LuceneSearcher indexSearcher) throws PipelineException {
 		this.dao = dao;
 		this.indexSearcher = indexSearcher;
 		JOB_ID = job.getID();
@@ -56,7 +56,7 @@ public class SequenceAligner {
 	 * @param dao
 	 * @param indexSearcher
 	 */
-	public SequenceAligner(ZoophyDAO dao, LuceneSearcher indexSearcher) {
+	public SequenceAligner(ZooPhyDAO dao, LuceneSearcher indexSearcher) {
 		log = Logger.getLogger("SequenceAligner");
 		this.dao = dao;
 		this.indexSearcher = indexSearcher;

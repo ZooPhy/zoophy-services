@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import edu.asu.zoophy.rest.database.DaoException;
 import edu.asu.zoophy.rest.database.GenBankRecordNotFoundException;
-import edu.asu.zoophy.rest.database.ZoophyDAO;
+import edu.asu.zoophy.rest.database.ZooPhyDAO;
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.genbank.Location;
 import edu.asu.zoophy.rest.index.InvalidLuceneQueryException;
@@ -43,7 +43,7 @@ import edu.asu.zoophy.rest.security.SecurityHelper;
 public class ZooPhyController {
 	
 	@Autowired
-	private ZoophyDAO dao;
+	private ZooPhyDAO dao;
 	
 	@Autowired
 	private LuceneSearcher indexSearcher;
