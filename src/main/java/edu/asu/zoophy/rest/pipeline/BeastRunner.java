@@ -23,9 +23,7 @@ import java.util.logging.SimpleFormatter;
 import org.apache.commons.io.input.Tailer;
 import org.apache.commons.io.input.TailerListenerAdapter;
 
-import edu.asu.zoophy.rest.database.ZooPhyDAO;
 import edu.asu.zoophy.rest.pipeline.glm.GLMException;
-import edu.asu.zoophy.rest.pipeline.glm.PredictorGenerator;
 
 /**
  * Responsible for running BEAST processes
@@ -41,6 +39,7 @@ public class BeastRunner {
 	private final String FIGTREE_TEMPLATE;
 	private final String GLM_PATH;
 	private final String GLM_SCRIPT;
+	
 	private final static String ALIGNED_FASTA = "-aligned.fasta";
 	private final static String INPUT_XML = ".xml";
 	private final static String OUTPUT_TREES = "-aligned.trees";
@@ -55,9 +54,8 @@ public class BeastRunner {
 	private Tailer rateTail = null;
 	private Process beastProcess;
 	private boolean wasKilled = false;
-	private final ZooPhyDAO dao;
 	
-	public BeastRunner(ZooPhyJob job, ZooPhyMailer mailer, ZooPhyDAO dao) throws PipelineException {
+	public BeastRunner(ZooPhyJob job, ZooPhyMailer mailer) throws PipelineException {
 		PropertyProvider provider = PropertyProvider.getInstance();
 		JOB_LOG_DIR = provider.getProperty("job.logs.dir");
 		BEAST_SCRIPTS_DIR = provider.getProperty("beast.scripts.dir");
@@ -70,7 +68,6 @@ public class BeastRunner {
 		log = Logger.getLogger("BeastRunner");
 		this.mailer = mailer;
 		this.job = job;
-		this.dao = dao;
 		filesToCleanup = new LinkedHashSet<String>();
 	}
 	
@@ -174,8 +171,7 @@ public class BeastRunner {
 	 */
 	private void runGLM() throws IOException, InterruptedException, GLMException {
 		log.info("Running BEAST_GLM...");
-		//TODO need to generate predictors for US States with real values
-		final File PREDICTORS_FILE = PredictorGenerator.generatePredictorsFile(GLM_PATH+job.getID()+".csv", 1996, 2016, dao);
+		final File PREDICTORS_FILE = new File(GLM_PATH+job.getID()+".csv");
 		if (PREDICTORS_FILE.exists()) {
 			final String BEAST_INPUT = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+INPUT_XML;
 			ProcessBuilder builder = new ProcessBuilder("python3", GLM_SCRIPT, BEAST_INPUT, "state", PREDICTORS_FILE.getAbsolutePath());

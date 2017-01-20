@@ -33,6 +33,7 @@ public class SequenceAligner {
 
 	private final String JOB_LOG_DIR;
 	private final String JOB_ID;
+	private final boolean USING_GLM;
 	private final ZooPhyDAO dao;
 	private final LuceneSearcher indexSearcher;
 	private final Logger log;
@@ -40,10 +41,11 @@ public class SequenceAligner {
 	private List<String> uniqueGeonames;
 	private Map<String,String> geonameCoordinates;
 	
-	public SequenceAligner(ZooPhyJob job, ZooPhyDAO dao, LuceneSearcher indexSearcher) throws PipelineException {
+	public SequenceAligner(ZooPhyJob job, ZooPhyDAO dao, LuceneSearcher indexSearcher, boolean usingGLM) throws PipelineException {
 		this.dao = dao;
 		this.indexSearcher = indexSearcher;
 		JOB_ID = job.getID();
+		USING_GLM = usingGLM;
 		PropertyProvider provider = PropertyProvider.getInstance();
 		JOB_LOG_DIR = provider.getProperty("job.logs.dir");
 		log = Logger.getLogger("SequenceAligner");
@@ -62,6 +64,7 @@ public class SequenceAligner {
 		this.indexSearcher = indexSearcher;
 		JOB_ID = null;
 		JOB_LOG_DIR = null;
+		USING_GLM = false;
 	}
 	
 	/**
@@ -154,7 +157,7 @@ public class SequenceAligner {
 		log.info("Records loaded.");
 		if (isDisjoint) {
 		GeonameDisjointer disjointer  = new GeonameDisjointer(indexSearcher);
-			return disjointer.disjointRecords(records);
+			return disjointer.disjointRecords(records, USING_GLM);
 		}
 		else {
 			for (int i = 0; i < records.size(); i++) {

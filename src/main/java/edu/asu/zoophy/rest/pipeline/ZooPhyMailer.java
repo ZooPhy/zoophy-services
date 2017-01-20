@@ -78,7 +78,7 @@ public class ZooPhyMailer {
 	        else {
 	        	messageText = "\nHere are your results for ZooPhy Job ID: "+job.getID()+".";
 	        }
-			messageText += "\nThe SpreaD3 simulation for your job is available <a href=\"http://zodo.asu.edu:7070/spread3/"+job.getID()+"/renderers/d3/d3renderer/index.html\">here</a>.";
+			messageText += "\nThe SpreaD3 simulation for your job is available <a href=\"https://zodo.asu.edu/spread3/"+job.getID()+"/renderers/d3/d3renderer/index.html\">here</a>.";
 			messageText += "\nFor viewing the attached .tree file, we recommend downloading the latest version of <a href=\"http://tree.bio.ed.ac.uk/software/figtree/\">FigTree</a>.\n";
 			messageText += "\nThank You,\nZooPhy Lab";
 			sendEmail(messageText, treeFile);
@@ -122,7 +122,7 @@ public class ZooPhyMailer {
 	        String err = "";
 	        if (reason != null) {
 	        	err = "\nError Cause: "+reason+"\n";
-	        	err += "\nYou can retry your ZooPhy job <a href=\"http://zodo.asu.edu:7070/zoophy/\">here.</a>";
+	        	err += "\nYou can retry your ZooPhy job <a href=\"https://zodo.asu.edu/zoophy/\">here.</a>";
 	        }
 	        if (!getCustomName().equals(job.getID())) {
 	        	msgText = "\nThere was an error processing ZooPhy Job Name: "+getCustomName()+"."+err+"\nSorry for the inconvenience.\nNote: The Job ID for your ZooPhy Job is: "+job.getID()+"\n\nThank You,\n\nZooPhy Lab";

@@ -38,22 +38,22 @@ public class ZooPhyRunner {
 			log.info("Sending Start Email... : "+job.getID());
 			mailer.sendStartEmail();
 			log.info("Initializing Sequence Aligner... : "+job.getID());
-			SequenceAligner aligner = new SequenceAligner(job, dao, indexSearcher);
+			SequenceAligner aligner = new SequenceAligner(job, dao, indexSearcher, job.isUsingGLM());
 			log.info("Running Sequence Aligner... : "+job.getID());
 			aligner.align(accessions);
 			log.info("Initializing Beast Runner... : "+job.getID());
-			BeastRunner beast = new BeastRunner(job, mailer, dao);
+			BeastRunner beast = new BeastRunner(job, mailer);
 			log.info("Starting Beast Runner... : "+job.getID());
 			File treeFile = beast.run();
 			log.info("Sending Results Email... : "+job.getID());
-			mailer.sendSuccessEmail(treeFile);
+			mailer.sendSuccessEmail(treeFile); 
 			PipelineManager.removeProcess(job.getID());
 			log.info("ZooPhy Job Complete: "+job.getID());
 		}
 		catch (PipelineException pe) {
 			log.log(Level.SEVERE, "PipelineException for job: "+job.getID()+" : "+pe.getMessage());
 			log.info("Sending Failure Email... : "+job.getID());
-			mailer.sendFailureEmail(pe.getUserMessage());
+			mailer.sendFailureEmail(pe.getUserMessage()); 
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "Unhandled Exception for job: "+job.getID()+" : "+e.getMessage());
