@@ -197,7 +197,7 @@ public class GeonameDisjointer {
 					throw new GLMException("Could not match Location to US State: "+recordLocation.getLocation(), null);
 				}
 				return recordLocation;
-			}	
+			}
 		}
 		catch (GLMException glme) {
 			throw glme;

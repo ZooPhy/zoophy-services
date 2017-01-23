@@ -8,9 +8,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -21,6 +23,8 @@ import edu.asu.zoophy.rest.database.GenBankRecordNotFoundException;
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.index.LuceneSearcher;
+import edu.asu.zoophy.rest.pipeline.glm.GLMException;
+import edu.asu.zoophy.rest.pipeline.glm.PredictorGenerator;
 import edu.asu.zoophy.rest.pipeline.utils.GeonameDisjointer;
 import edu.asu.zoophy.rest.pipeline.utils.Normalizer;
 import edu.asu.zoophy.rest.pipeline.utils.NormalizerException;
@@ -38,8 +42,10 @@ public class SequenceAligner {
 	private final LuceneSearcher indexSearcher;
 	private final Logger log;
 	private File logFile;
-	private List<String> uniqueGeonames;
+	private Set<String> uniqueGeonames;
 	private Map<String,String> geonameCoordinates;
+	private int startYear = 3000;
+	private int endYear = 1000;
 	
 	public SequenceAligner(ZooPhyJob job, ZooPhyDAO dao, LuceneSearcher indexSearcher, boolean usingGLM) throws PipelineException {
 		this.dao = dao;
@@ -49,7 +55,7 @@ public class SequenceAligner {
 		PropertyProvider provider = PropertyProvider.getInstance();
 		JOB_LOG_DIR = provider.getProperty("job.logs.dir");
 		log = Logger.getLogger("SequenceAligner");
-		uniqueGeonames = new LinkedList<String>();
+		uniqueGeonames = new LinkedHashSet<String>();
 		geonameCoordinates = new HashMap<String,String>();
 	}
 	
@@ -87,6 +93,9 @@ public class SequenceAligner {
 			List<GenBankRecord>recs = loadSequences(accessions, true);
 			String rawFasta = fastaFormat(recs);
 			createCoordinatesFile();
+			if (USING_GLM) {
+				createGLMFile();
+			}
 			alignedFasta = runMafft(rawFasta);
 			log.info("Mafft Job: "+JOB_ID+" has finished.");
 			log.info("Deleting raw fasta...");
@@ -113,6 +122,19 @@ public class SequenceAligner {
 		return alignedFasta;
 	}
 	
+	/**
+	 * Generates a GLM predictors file 
+	 * @throws GLMException 
+	 */
+	private void createGLMFile() throws GLMException {
+		String glmPath = System.getProperty("user.dir")+"/ZooPhyJobs/"+JOB_ID+"-"+"predictors.txt";
+		PredictorGenerator generator = new PredictorGenerator(glmPath, startYear, endYear, uniqueGeonames,dao);
+		generator.generatePredictorsFile();
+	}
+
+	/**
+	 * Creates the coordinates file needed for SpreaD3
+	 */
 	private void createCoordinatesFile() {
 		StringBuilder coordinates = new StringBuilder();
 		for (String location : uniqueGeonames) {
@@ -121,13 +143,18 @@ public class SequenceAligner {
 		}
 		coordinates.trimToSize();
 		String dir = System.getProperty("user.dir")+"/ZooPhyJobs/"+JOB_ID+"-";
+		PrintWriter coordinateWriter = null;
 		try {
-			PrintWriter out = new PrintWriter(dir+"coords.txt");
-			out.write(coordinates.toString());
-			out.close();
+			coordinateWriter = new PrintWriter(dir+"coords.txt");
+			coordinateWriter.write(coordinates.toString());
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "Error setting up coords.txt: "+e.getMessage());
+		}
+		finally {
+			if (coordinateWriter != null) {
+				coordinateWriter.close();
+			}
 		}
 	}
 
@@ -230,7 +257,15 @@ public class SequenceAligner {
 				tempBuilder.append("_");
 				tempBuilder.append(record.getHost().getTaxon());
 				tempBuilder.append("_");
-				tempBuilder.append(getFastaDate(record.getSequence().getCollectionDate()));
+				String stringDate = getFastaDate(record.getSequence().getCollectionDate());
+				int year = (int) Double.parseDouble(stringDate);
+				if (year < startYear) {
+					startYear = year;
+				}
+				else if (year > endYear) {
+					endYear = year;
+				}
+				tempBuilder.append(stringDate);
 				tempBuilder.append("_");
 				String normalizedLocation = Normalizer.normalizeLocation(record.getGeonameLocation());
 				tempBuilder.append(normalizedLocation);

@@ -37,7 +37,6 @@ public class BeastRunner {
 	private final String WORLD_GEOJSON;
 	private final String RENDER_DIR;
 	private final String FIGTREE_TEMPLATE;
-	private final String GLM_PATH;
 	private final String GLM_SCRIPT;
 	
 	private final static String ALIGNED_FASTA = "-aligned.fasta";
@@ -63,7 +62,6 @@ public class BeastRunner {
 		RENDER_DIR = provider.getProperty("spread3.result.dir");
 		FIGTREE_TEMPLATE = System.getProperty("user.dir")+"/Templates/figtreeBlock.template";
 		SPREAD3 = System.getProperty("user.dir")+"/spread.jar";
-		GLM_PATH = provider.getProperty("glm.dir");
 		GLM_SCRIPT = provider.getProperty("glm.script");
 		log = Logger.getLogger("BeastRunner");
 		this.mailer = mailer;
@@ -171,7 +169,8 @@ public class BeastRunner {
 	 */
 	private void runGLM() throws IOException, InterruptedException, GLMException {
 		log.info("Running BEAST_GLM...");
-		final File PREDICTORS_FILE = new File(GLM_PATH+job.getID()+".csv");
+		final String GLM_PATH = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"-"+"predictors.txt";
+		final File PREDICTORS_FILE = new File(GLM_PATH);
 		if (PREDICTORS_FILE.exists()) {
 			final String BEAST_INPUT = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+INPUT_XML;
 			ProcessBuilder builder = new ProcessBuilder("python3", GLM_SCRIPT, BEAST_INPUT, "state", PREDICTORS_FILE.getAbsolutePath());
@@ -186,10 +185,11 @@ public class BeastRunner {
 				log.log(Level.SEVERE, "BEAST_GLM failed! with code: "+beastGLMProcess.exitValue());
 				throw new GLMException("BEAST_GLM failed! with code: "+beastGLMProcess.exitValue(), null);
 			}
+			filesToCleanup.add(GLM_PATH);
 			log.info("BEAST_GLM finished.");
 		}
 		else {
-			log.log(Level.SEVERE, "Predictors file does not exist: "+GLM_PATH+job.getID()+".csv");
+			log.log(Level.SEVERE, "Predictors file does not exist: "+GLM_PATH);
 			throw new GLMException("No Predictors file found: "+PREDICTORS_FILE.getAbsolutePath(), "GLM Error! No Predictors file found.");
 		}
 	}
