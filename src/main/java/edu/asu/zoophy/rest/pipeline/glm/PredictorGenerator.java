@@ -140,7 +140,7 @@ public class PredictorGenerator {
 			txtBuilder.append("elevation" + DELIMITER);
 			txtBuilder.append("temperature" + DELIMITER);
 			txtBuilder.append("avg_population" + DELIMITER);
-			txtBuilder.append("median_age" + DELIMITER);
+			txtBuilder.append("median_age");
 			txtBuilder.append("\n");
 			for (String state : statePredictors.keySet()) {
 				txtBuilder.append(state + DELIMITER);
@@ -150,7 +150,7 @@ public class PredictorGenerator {
 				txtBuilder.append(predictors.getElevation() + DELIMITER);
 				txtBuilder.append(predictors.getTemperature() + DELIMITER);
 				txtBuilder.append(predictors.getAveragePopulation() + DELIMITER);
-				txtBuilder.append(predictors.getAverageMedianAge() + DELIMITER);
+				txtBuilder.append(predictors.getAverageMedianAge());
 				txtBuilder.append("\n");
 			}
 			predictorWriter = new PrintWriter(TXT_FILE_PATH);

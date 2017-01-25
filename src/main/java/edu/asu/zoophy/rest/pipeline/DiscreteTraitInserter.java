@@ -8,6 +8,7 @@ import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
@@ -468,6 +469,8 @@ public class DiscreteTraitInserter {
 		try {
 			TransformerFactory transformerFactory = TransformerFactory.newInstance();
 			Transformer transformer = transformerFactory.newTransformer();
+			transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+			transformer.setOutputProperty(OutputKeys.INDENT, "yes");
 			DOMSource source = new DOMSource(document);
 			StreamResult result = new StreamResult(new File(DOCUMENT_PATH));
 			transformer.transform(source, result);

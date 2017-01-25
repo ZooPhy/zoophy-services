@@ -13,7 +13,7 @@ import edu.asu.zoophy.rest.index.LuceneSearcher;
  * @author devdemetri
  */
 public class ZooPhyRunner {
-	
+
 	private final ZooPhyJob job;
 	private final ZooPhyMailer mailer;
 	private final Logger log;
@@ -61,7 +61,7 @@ public class ZooPhyRunner {
 			mailer.sendFailureEmail("Internal Server Error");
 		}
 	}
-	
+
 	/**
 	 * Generates a UUID to be used as a jobID
 	 * @return Unused UUID

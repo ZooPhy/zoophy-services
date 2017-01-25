@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.lang.ProcessBuilder.Redirect;
 import java.nio.file.Files;
@@ -41,8 +43,9 @@ public class BeastRunner {
 	
 	private final static String ALIGNED_FASTA = "-aligned.fasta";
 	private final static String INPUT_XML = ".xml";
-	private final static String OUTPUT_TREES = "-aligned.trees";
+	private final static String OUTPUT_TREES = ".trees";
 	private final static String RESULT_TREE = ".tree";
+	private final static String GLM_SUFFIX = "_GLMedits";
 	
 	private final Logger log;
 	private final ZooPhyMailer mailer;
@@ -102,7 +105,12 @@ public class BeastRunner {
 			if (wasKilled || !PipelineManager.checkProcess(job.getID())) {
 				throw new BeastException("Job was stopped!", "Job was stopped!");
 			}
-			resultingTree = runTreeAnnotator(job.getID()+OUTPUT_TREES);
+			if (job.isUsingGLM()) {
+				resultingTree = runTreeAnnotator(job.getID()+GLM_SUFFIX+"-aligned"+OUTPUT_TREES);
+			}
+			else {
+				resultingTree = runTreeAnnotator(job.getID()+"-aligned"+OUTPUT_TREES);
+			}
 			File tree = new File(resultingTree);
 			if (tree.exists()) {
 				annotateTreeFile(resultingTree);
@@ -164,8 +172,8 @@ public class BeastRunner {
 	/**
 	 * Adds GLM predictors to the BEAST XML input file
 	 * @throws IOException 
-	 * @throws InterruptedException 
-	 * @throws GLMException 
+	 * @throws InterruptedException
+	 * @throws GLMException
 	 */
 	private void runGLM() throws IOException, InterruptedException, GLMException {
 		log.info("Running BEAST_GLM...");
@@ -173,19 +181,39 @@ public class BeastRunner {
 		final File PREDICTORS_FILE = new File(GLM_PATH);
 		if (PREDICTORS_FILE.exists()) {
 			final String BEAST_INPUT = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+INPUT_XML;
-			ProcessBuilder builder = new ProcessBuilder("python3", GLM_SCRIPT, BEAST_INPUT, "state", PREDICTORS_FILE.getAbsolutePath());
+			ProcessBuilder builder = new ProcessBuilder("python3", GLM_SCRIPT, BEAST_INPUT, "states", "batch", PREDICTORS_FILE.getAbsolutePath());
 			builder.redirectOutput(Redirect.appendTo(logFile));
 			builder.redirectError(Redirect.appendTo(logFile));
 			log.info("Starting Process: "+builder.command().toString());
 			Process beastGLMProcess = builder.start();
 			PipelineManager.setProcess(job.getID(), beastGLMProcess);
-			beastGLMProcess.waitFor();
-			//TODO: handle input prompts for some scenarios
+			OutputStream glmStream = beastGLMProcess.getOutputStream();
+	        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(glmStream));
+	        // Yes to creating Distance predictor from Latitude and Longitude
+	        writer.write("y");
+	        writer.write("\n");
+	        writer.flush();
+	        // No to raw Latitude predictor
+	        writer.write("n");
+	        writer.write("\n");
+	        writer.flush();
+	        // No to raw Longitude predictor
+	        writer.write("n");
+	        writer.write("\n");
+	        writer.flush();
+	        // Yes to confirm list of predictors
+	        writer.write("y");
+	        writer.write("\n");
+	        writer.flush();
+	        writer.close();
+		    glmStream.close();
+		    beastGLMProcess.waitFor();
 			if (beastGLMProcess.exitValue() != 0) {
 				log.log(Level.SEVERE, "BEAST_GLM failed! with code: "+beastGLMProcess.exitValue());
 				throw new GLMException("BEAST_GLM failed! with code: "+beastGLMProcess.exitValue(), null);
 			}
 			filesToCleanup.add(GLM_PATH);
+			filesToCleanup.add(System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+GLM_SUFFIX+INPUT_XML);
 			log.info("BEAST_GLM finished.");
 		}
 		else {
@@ -202,7 +230,13 @@ public class BeastRunner {
 	 * @throws InterruptedException
 	 */
 	private void runBeast(String jobID) throws BeastException, IOException, InterruptedException {
-		String input = jobID+INPUT_XML;
+		String input;
+		if (job.isUsingGLM()) { 
+			input = jobID+GLM_SUFFIX+INPUT_XML;
+		}
+		else {
+			input = jobID+INPUT_XML;
+		}
 		final String currentDir = System.getProperty("user.dir");
 		String beastDirPath = currentDir+"/ZooPhyJobs/";
 		String beast = BEAST_SCRIPTS_DIR+"beast";
@@ -228,7 +262,14 @@ public class BeastRunner {
 		if (wasKilled) {
 			return;
 		}
-		File beastOutput = new File(currentDir+"/ZooPhyJobs/"+jobID+OUTPUT_TREES);
+		String outputPath;
+		if (job.isUsingGLM()) {
+			outputPath = currentDir+"/ZooPhyJobs/"+jobID+GLM_SUFFIX+OUTPUT_TREES;
+		}
+		else {
+			outputPath = currentDir+"/ZooPhyJobs/"+jobID+OUTPUT_TREES;
+		}
+		File beastOutput = new File(outputPath);
 		if (!beastOutput.exists() || scanForBeastError()) {
 			log.log(Level.SEVERE, "BEAST did not produce output! Trying it in always scaling mode...");
 			builder = new ProcessBuilder(beast, "-beagle_scaling", "always", "-overwrite", beastDirPath + input).directory(beastDir);
@@ -245,16 +286,24 @@ public class BeastRunner {
 				log.log(Level.SEVERE, "Always-scaling BEAST failed! with code: "+beastProcess.exitValue());
 				throw new BeastException("Always-scaling BEAST failed! with code: "+beastProcess.exitValue(), null);
 			}
-			beastOutput = new File(currentDir+"/ZooPhyJobs/"+jobID+OUTPUT_TREES);
+			beastOutput = new File(outputPath);
 			if (!beastOutput.exists()) {
 				log.log(Level.SEVERE, "Always-scaling BEAST did not produce output!");
 				throw new BeastException("Always-scaling BEAST did not produce output!", null);
 			}
 		}
-		filesToCleanup.add(currentDir+"/ZooPhyJobs/"+jobID+OUTPUT_TREES);
-		filesToCleanup.add(currentDir+"/ZooPhyJobs/"+jobID+"-aligned.log");
-		filesToCleanup.add(currentDir+"/ZooPhyJobs/"+jobID+"-aligned.ops");
-		filesToCleanup.add(currentDir+"/ZooPhyJobs/"+jobID+"-aligned.states.rates.log");
+		if (job.isUsingGLM()) {
+			filesToCleanup.add(currentDir+"/ZooPhyJobs/"+jobID+"-aligned"+GLM_SUFFIX+OUTPUT_TREES);
+			filesToCleanup.add(currentDir+"/ZooPhyJobs/"+jobID+"-aligned"+GLM_SUFFIX+".log");
+			filesToCleanup.add(currentDir+"/ZooPhyJobs/"+jobID+"-aligned"+GLM_SUFFIX+".ops");
+			filesToCleanup.add(currentDir+"/ZooPhyJobs/"+jobID+"-aligned"+GLM_SUFFIX+".states.rates.log");
+		}
+		else {
+			filesToCleanup.add(currentDir+"/ZooPhyJobs/"+jobID+"-aligned"+OUTPUT_TREES);
+			filesToCleanup.add(currentDir+"/ZooPhyJobs/"+jobID+"-aligned.log");
+			filesToCleanup.add(currentDir+"/ZooPhyJobs/"+jobID+"-aligned.ops");
+			filesToCleanup.add(currentDir+"/ZooPhyJobs/"+jobID+"-aligned.states.rates.log");
+		}
 		log.info("BEAST finished.");
 	}
 
@@ -267,7 +316,13 @@ public class BeastRunner {
 	 * @throws InterruptedException
 	 */
 	private String runTreeAnnotator(String trees) throws BeastException, IOException, InterruptedException {
-		String tree = trees.substring(0, trees.indexOf("-aligned")) + RESULT_TREE;
+		String tree;
+		if (job.isUsingGLM()) {
+			tree = trees.substring(0, trees.indexOf(GLM_SUFFIX+"-aligned")) + RESULT_TREE;
+		}
+		else {
+			tree = trees.substring(0, trees.indexOf("-aligned")) + RESULT_TREE;
+		}
 		String baseDir = System.getProperty("user.dir") + "/ZooPhyJobs/";
 		String treeannotator = BEAST_SCRIPTS_DIR+"treeannotator";
 		log.info("Running Tree Annotator...");
@@ -377,7 +432,6 @@ public class BeastRunner {
 		}
 	}
 	
-
 	/**
 	 * Finds the youngest Sequence date in the .tree file
 	 * @param treeFile
