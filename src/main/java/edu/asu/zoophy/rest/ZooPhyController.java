@@ -62,6 +62,16 @@ public class ZooPhyController {
 	
 	private static Logger log = Logger.getLogger("ZooPhyController");
 	
+	/**
+	 * Simple check that REST services are running
+	 * @return message that services are running
+	 */
+	@RequestMapping(value="/", method=RequestMethod.GET)
+    @ResponseStatus(value=HttpStatus.OK)
+	public String checkService() {
+		return "ZooPhy Service is up and running.";
+	}
+	
     /**
      * Retrieves the specified record from the database.
      * @param accession - Accession of GenBankRecord to be retrieved
