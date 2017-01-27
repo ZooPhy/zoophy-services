@@ -108,7 +108,7 @@ public class BeastRunner {
 				throw new BeastException("Job was stopped!", "Job was stopped!");
 			}
 			if (job.isUsingGLM()) {
-				resultingTree = runTreeAnnotator(job.getID()+GLM_SUFFIX+"-aligned"+OUTPUT_TREES);
+				resultingTree = runTreeAnnotator(job.getID()+"-aligned"+GLM_SUFFIX+OUTPUT_TREES);
 			}
 			else {
 				resultingTree = runTreeAnnotator(job.getID()+"-aligned"+OUTPUT_TREES);
@@ -319,7 +319,7 @@ public class BeastRunner {
 	private String runTreeAnnotator(String trees) throws BeastException, IOException, InterruptedException {
 		String tree;
 		if (job.isUsingGLM()) {
-			tree = trees.substring(0, trees.indexOf(GLM_SUFFIX+"-aligned")) + RESULT_TREE;
+			tree = trees.substring(0, trees.indexOf("-aligned"+GLM_SUFFIX)) + RESULT_TREE;
 		}
 		else {
 			tree = trees.substring(0, trees.indexOf("-aligned")) + RESULT_TREE;
@@ -521,7 +521,14 @@ public class BeastRunner {
 	 */
 	private boolean checkRateMatrix() {
 		try {
-			File rateLog = new File(JOB_WORK_DIR+job.getID()+"-aligned.states.rates.log");
+			String rateLogPath;
+			if (job.isUsingGLM()) {
+				rateLogPath = JOB_WORK_DIR+job.getID()+"-aligned.states.rates.log";
+			}
+			else {
+				rateLogPath = JOB_WORK_DIR+job.getID()+"-aligned"+GLM_SUFFIX+".states.rates.log";
+			}
+			File rateLog = new File(rateLogPath);
 			if (rateLog.exists()) {
 				RateTailerListener rateListener = new RateTailerListener(); 
 				rateTail = new Tailer(rateLog, rateListener);
