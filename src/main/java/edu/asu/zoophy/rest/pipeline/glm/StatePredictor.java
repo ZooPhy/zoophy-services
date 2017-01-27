@@ -12,8 +12,10 @@ public class StatePredictor {
 	private Double temperature;
 	private Double averagePopulation;
 	private Double averageMedianAge;
+	private int sampleSize;
 	
 	public StatePredictor() {
+		sampleSize = 0;
 	}
 
 	public Double getLatitude() {
@@ -62,6 +64,14 @@ public class StatePredictor {
 
 	public void setAverageMedianAge(Double averageMedianAge) {
 		this.averageMedianAge = averageMedianAge;
+	}
+	
+	public void setSampleSize(int sampleSize) {
+		this.sampleSize = sampleSize;
+	}
+
+	public int getSampleSize() {
+		return sampleSize;
 	}
 	
 }

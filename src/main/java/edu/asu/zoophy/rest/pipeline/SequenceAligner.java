@@ -46,17 +46,21 @@ public class SequenceAligner {
 	private Map<String,String> geonameCoordinates;
 	private int startYear = 3000;
 	private int endYear = 1000;
+	private Map<String, Integer> occurences;
 	
-	public SequenceAligner(ZooPhyJob job, ZooPhyDAO dao, LuceneSearcher indexSearcher, boolean usingGLM) throws PipelineException {
+	public SequenceAligner(ZooPhyJob job, ZooPhyDAO dao, LuceneSearcher indexSearcher) throws PipelineException {
 		this.dao = dao;
 		this.indexSearcher = indexSearcher;
 		JOB_ID = job.getID();
-		USING_GLM = usingGLM;
+		USING_GLM = job.isUsingGLM();
 		PropertyProvider provider = PropertyProvider.getInstance();
 		JOB_LOG_DIR = provider.getProperty("job.logs.dir");
 		log = Logger.getLogger("SequenceAligner");
 		uniqueGeonames = new LinkedHashSet<String>();
 		geonameCoordinates = new HashMap<String,String>();
+		if (job.isUsingGLM()) {
+			occurences = new HashMap<String, Integer>();
+		}
 	}
 	
 	/**
@@ -129,7 +133,7 @@ public class SequenceAligner {
 	private void createGLMFile() throws GLMException {
 		String glmPath = System.getProperty("user.dir")+"/ZooPhyJobs/"+JOB_ID+"-"+"predictors.txt";
 		PredictorGenerator generator = new PredictorGenerator(glmPath, startYear, endYear, uniqueGeonames,dao);
-		generator.generatePredictorsFile();
+		generator.generatePredictorsFile(occurences);
 	}
 
 	/**
@@ -269,6 +273,9 @@ public class SequenceAligner {
 				tempBuilder.append("_");
 				String normalizedLocation = Normalizer.normalizeLocation(record.getGeonameLocation());
 				tempBuilder.append(normalizedLocation);
+				if (USING_GLM) {
+					addOccurence(normalizedLocation);
+				}
 				if (geonameCoordinates != null && geonameCoordinates.get(normalizedLocation) == null) {
 					String coordinates = normalizedLocation+"\t"+record.getGeonameLocation().getLatitude()+"\t"+record.getGeonameLocation().getLongitude();
 					geonameCoordinates.put(normalizedLocation, coordinates);
@@ -345,6 +352,20 @@ public class SequenceAligner {
 	public String generateDownloadableRawFasta(List<String> accessions) throws GenBankRecordNotFoundException, DaoException, PipelineException {
 		List<GenBankRecord> records = loadSequences(accessions, false);
 		return fastaFormat(records);
+	}
+	
+	/**
+	 * 
+	 * @param state
+	 */
+	private void addOccurence(String state) {
+		Integer currentCount = occurences.get(state);
+		if (currentCount == null) {
+			occurences.put(state, 1);
+		}
+		else {
+			occurences.put(state, currentCount+1);
+		}
 	}
 
 }

@@ -40,10 +40,10 @@ public class PredictorGenerator {
 	 * @return Path to Predictors text file in BEAST GLM format
 	 * @throws GLMException
 	 */
-	public String generatePredictorsFile() throws GLMException {
+	public String generatePredictorsFile(Map<String, Integer> occurences) throws GLMException {
 		log.info("Generating Predictor File...");
 		try {
-			loadPredictors();
+			loadPredictors(occurences);
 			writePredictors();
 			log.info("Generated Predictor File.");
 			return TXT_FILE_PATH;
@@ -59,9 +59,10 @@ public class PredictorGenerator {
 
 	/**
 	 * Loads all applicable predictors
+	 * @param occurences 
 	 * @throws DaoException
 	 */
-	private void loadPredictors() throws GLMException {
+	private void loadPredictors(Map<String, Integer> occurences) throws GLMException {
 		log.info("Loading Predictors...");
 		try {
 			List<Predictor> rawPredictors;
@@ -115,6 +116,7 @@ public class PredictorGenerator {
 				tempPredictor = null;
 				averagedPredictors.setAveragePopulation(totalPopulation/populationYears);
 				averagedPredictors.setAverageMedianAge(totalMedianAge/medianAgeDecades);
+				averagedPredictors.setSampleSize(occurences.get(state));
 				statePredictors.put(state, averagedPredictors);
 			}
 		}
@@ -134,23 +136,26 @@ public class PredictorGenerator {
 		try {
 			final String DELIMITER = "\t";
 			StringBuilder txtBuilder = new StringBuilder();
+			//TODO: for now we are just using Distance (needs Lat and Long), Temperature, Precipitation, and SampleSize as predictors
 			txtBuilder.append("state" + DELIMITER);
 			txtBuilder.append("lat" + DELIMITER);
 			txtBuilder.append("long" + DELIMITER);
-			txtBuilder.append("elevation" + DELIMITER);
+//			txtBuilder.append("elevation" + DELIMITER);
 			txtBuilder.append("temperature" + DELIMITER);
-			txtBuilder.append("avg_population" + DELIMITER);
-			txtBuilder.append("median_age");
+//			txtBuilder.append("avg_population" + DELIMITER);
+//			txtBuilder.append("median_age");
+			txtBuilder.append("SampleSize");
 			txtBuilder.append("\n");
 			for (String state : statePredictors.keySet()) {
 				txtBuilder.append(state + DELIMITER);
 				StatePredictor predictors = statePredictors.get(state);
 				txtBuilder.append(predictors.getLatitude() + DELIMITER);
 				txtBuilder.append(predictors.getLongitude() + DELIMITER);
-				txtBuilder.append(predictors.getElevation() + DELIMITER);
+//				txtBuilder.append(predictors.getElevation() + DELIMITER);
 				txtBuilder.append(predictors.getTemperature() + DELIMITER);
-				txtBuilder.append(predictors.getAveragePopulation() + DELIMITER);
-				txtBuilder.append(predictors.getAverageMedianAge());
+//				txtBuilder.append(predictors.getAveragePopulation() + DELIMITER);
+//				txtBuilder.append(predictors.getAverageMedianAge());
+				txtBuilder.append(predictors.getSampleSize());
 				txtBuilder.append("\n");
 			}
 			predictorWriter = new PrintWriter(TXT_FILE_PATH);

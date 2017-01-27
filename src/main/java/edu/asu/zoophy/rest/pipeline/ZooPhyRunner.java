@@ -38,7 +38,7 @@ public class ZooPhyRunner {
 			log.info("Sending Start Email... : "+job.getID());
 			mailer.sendStartEmail();
 			log.info("Initializing Sequence Aligner... : "+job.getID());
-			SequenceAligner aligner = new SequenceAligner(job, dao, indexSearcher, job.isUsingGLM());
+			SequenceAligner aligner = new SequenceAligner(job, dao, indexSearcher);
 			log.info("Running Sequence Aligner... : "+job.getID());
 			aligner.align(accessions);
 			log.info("Initializing Beast Runner... : "+job.getID());

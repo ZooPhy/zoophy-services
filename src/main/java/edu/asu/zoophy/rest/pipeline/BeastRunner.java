@@ -40,6 +40,7 @@ public class BeastRunner {
 	private final String RENDER_DIR;
 	private final String FIGTREE_TEMPLATE;
 	private final String GLM_SCRIPT;
+	private final String JOB_WORK_DIR;
 	
 	private final static String ALIGNED_FASTA = "-aligned.fasta";
 	private final static String INPUT_XML = ".xml";
@@ -70,6 +71,7 @@ public class BeastRunner {
 		this.mailer = mailer;
 		this.job = job;
 		filesToCleanup = new LinkedHashSet<String>();
+		JOB_WORK_DIR = System.getProperty("user.dir")+"/ZooPhyJobs/";
 	}
 	
 	/**
@@ -146,13 +148,13 @@ public class BeastRunner {
 	 * @param fastaFile
 	 * @param beastInput
 	 * @throws BeastException
-	 * @throws IOException 
-	 * @throws InterruptedException 
+	 * @throws IOException
+	 * @throws InterruptedException
 	 */
 	private void runBeastGen(String fastaFile, String beastInput) throws BeastException, IOException, InterruptedException {
 		String workingDir =  "../ZooPhyJobs/";
 		File beastGenDir = new File(System.getProperty("user.dir")+"/BeastGen");
-		filesToCleanup.add(workingDir+fastaFile);
+		filesToCleanup.add(JOB_WORK_DIR+fastaFile);
 		log.info("Running BEASTGen...");
 		ProcessBuilder builder = new ProcessBuilder("java", "-jar", "beastgen.jar", "-date_order", "4", "beastgen.template", workingDir+fastaFile, workingDir+beastInput).directory(beastGenDir);
 		builder.redirectOutput(Redirect.appendTo(logFile));
@@ -165,7 +167,7 @@ public class BeastRunner {
 			log.log(Level.SEVERE, "BeastGen failed! with code: "+beastGenProcess.exitValue());
 			throw new BeastException("BeastGen failed! with code: "+beastGenProcess.exitValue(), null);
 		}
-		filesToCleanup.add(workingDir+beastInput);
+		filesToCleanup.add(JOB_WORK_DIR+beastInput);
 		log.info("BEAST input created.");
 	}
 	
@@ -177,11 +179,11 @@ public class BeastRunner {
 	 */
 	private void runGLM() throws IOException, InterruptedException, GLMException {
 		log.info("Running BEAST_GLM...");
-		final String GLM_PATH = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"-"+"predictors.txt";
+		final String GLM_PATH = JOB_WORK_DIR+job.getID()+"-"+"predictors.txt";
 		final File PREDICTORS_FILE = new File(GLM_PATH);
 		if (PREDICTORS_FILE.exists()) {
-			final String BEAST_INPUT = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+INPUT_XML;
-			ProcessBuilder builder = new ProcessBuilder("python3", GLM_SCRIPT, BEAST_INPUT, "states", "batch", PREDICTORS_FILE.getAbsolutePath());
+			final String BEAST_INPUT = JOB_WORK_DIR+job.getID()+INPUT_XML;
+			ProcessBuilder builder = new ProcessBuilder("python3", GLM_SCRIPT, BEAST_INPUT, "states", "batch", PREDICTORS_FILE.getAbsolutePath()).directory(new File(JOB_WORK_DIR));
 			builder.redirectOutput(Redirect.appendTo(logFile));
 			builder.redirectError(Redirect.appendTo(logFile));
 			log.info("Starting Process: "+builder.command().toString());
@@ -213,7 +215,8 @@ public class BeastRunner {
 				throw new GLMException("BEAST_GLM failed! with code: "+beastGLMProcess.exitValue(), null);
 			}
 			filesToCleanup.add(GLM_PATH);
-			filesToCleanup.add(System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+GLM_SUFFIX+INPUT_XML);
+			filesToCleanup.add(JOB_WORK_DIR+job.getID()+GLM_SUFFIX+INPUT_XML);
+			filesToCleanup.add(JOB_WORK_DIR+job.getID()+"_distanceMatrix.txt"); 
 			log.info("BEAST_GLM finished.");
 		}
 		else {
@@ -237,13 +240,11 @@ public class BeastRunner {
 		else {
 			input = jobID+INPUT_XML;
 		}
-		final String currentDir = System.getProperty("user.dir");
-		String beastDirPath = currentDir+"/ZooPhyJobs/";
 		String beast = BEAST_SCRIPTS_DIR+"beast";
 		log.info("Running BEAST...");
-		File beastDir = new File(currentDir+"/ZooPhyJobs");
+		File beastDir = new File(JOB_WORK_DIR);
 		ProcessBuilder builder;
-		builder = new ProcessBuilder(beast, beastDirPath + input).directory(beastDir);
+		builder = new ProcessBuilder(beast, JOB_WORK_DIR + input).directory(beastDir);
 		builder.redirectOutput(Redirect.appendTo(logFile));
 		builder.redirectError(Redirect.appendTo(logFile));
 		BeastTailerListener listener = new BeastTailerListener();
@@ -264,15 +265,15 @@ public class BeastRunner {
 		}
 		String outputPath;
 		if (job.isUsingGLM()) {
-			outputPath = currentDir+"/ZooPhyJobs/"+jobID+GLM_SUFFIX+OUTPUT_TREES;
+			outputPath = JOB_WORK_DIR+jobID+GLM_SUFFIX+OUTPUT_TREES;
 		}
 		else {
-			outputPath = currentDir+"/ZooPhyJobs/"+jobID+OUTPUT_TREES;
+			outputPath = JOB_WORK_DIR+jobID+OUTPUT_TREES;
 		}
 		File beastOutput = new File(outputPath);
 		if (!beastOutput.exists() || scanForBeastError()) {
 			log.log(Level.SEVERE, "BEAST did not produce output! Trying it in always scaling mode...");
-			builder = new ProcessBuilder(beast, "-beagle_scaling", "always", "-overwrite", beastDirPath + input).directory(beastDir);
+			builder = new ProcessBuilder(beast, "-beagle_scaling", "always", "-overwrite", JOB_WORK_DIR + input).directory(beastDir);
 			builder.redirectOutput(Redirect.appendTo(logFile));
 			builder.redirectError(Redirect.appendTo(logFile));
 			log.info("Starting Process: "+builder.command().toString());
@@ -293,16 +294,16 @@ public class BeastRunner {
 			}
 		}
 		if (job.isUsingGLM()) {
-			filesToCleanup.add(currentDir+"/ZooPhyJobs/"+jobID+"-aligned"+GLM_SUFFIX+OUTPUT_TREES);
-			filesToCleanup.add(currentDir+"/ZooPhyJobs/"+jobID+"-aligned"+GLM_SUFFIX+".log");
-			filesToCleanup.add(currentDir+"/ZooPhyJobs/"+jobID+"-aligned"+GLM_SUFFIX+".ops");
-			filesToCleanup.add(currentDir+"/ZooPhyJobs/"+jobID+"-aligned"+GLM_SUFFIX+".states.rates.log");
+			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+GLM_SUFFIX+OUTPUT_TREES);
+			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+GLM_SUFFIX+".log");
+			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+GLM_SUFFIX+".ops");
+			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+GLM_SUFFIX+".states.rates.log");
 		}
 		else {
-			filesToCleanup.add(currentDir+"/ZooPhyJobs/"+jobID+"-aligned"+OUTPUT_TREES);
-			filesToCleanup.add(currentDir+"/ZooPhyJobs/"+jobID+"-aligned.log");
-			filesToCleanup.add(currentDir+"/ZooPhyJobs/"+jobID+"-aligned.ops");
-			filesToCleanup.add(currentDir+"/ZooPhyJobs/"+jobID+"-aligned.states.rates.log");
+			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+OUTPUT_TREES);
+			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned.log");
+			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned.ops");
+			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned.states.rates.log");
 		}
 		log.info("BEAST finished.");
 	}
@@ -323,10 +324,9 @@ public class BeastRunner {
 		else {
 			tree = trees.substring(0, trees.indexOf("-aligned")) + RESULT_TREE;
 		}
-		String baseDir = System.getProperty("user.dir") + "/ZooPhyJobs/";
 		String treeannotator = BEAST_SCRIPTS_DIR+"treeannotator";
 		log.info("Running Tree Annotator...");
-		ProcessBuilder builder = new ProcessBuilder(treeannotator,"-burnin", "1000", baseDir+trees, baseDir+tree);
+		ProcessBuilder builder = new ProcessBuilder(treeannotator,"-burnin", "1000", JOB_WORK_DIR+trees, JOB_WORK_DIR+tree);
 		builder.redirectOutput(Redirect.appendTo(logFile));
 		builder.redirectError(Redirect.appendTo(logFile));
 		log.info("Starting Process: "+builder.command().toString());
@@ -338,7 +338,7 @@ public class BeastRunner {
 			throw new BeastException("Tree Annotator failed! with code: "+treeAnnotatorProcess.exitValue(), null);
 		}
 		log.info("Tree Annotator finished.");
-		return baseDir+tree;
+		return JOB_WORK_DIR+tree;
 	}
 	
 	/**
@@ -379,7 +379,7 @@ public class BeastRunner {
 	 * @throws IOException
 	 */
 	private void runSpread() throws BeastException, InterruptedException, IOException {
-		String workingDir = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID();
+		String workingDir = JOB_WORK_DIR+job.getID();
 		log.info("Running SpreaD3 generator...");
 		String coordinatesFile = workingDir+"-coords.txt";
 		String treeFile = workingDir+".tree";
@@ -421,9 +421,13 @@ public class BeastRunner {
 		try {
 			Path fileToDelete;
 			for (String filePath : filesToCleanup) {
-				fileToDelete = Paths.get(filePath);
-				Files.delete(fileToDelete);
-				filesToCleanup.remove(filePath);
+				try {
+					fileToDelete = Paths.get(filePath);
+					Files.delete(fileToDelete);
+				}
+				catch (Exception e) {
+					log.warning("Could not delete: "+filePath+" : "+e.getMessage());
+				}
 			}
 			log.info("Cleanup complete.");
 		}
@@ -517,7 +521,7 @@ public class BeastRunner {
 	 */
 	private boolean checkRateMatrix() {
 		try {
-			File rateLog = new File(System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"-aligned.states.rates.log");
+			File rateLog = new File(JOB_WORK_DIR+job.getID()+"-aligned.states.rates.log");
 			if (rateLog.exists()) {
 				RateTailerListener rateListener = new RateTailerListener(); 
 				rateTail = new Tailer(rateLog, rateListener);
