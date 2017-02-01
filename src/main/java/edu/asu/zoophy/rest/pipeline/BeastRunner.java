@@ -297,7 +297,7 @@ public class BeastRunner {
 			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+GLM_SUFFIX+"_"+OUTPUT_TREES);
 			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+GLM_SUFFIX+".log");
 			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+GLM_SUFFIX+".ops");
-			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+GLM_SUFFIX+".states.model.log");
+			filesToCleanup.add(JOB_WORK_DIR+jobID+GLM_SUFFIX+"_states.model.log");
 		}
 		else {
 			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned."+OUTPUT_TREES);
@@ -524,7 +524,7 @@ public class BeastRunner {
 		try {
 			String rateLogPath;
 			if (job.isUsingGLM()) {
-				rateLogPath = JOB_WORK_DIR+job.getID()+"-aligned"+GLM_SUFFIX+"_states.model.log";
+				rateLogPath = JOB_WORK_DIR+job.getID()+GLM_SUFFIX+"_states.model.log";
 			}
 			else {
 				rateLogPath = JOB_WORK_DIR+job.getID()+"-aligned.states.rates.log";
