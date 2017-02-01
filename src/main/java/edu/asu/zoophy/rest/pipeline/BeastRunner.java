@@ -44,7 +44,7 @@ public class BeastRunner {
 	
 	private final static String ALIGNED_FASTA = "-aligned.fasta";
 	private final static String INPUT_XML = ".xml";
-	private final static String OUTPUT_TREES = ".trees";
+	private final static String OUTPUT_TREES = "trees";
 	private final static String RESULT_TREE = ".tree";
 	private final static String GLM_SUFFIX = "_GLMedits";
 	
@@ -108,10 +108,10 @@ public class BeastRunner {
 				throw new BeastException("Job was stopped!", "Job was stopped!");
 			}
 			if (job.isUsingGLM()) {
-				resultingTree = runTreeAnnotator(job.getID()+"-aligned"+GLM_SUFFIX+OUTPUT_TREES);
+				resultingTree = runTreeAnnotator(job.getID()+"-aligned"+GLM_SUFFIX+"_"+OUTPUT_TREES);
 			}
 			else {
-				resultingTree = runTreeAnnotator(job.getID()+"-aligned"+OUTPUT_TREES);
+				resultingTree = runTreeAnnotator(job.getID()+"-aligned."+OUTPUT_TREES);
 			}
 			File tree = new File(resultingTree);
 			if (tree.exists()) {
@@ -216,7 +216,7 @@ public class BeastRunner {
 			}
 			filesToCleanup.add(GLM_PATH);
 			filesToCleanup.add(JOB_WORK_DIR+job.getID()+GLM_SUFFIX+INPUT_XML);
-			filesToCleanup.add(JOB_WORK_DIR+job.getID()+"_distanceMatrix.txt"); 
+			filesToCleanup.add(JOB_WORK_DIR+job.getID()+"_distanceMatrix.txt");
 			log.info("BEAST_GLM finished.");
 		}
 		else {
@@ -265,10 +265,10 @@ public class BeastRunner {
 		}
 		String outputPath;
 		if (job.isUsingGLM()) {
-			outputPath = JOB_WORK_DIR+jobID+GLM_SUFFIX+OUTPUT_TREES;
+			outputPath = JOB_WORK_DIR+jobID+GLM_SUFFIX+"_"+OUTPUT_TREES;
 		}
 		else {
-			outputPath = JOB_WORK_DIR+jobID+OUTPUT_TREES;
+			outputPath = JOB_WORK_DIR+jobID+"."+OUTPUT_TREES;
 		}
 		File beastOutput = new File(outputPath);
 		if (!beastOutput.exists() || scanForBeastError()) {
@@ -294,13 +294,13 @@ public class BeastRunner {
 			}
 		}
 		if (job.isUsingGLM()) {
-			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+GLM_SUFFIX+OUTPUT_TREES);
+			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+GLM_SUFFIX+"_"+OUTPUT_TREES);
 			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+GLM_SUFFIX+".log");
 			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+GLM_SUFFIX+".ops");
 			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+GLM_SUFFIX+".states.rates.log");
 		}
 		else {
-			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+OUTPUT_TREES);
+			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned."+OUTPUT_TREES);
 			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned.log");
 			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned.ops");
 			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned.states.rates.log");
@@ -523,10 +523,10 @@ public class BeastRunner {
 		try {
 			String rateLogPath;
 			if (job.isUsingGLM()) {
-				rateLogPath = JOB_WORK_DIR+job.getID()+"-aligned.states.rates.log";
+				rateLogPath = JOB_WORK_DIR+job.getID()+"-aligned"+GLM_SUFFIX+"_states.rates.log";
 			}
 			else {
-				rateLogPath = JOB_WORK_DIR+job.getID()+"-aligned"+GLM_SUFFIX+".states.rates.log";
+				rateLogPath = JOB_WORK_DIR+job.getID()+"-aligned.states.rates.log";
 			}
 			File rateLog = new File(rateLogPath);
 			if (rateLog.exists()) {
@@ -536,7 +536,7 @@ public class BeastRunner {
 				rateTail.run();
 			}
 			else {
-				throw new Exception("Rate Log does not exist!");
+				throw new Exception("Rate Log does not exist: "+rateLogPath);
 			}
 			return true;
 		}
