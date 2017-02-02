@@ -108,7 +108,7 @@ public class BeastRunner {
 				throw new BeastException("Job was stopped!", "Job was stopped!");
 			}
 			if (job.isUsingGLM()) {
-				resultingTree = runTreeAnnotator(job.getID()+"-aligned"+GLM_SUFFIX+"_"+OUTPUT_TREES);
+				resultingTree = runTreeAnnotator(job.getID()+"-aligned"+GLM_SUFFIX+"_states."+OUTPUT_TREES);
 			}
 			else {
 				resultingTree = runTreeAnnotator(job.getID()+"-aligned."+OUTPUT_TREES);
