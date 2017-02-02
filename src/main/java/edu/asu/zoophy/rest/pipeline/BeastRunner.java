@@ -236,9 +236,17 @@ public class BeastRunner {
 		String input;
 		if (job.isUsingGLM()) { 
 			input = jobID+GLM_SUFFIX+INPUT_XML;
+			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+GLM_SUFFIX+"_states."+OUTPUT_TREES);
+			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+GLM_SUFFIX+"_states.log");
+			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+".ops");
+			filesToCleanup.add(JOB_WORK_DIR+jobID+GLM_SUFFIX+"_states.model.log");
 		}
 		else {
 			input = jobID+INPUT_XML;
+			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned."+OUTPUT_TREES);
+			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned.log");
+			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned.ops");
+			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned.states.rates.log");
 		}
 		String beast = BEAST_SCRIPTS_DIR+"beast";
 		log.info("Running BEAST...");
@@ -265,10 +273,10 @@ public class BeastRunner {
 		}
 		String outputPath;
 		if (job.isUsingGLM()) {
-			outputPath = JOB_WORK_DIR+jobID+GLM_SUFFIX+"_"+OUTPUT_TREES;
+			outputPath = JOB_WORK_DIR+jobID+"-aligned"+GLM_SUFFIX+"_states."+OUTPUT_TREES;
 		}
 		else {
-			outputPath = JOB_WORK_DIR+jobID+"."+OUTPUT_TREES;
+			outputPath = JOB_WORK_DIR+jobID+"-aligned."+OUTPUT_TREES;
 		}
 		File beastOutput = new File(outputPath);
 		if (!beastOutput.exists() || scanForBeastError()) {
@@ -292,18 +300,6 @@ public class BeastRunner {
 				log.log(Level.SEVERE, "Always-scaling BEAST did not produce output!");
 				throw new BeastException("Always-scaling BEAST did not produce output!", null);
 			}
-		}
-		if (job.isUsingGLM()) {
-			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+GLM_SUFFIX+"_"+OUTPUT_TREES);
-			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+GLM_SUFFIX+".log");
-			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+GLM_SUFFIX+".ops");
-			filesToCleanup.add(JOB_WORK_DIR+jobID+GLM_SUFFIX+"_states.model.log");
-		}
-		else {
-			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned."+OUTPUT_TREES);
-			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned.log");
-			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned.ops");
-			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned.states.rates.log");
 		}
 		log.info("BEAST finished.");
 	}
