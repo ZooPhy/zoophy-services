@@ -31,4 +31,5 @@ hs_err_pid*
 *.log
 *.properties
 *.springBeans
-ZooPhyJobs/*
+*distanceMatrix.txt
+*nohup.out

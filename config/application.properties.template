@@ -4,7 +4,9 @@
 spring.datasource.url=jdbc:postgresql://<Host URL>/<DB Name>
 spring.datasource.username=<DB User>
 spring.datasource.password=<DB Password>
-spring.datasource.tomcat.max-active=12
+spring.datasource.tomcat.max-active=30
+spring.datasource.tomcat.max-idle=20
+spring.datasource.tomcat.min-idle=10
 spring.datasource.tomcat.test-on-borrow=true
 
 # Lucene info
@@ -24,6 +26,7 @@ beast.scripts.dir=<Beast scripts folder path>
 geojson.location=<Path to world.geojson file>
 spread3.result.dir=<SpreaD3 results folder path>
 job.logs.dir=<ZooPhy job logs folder path>
+glm.script=<Path to create_glm_xml.py file>
 
 # Server HTTP port binding
 server.port=<Server HTTP Port #>
