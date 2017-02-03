@@ -70,12 +70,14 @@ The current services may be used via HTTPS requests. They return data in JSON fo
  * replyEmail - String
  * jobName - String (optional)
  * accessions - List of Strings (Limit 1000)
+ * useGLM - Boolean (default is false)
 * Example POST Body:
 ```
 {
   "replyEmail": 'fake@email.com',
   "jobName": 'Australia H1N1 Human HA 09',
-  "accessions": ['GQ258462','CY055940','CY055932','CY055788','CY055780','CY055740','CY055661','HQ712184','HM624085']
+  "accessions": ['GQ258462','CY055940','CY055932','CY055788','CY055780','CY055740','CY055661','HQ712184','HM624085'],
+  "useGLM": false
 }
 ```
 
