@@ -74,7 +74,7 @@ public class ZooPhyController {
 	@RequestMapping(value="/", method=RequestMethod.GET)
     @ResponseStatus(value=HttpStatus.OK)
 	public String checkService() {
-		return "ZooPhy Service is up and running.";
+		return "ZooPhy Services are up and running.";
 	}
 	
     /**
