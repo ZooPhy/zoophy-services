@@ -344,7 +344,7 @@ public class ZooPhyController {
      */
     @RequestMapping(value="/template", method=RequestMethod.POST)
     @ResponseStatus(value=HttpStatus.OK)
-    public String retrieveDownload(@RequestBody List<String> accessions) throws ParameterException, GLMException {
+    public String retrieveTemplate(@RequestBody List<String> accessions) throws ParameterException, GLMException {
     	log.info("Setting up GLM Predictors template...");
 		if (accessions == null || accessions.size() == 0) {
 			log.warning("Empty accession list.");
