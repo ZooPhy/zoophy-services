@@ -26,6 +26,7 @@ import org.apache.commons.io.input.Tailer;
 import org.apache.commons.io.input.TailerListenerAdapter;
 
 import edu.asu.zoophy.rest.pipeline.glm.GLMException;
+import edu.asu.zoophy.rest.pipeline.glm.PredictorGenerator;
 
 /**
  * Responsible for running BEAST processes
@@ -77,9 +78,9 @@ public class BeastRunner {
 	/**
 	 * Runs the BEAST process
 	 * @return resulting Tree File
-	 * @throws BeastException
+	 * @throws PipelineException 
 	 */
-	public File run() throws BeastException {
+	public File run() throws PipelineException {
 		String resultingTree = null;
 		FileHandler fileHandler = null;
 		try {
@@ -124,6 +125,10 @@ public class BeastRunner {
 				throw new BeastException("TreeAnnotator did not proudce .tree file!", null);
 			}
 			return tree;
+		}
+		catch (PipelineException pe) {
+			log.log(Level.SEVERE, "BEAST process failed: "+pe.getMessage());
+			throw pe;
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "BEAST process failed: "+e.getMessage());
@@ -180,6 +185,9 @@ public class BeastRunner {
 	private void runGLM() throws IOException, InterruptedException, GLMException {
 		log.info("Running BEAST_GLM...");
 		final String GLM_PATH = JOB_WORK_DIR+job.getID()+"-"+"predictors.txt";
+		if (job.isUsingCustomPredictors()) {
+			PredictorGenerator.writeCustomPredictorsFile(GLM_PATH, job.getPredictors());
+		}
 		final File PREDICTORS_FILE = new File(GLM_PATH);
 		if (PREDICTORS_FILE.exists()) {
 			final String BEAST_INPUT = JOB_WORK_DIR+job.getID()+INPUT_XML;

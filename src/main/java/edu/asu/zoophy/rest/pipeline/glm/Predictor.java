@@ -1,5 +1,9 @@
 package edu.asu.zoophy.rest.pipeline.glm;
 
+/**
+ * GLM Predictor for BEAST runs
+ * @author devdemetri
+ */
 public class Predictor {
 	
 	private String state;

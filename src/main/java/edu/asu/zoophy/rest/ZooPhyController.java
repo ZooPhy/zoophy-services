@@ -28,6 +28,8 @@ import edu.asu.zoophy.rest.index.LuceneSearcherException;
 import edu.asu.zoophy.rest.pipeline.PipelineException;
 import edu.asu.zoophy.rest.pipeline.PipelineManager;
 import edu.asu.zoophy.rest.pipeline.ZooPhyRunner;
+import edu.asu.zoophy.rest.pipeline.glm.GLMException;
+import edu.asu.zoophy.rest.pipeline.glm.PredictorTemplateGenerator;
 import edu.asu.zoophy.rest.pipeline.utils.DownloadFormat;
 import edu.asu.zoophy.rest.pipeline.utils.DownloadFormatter;
 import edu.asu.zoophy.rest.pipeline.utils.FormatterException;
@@ -59,6 +61,9 @@ public class ZooPhyController {
 	
 	@Autowired
 	private DownloadFormatter formatter;
+	
+	@Autowired
+	private PredictorTemplateGenerator templateGenerator;
 	
 	private static Logger log = Logger.getLogger("ZooPhyController");
 	
@@ -213,11 +218,11 @@ public class ZooPhyController {
     	if (security.checkParameter(parameters.getReplyEmail(), Parameter.EMAIL)) {
     		ZooPhyRunner zoophy;
 	    	if (parameters.getJobName() == null) {
-	    			zoophy = new ZooPhyRunner(parameters.getReplyEmail(), null, parameters.isUsingGLM());
+	    			zoophy = new ZooPhyRunner(parameters.getReplyEmail(), null, parameters.isUsingGLM(), parameters.getPredictors());
 	    	}
 	    	else {
 	    		if (security.checkParameter(parameters.getJobName(), Parameter.JOB_NAME)) {
-	    			zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM());
+	    			zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors());
 	    		}
 	    		else {
 	    			log.warning("Bad job name parameter: "+parameters.getJobName());
@@ -328,6 +333,42 @@ public class ZooPhyController {
     		log.warning("Bad format parameter: "+format);
     		throw new ParameterException(format);
     	}
+    }
+    
+    /**
+     * Generates a GLM Predictors template for users to fill in. Template already includes lat, long, and SampleSize.
+     * @param accessions - Accessions to base template on
+     * @return GLM Predictors template
+     * @throws ParameterException
+     * @throws GLMException
+     */
+    @RequestMapping(value="/template", method=RequestMethod.POST)
+    @ResponseStatus(value=HttpStatus.OK)
+    public String retrieveDownload(@RequestBody List<String> accessions) throws ParameterException, GLMException {
+    	log.info("Setting up GLM Predictors template...");
+		if (accessions == null || accessions.size() == 0) {
+			log.warning("Empty accession list.");
+			throw new ParameterException("accessions list is empty");
+		}
+		if (accessions.size() > 1000) {
+			log.warning("Too many accessions.");
+			throw new ParameterException("accessions list is too long");
+		}
+		Set<String> templateAccessions = new LinkedHashSet<String>(accessions.size());
+		for (String accession : accessions) {
+			if  (security.checkParameter(accession, Parameter.ACCESSION)) {
+				templateAccessions.add(accession);
+    		}
+    		else {
+    			log.warning("Bad accession parameter: "+accession);
+    			throw new ParameterException(accession);
+    		}
+		}
+		accessions = new LinkedList<String>(templateAccessions);
+		templateAccessions.clear();
+		String template = templateGenerator.generateTemplate(accessions);
+		log.info("Successfully generated GLM Predictors template.");
+		return template;
     }
     
 }

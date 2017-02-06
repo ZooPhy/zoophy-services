@@ -17,7 +17,7 @@ import edu.asu.zoophy.rest.database.ZooPhyDAO;
  */
 public class PredictorGenerator {
 	
-	private Logger log = Logger.getLogger("PredictorGenerator");
+	private static Logger log = Logger.getLogger("PredictorGenerator");
 	final private int START_YEAR;
 	final private int END_YEAR;
 	final private String TXT_FILE_PATH;
@@ -169,6 +169,25 @@ public class PredictorGenerator {
 			if (predictorWriter != null) {
 				predictorWriter.close();
 			}
+		}
+	}
+	
+	/**
+	 * Creates a GLM Predictors file from user given predictors
+	 * @param path
+	 * @param predictors
+	 * @throws GLMException
+	 */
+	public static void writeCustomPredictorsFile(String path, Map<String, List<Predictor>> predictors) throws GLMException {
+		try {
+			//TODO: Include lat/long and SampleSize in template
+			log.info("Writing custom predictors...");
+			//TODO write custom predictors
+			log.info("Finished writing custom predictors.");
+		}
+		catch (Exception e) {
+			log.log(Level.SEVERE, "Invalid Custom Predictors: "+e.getMessage());
+			throw new GLMException("Invalid Custom Predictors: "+e.getMessage(), "Invalid Custom Predictors");
 		}
 	}
 	
