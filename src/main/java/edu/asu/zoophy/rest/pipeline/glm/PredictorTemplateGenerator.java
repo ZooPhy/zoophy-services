@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.index.LuceneSearcher;
-import edu.asu.zoophy.rest.pipeline.utils.GeonameDisjointer;
+import edu.asu.zoophy.rest.pipeline.utils.GeonameDisjoiner;
 
 /**
  * Generates templates for GLM Predictor files
@@ -36,12 +36,12 @@ public class PredictorTemplateGenerator {
 	 */
 	public String generateTemplate(List<String> accessions) throws GLMException {
 		try {
-			GeonameDisjointer disjointer = new GeonameDisjointer(indexSearcher);
+			GeonameDisjoiner disjointer = new GeonameDisjoiner(indexSearcher);
 			List<GenBankRecord> records = new LinkedList<GenBankRecord>();
 			for (String accession : accessions) {
 				records.add(dao.retrieveLightRecord(accession));
 			}
-			records = disjointer.disjointRecords(records, false);
+			records = disjointer.disjoinRecords(records, false);
 			Map<String, LocationPredictor> locationPredictors = new LinkedHashMap<String, LocationPredictor>();
 			for (GenBankRecord record : records) {
 				LocationPredictor predictor = locationPredictors.get(record.getGeonameLocation().getLocation());

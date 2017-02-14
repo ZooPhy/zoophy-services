@@ -180,7 +180,6 @@ public class PredictorGenerator {
 	 */
 	public static void writeCustomPredictorsFile(String path, Map<String, List<Predictor>> predictors) throws GLMException {
 		try {
-			//TODO: Include lat/long and SampleSize in template
 			log.info("Writing custom predictors...");
 			//TODO write custom predictors
 			log.info("Finished writing custom predictors.");

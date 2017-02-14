@@ -11,6 +11,10 @@ import java.util.HashSet;
  */
 public class GeoHierarchy {
 
+	/**
+	 * Private Nodes in the GeoHierarchy
+	 * @author devdemetri
+	 */
 	private class HierarchyNode {
 		
 		protected String type;
@@ -108,23 +112,29 @@ public class GeoHierarchy {
 	 * @param childType - Suspected child Geoname type
 	 * @param parentType - Suspected parent Geoname type
 	 * @return True if childType is a child of parentType, otherwise False
+	 * @throws GeoHierarchyException 
 	 */
-	public boolean isParent(String childType, String parentType) {
-		HierarchyNode child = nodeMap.get(childType);
-		if (child == null) {
-			child = nodeMap.get("PPLX");
-		}
-		HierarchyNode parent = nodeMap.get(parentType);
-		if (parent == null || parent == child) {
+	public boolean isParent(String childType, String parentType) throws GeoHierarchyException {
+		try {
+			HierarchyNode child = nodeMap.get(childType);
+			if (child == null) {
+				child = nodeMap.get("PPLX");
+			}
+			HierarchyNode parent = nodeMap.get(parentType);
+			if (parent == null || parent == child) {
+				return false;
+			}
+			while (child != root) {
+				if (child.parents.contains(parent)) {
+					return true;
+				}
+				child = child.parents.iterator().next();//types are in bands, so it should not matter which parent is selected
+			}
 			return false;
 		}
-		while (child != root) {
-			if (child.parents.contains(parent)) {
-				return true;
-			}
-			child = child.parents.iterator().next();//types are in bands, so it should not matter which parent is selected
+		catch (Exception e) {
+			throw new GeoHierarchyException("Error checking Geoname Ancestry: "+e.getMessage(),null);
 		}
-		return false;
 	}
 	
 	/**

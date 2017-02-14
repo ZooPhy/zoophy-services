@@ -15,7 +15,7 @@ public class JobParameters {
 	private String jobName;
 	private List<String> accessions;
 	private boolean useGLM = false;
-	private Map<String, List<Predictor>> predictors;
+	private Map<String, List<Predictor>> predictors = null;
 	
 	public JobParameters() {
 		

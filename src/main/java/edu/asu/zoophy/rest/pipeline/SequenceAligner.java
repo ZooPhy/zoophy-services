@@ -25,7 +25,7 @@ import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.index.LuceneSearcher;
 import edu.asu.zoophy.rest.pipeline.glm.GLMException;
 import edu.asu.zoophy.rest.pipeline.glm.PredictorGenerator;
-import edu.asu.zoophy.rest.pipeline.utils.GeonameDisjointer;
+import edu.asu.zoophy.rest.pipeline.utils.GeonameDisjoiner;
 import edu.asu.zoophy.rest.pipeline.utils.Normalizer;
 import edu.asu.zoophy.rest.pipeline.utils.NormalizerException;
 
@@ -187,8 +187,8 @@ public class SequenceAligner {
 		}
 		log.info("Records loaded.");
 		if (isDisjoint) {
-		GeonameDisjointer disjointer  = new GeonameDisjointer(indexSearcher);
-			return disjointer.disjointRecords(records, USING_GLM);
+		GeonameDisjoiner disjointer  = new GeonameDisjoiner(indexSearcher);
+			return disjointer.disjoinRecords(records, USING_GLM);
 		}
 		else {
 			for (int i = 0; i < records.size(); i++) {
