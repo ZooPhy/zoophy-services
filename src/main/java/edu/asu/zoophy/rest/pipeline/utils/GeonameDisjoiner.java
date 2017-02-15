@@ -33,7 +33,6 @@ public class GeonameDisjoiner {
 		this.indexSearcher = indexSearcher;
 		PropertyProvider provider = PropertyProvider.getInstance();
 		MAX_STATES = Integer.parseInt(provider.getProperty("job.max.locations"));
-		ancestors = new HashMap<String,Set<Long>>();
 		US_STATES = setupStateMap();
 	}
 	
@@ -46,11 +45,12 @@ public class GeonameDisjoiner {
 	 * @throws GeoHierarchyException 
 	 */
 	public List<GenBankRecord> disjoinRecords(List<GenBankRecord> recordsToCheck, boolean usingGLM) throws DisjoinerException, GLMException, GeoHierarchyException {
-		Map<Long,Long> disjoins = new HashMap<Long,Long>();
-		Set<Location> locations = new LinkedHashSet<Location>();
+		Map<Long,Long> disjoins = new HashMap<Long,Long>((int)(recordsToCheck.size()*.75)+1);
+		Set<Location> locations = new LinkedHashSet<Location>(50);
 		Map<String,Integer> types = new LinkedHashMap<String,Integer>();
 		Set<Location> locationsToRemove;
-		Map<Long,String> idToLocation = new HashMap<Long,String>();
+		Map<Long,String> idToLocation = new HashMap<Long,String>(50);
+		ancestors = new HashMap<String,Set<Long>>((int)(recordsToCheck.size())+1, 1.0f);
 		String commonType = null;
 		int maxType = 0;
 		try {
@@ -60,20 +60,30 @@ public class GeonameDisjoiner {
 					recordsToCheck.remove(i);
 				}
 				else {
-					String type = record.getGeonameLocation().getGeonameType();
-					if (types.get(type) == null) {
-						types.put(type, 0);
-					}
-					types.put(type, (types.get(type)+1));
 					Set<Long> recordAncestors;
 					try {
 						recordAncestors = indexSearcher.findLocationAncestors(record.getAccession());
+						if (recordAncestors == null) {
+							recordsToCheck.remove(i);
+						}
+						else {
+							recordAncestors.remove(record.getGeonameLocation().getGeonameID());
+							if (recordAncestors.isEmpty()) {
+								recordsToCheck.remove(i);
+							}
+							else {
+								String type = record.getGeonameLocation().getGeonameType();
+								if (types.get(type) == null) {
+									types.put(type, 0);
+								}
+								types.put(type, (types.get(type)+1));
+								ancestors.put(record.getAccession(), recordAncestors);
+							}
+						}
 					}
 					catch (LuceneSearcherException lse) {
 						throw new DisjoinerException("Error retrieving location ancestors: "+lse.getMessage(), "Error Disjointing Locations");
 					}
-					recordAncestors.remove(record.getGeonameLocation().getGeonameID());
-					ancestors.put(record.getAccession(),recordAncestors);
 				}
 			}
 		}
@@ -102,7 +112,7 @@ public class GeonameDisjoiner {
 				}
 				else {
 					for (Location parent : locations) {
-						if (isParent(parent, recordLocation)) {
+						if (isAncestor(parent, recordLocation)) {
 							isDisjoint = false;
 							if (!parent.getGeonameID().equals(recordLocation.getGeonameID())) {
 								disjoins.put(recordLocation.getGeonameID(), parent.getGeonameID());
@@ -128,7 +138,7 @@ public class GeonameDisjoiner {
 				boolean removed = false;
 				for (Location locationParent : locations) {
 					if (!(locationParent.getGeonameID().equals(location.getGeonameID()) || locationsToRemove.contains(locationParent))) {
-						if (isParent(locationParent,location)) {
+						if (isAncestor(locationParent,location)) {
 							if (!location.getGeonameID().equals(locationParent.getGeonameID())) {
 								disjoins.put(location.getGeonameID(), locationParent.getGeonameID());
 							}
@@ -232,17 +242,23 @@ public class GeonameDisjoiner {
 	}
 
 	/**
-	 * 
-	 * @param locationParent
+	 * Checks if the suspected suspectedAncestor is actually an ancestor to the given Geoname location
+	 * @param suspectedAncestor
 	 * @param location
-	 * @return
+	 * @return true if suspectedAncestor is an ancestor of location, false otherwise
+	 * @throws DisjoinerException 
 	 */
-	private boolean isParent(Location locationParent, Location location) {
+	private boolean isAncestor(Location suspectedAncestor, Location location) throws DisjoinerException {
 	    Set<Long> locationAncestors = ancestors.get(location.getAccession());
-		if (location.getGeonameID().equals(locationParent.getGeonameID()) || locationAncestors.contains(locationParent.getGeonameID())) {
+	    if (locationAncestors == null) {
+	    	throw new DisjoinerException("Null Ancestors for location ID:\t"+location.getGeonameID(), null);
+	    }
+	    else if (location.getGeonameID().equals(suspectedAncestor.getGeonameID()) || locationAncestors.contains(suspectedAncestor.getGeonameID())) {
 			return true;
 		}
-		return false;
+	    else {
+	    	return false;
+	    }
 	}
 
 	/**

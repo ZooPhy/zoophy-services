@@ -5,6 +5,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -345,30 +346,39 @@ public class ZooPhyController {
     @RequestMapping(value="/template", method=RequestMethod.POST)
     @ResponseStatus(value=HttpStatus.OK)
     public String retrieveTemplate(@RequestBody List<String> accessions) throws ParameterException, GLMException {
-    	log.info("Setting up GLM Predictors template...");
-		if (accessions == null || accessions.size() == 0) {
-			log.warning("Empty accession list.");
-			throw new ParameterException("accessions list is empty");
-		}
-		if (accessions.size() > 1000) {
-			log.warning("Too many accessions.");
-			throw new ParameterException("accessions list is too long");
-		}
-		Set<String> templateAccessions = new LinkedHashSet<String>(accessions.size());
-		for (String accession : accessions) {
-			if  (security.checkParameter(accession, Parameter.ACCESSION)) {
-				templateAccessions.add(accession);
-    		}
-    		else {
-    			log.warning("Bad accession parameter: "+accession);
-    			throw new ParameterException(accession);
-    		}
-		}
-		accessions = new LinkedList<String>(templateAccessions);
-		templateAccessions.clear();
-		String template = templateGenerator.generateTemplate(accessions);
-		log.info("Successfully generated GLM Predictors template.");
-		return template;
+    	try {
+	    	log.info("Setting up GLM Predictors template...");
+			if (accessions == null || accessions.size() == 0) {
+				log.warning("Empty accession list.");
+				throw new ParameterException("accessions list is empty");
+			}
+			if (accessions.size() > 1000) {
+				log.warning("Too many accessions.");
+				throw new ParameterException("accessions list is too long");
+			}
+			Set<String> templateAccessions = new LinkedHashSet<String>(accessions.size());
+			for (String accession : accessions) {
+				if  (security.checkParameter(accession, Parameter.ACCESSION)) {
+					templateAccessions.add(accession);
+	    		}
+	    		else {
+	    			log.warning("Bad accession parameter: "+accession);
+	    			throw new ParameterException(accession);
+	    		}
+			}
+			accessions = new LinkedList<String>(templateAccessions);
+			templateAccessions.clear();
+			String template = templateGenerator.generateTemplate(accessions);
+			log.info("Successfully generated GLM Predictors template.");
+			return template;
+    	}
+    	catch (ParameterException pe) {
+    		throw pe;
+    	}
+    	catch (GLMException glme) {
+    		log.log(Level.SEVERE, "GLM error generating Predictors template:\t"+glme.getMessage());
+    		throw glme;
+    	}
     }
     
 }
