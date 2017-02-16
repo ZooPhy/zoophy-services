@@ -76,7 +76,7 @@ public class PredictorGenerator {
 				else {
 					normalizedState = (Character.toUpperCase(state.charAt(0)) + state.substring(1)).trim();
 				}
-				rawPredictors = dao.retrievePredictors(normalizedState);
+				rawPredictors = dao.retrieveDefaultPredictors(normalizedState);
 				Predictor tempPredictor;
 				double totalPopulation = 0;
 				double populationYears = 0;

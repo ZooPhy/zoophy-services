@@ -156,8 +156,8 @@ public class Normalizer {
 	
 	/**
 	 * Normalizes Organism names
-	 * @param organism
-	 * @return
+	 * @param organism - original Organism name
+	 * @return normalized Organism name
 	 */
 	public static String simplifyOrganism(String organism) {
 		if (organism != null) {
@@ -240,9 +240,9 @@ public class Normalizer {
 	}
 	
 	/**
-	 * Converts a raw String into a CSV safe String
-	 * @param raw
-	 * @return
+	 * Converts a raw String into a CSV safe String by replacing commas with blank spaces
+	 * @param raw - original String
+	 * @return CSV safe String
 	 */
 	public static String csvify(String raw) {
 		if (raw == null) {

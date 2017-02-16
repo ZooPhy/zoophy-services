@@ -53,7 +53,8 @@ public class LuceneSearcher {
 	}
 	
 	/**
-	 * @param query - valid Lucene query string
+	 * Search Lucene Index for matching GenBank Records
+	 * @param querystring - valid Lucene query string
 	 * @return Top 2500 Lucene query results as a List of GenBankRecord objects
 	 * @throws LuceneSearcherException 
 	 * @throws InvalidLuceneQueryException 

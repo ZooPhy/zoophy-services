@@ -30,8 +30,8 @@ public class PredictorTemplateGenerator {
 	
 	/**
 	 * Generates a GLM Predictor template String, ready to be written to a text file.
-	 * @param accessions
-	 * @return
+	 * @param accessions - list of target record accessions for template
+	 * @return GLM Template String, ready to be written into a tab-delimited .txt file 
 	 * @throws GLMException
 	 */
 	public String generateTemplate(List<String> accessions) throws GLMException {

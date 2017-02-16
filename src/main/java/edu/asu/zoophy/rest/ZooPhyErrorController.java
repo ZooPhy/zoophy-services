@@ -43,7 +43,7 @@ public class ZooPhyErrorController implements ErrorController{
     /**
      * Supports other formats like JSON, XML
      * @param request
-     * @return
+     * @return HTTP ResponseEntity containing the HTTP error code and error message
      */
     @RequestMapping(value = ERROR_PATH)
     @ResponseBody

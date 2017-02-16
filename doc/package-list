@@ -1,0 +1,8 @@
+edu.asu.zoophy.rest
+edu.asu.zoophy.rest.database
+edu.asu.zoophy.rest.genbank
+edu.asu.zoophy.rest.index
+edu.asu.zoophy.rest.pipeline
+edu.asu.zoophy.rest.pipeline.glm
+edu.asu.zoophy.rest.pipeline.utils
+edu.asu.zoophy.rest.security

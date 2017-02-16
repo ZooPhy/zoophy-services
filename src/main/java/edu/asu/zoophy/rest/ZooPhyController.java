@@ -206,11 +206,11 @@ public class ZooPhyController {
     }
     
     /**
-     * @param replyEmail - User email for results
-     * @param jobName - Custom job name (optional)
-     * @param accessions - List of accessions to to run the job on
-     * @return JobID for the started ZooPhy job
+     * Run ZooPhy Job
+     * @param parameters
+     * @return jobID for started ZooPhy Job
      * @throws ParameterException
+     * @throws PipelineException
      */
     @RequestMapping(value="/run", method=RequestMethod.POST, headers="Accept=application/json")
     @ResponseStatus(value=HttpStatus.ACCEPTED)
