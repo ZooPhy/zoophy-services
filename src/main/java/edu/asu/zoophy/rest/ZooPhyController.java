@@ -201,7 +201,6 @@ public class ZooPhyController {
 	    			queryBuilder.append(usableAccessions.remove(0));
 	    			current++;
 	    		}
-	    		usableAccessions.clear();
 	    		queryBuilder.append(")");
 	    		records.addAll(indexSearcher.searchIndex(queryBuilder.toString(), INDIVIDUAL_QUERY_LIMIT));
     		}
