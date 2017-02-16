@@ -22,6 +22,7 @@ public class PredictorGenerator {
 	final private int END_YEAR;
 	final private String TXT_FILE_PATH;
 	final private ZooPhyDAO dao;
+	final private static String DELIMITER = "\t";
 	private Map<String, StatePredictor> statePredictors;
 	
 	public PredictorGenerator(String filePath, int startYear, int endYear, Set<String> stateList, ZooPhyDAO dao) {
@@ -134,7 +135,6 @@ public class PredictorGenerator {
 		log.info("Writing Predictors...");
 		PrintWriter predictorWriter = null;
 		try {
-			final String DELIMITER = "\t";
 			StringBuilder txtBuilder = new StringBuilder();
 			//TODO: for now we are just using Distance (needs Lat and Long), Temperature, Precipitation, and SampleSize as predictors
 			txtBuilder.append("state" + DELIMITER);
@@ -179,14 +179,46 @@ public class PredictorGenerator {
 	 * @throws GLMException
 	 */
 	public static void writeCustomPredictorsFile(String path, Map<String, List<Predictor>> predictors) throws GLMException {
+		PrintWriter predictorWriter = null;
 		try {
 			log.info("Writing custom predictors...");
-			//TODO write custom predictors
+			Set<String> states = predictors.keySet();
+			boolean missingHeader = true;
+			StringBuilder txtBuilder = new StringBuilder();
+			for (String state : states) {
+				List<Predictor> linePredictors = predictors.get(state);
+				if (missingHeader) {
+					txtBuilder.append("state"+DELIMITER);
+					for (int i = 0; i < linePredictors.size(); i++) {
+						txtBuilder.append(linePredictors.get(i).getName().trim());
+						if (i < linePredictors.size()-1) {
+							txtBuilder.append(DELIMITER);
+						}
+					}
+					txtBuilder.append("\n");
+					missingHeader = false;
+				}
+				txtBuilder.append(state+DELIMITER);
+				for (int i = 0; i < linePredictors.size(); i++) {
+					txtBuilder.append(linePredictors.get(i).getValue());
+					if (i < linePredictors.size()-1) {
+						txtBuilder.append(DELIMITER);
+					}
+				}
+				txtBuilder.append("\n");
+			}
+			predictorWriter = new PrintWriter(path);
+			predictorWriter.write(txtBuilder.toString());
 			log.info("Finished writing custom predictors.");
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "Invalid Custom Predictors: "+e.getMessage());
 			throw new GLMException("Invalid Custom Predictors: "+e.getMessage(), "Invalid Custom Predictors");
+		}
+		finally {
+			if (predictorWriter != null) {
+				predictorWriter.close();
+			}
 		}
 	}
 	
