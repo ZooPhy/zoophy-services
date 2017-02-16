@@ -55,11 +55,12 @@ public class LuceneSearcher {
 	/**
 	 * Search Lucene Index for matching GenBank Records
 	 * @param querystring - valid Lucene query string
-	 * @return Top 2500 Lucene query results as a List of GenBankRecord objects
+	 * @param maxRecords - maximum results 
+	 * @return Top Lucene query results as a List of GenBankRecord objects
 	 * @throws LuceneSearcherException 
 	 * @throws InvalidLuceneQueryException 
 	 */
-	public List<GenBankRecord> searchIndex(String querystring) throws LuceneSearcherException, InvalidLuceneQueryException {
+	public List<GenBankRecord> searchIndex(String querystring, int maxRecords) throws LuceneSearcherException, InvalidLuceneQueryException {
 		List<GenBankRecord> records = new LinkedList<GenBankRecord>();
 		IndexReader reader = null;
 		IndexSearcher indexSearcher = null;
@@ -69,7 +70,7 @@ public class LuceneSearcher {
 			reader = DirectoryReader.open(indexDirectory);
 			indexSearcher = new IndexSearcher(reader);
 			query = queryParser.parse(querystring);
-			documents = indexSearcher.search(query, 2500);
+			documents = indexSearcher.search(query, maxRecords);
 			for (ScoreDoc scoreDoc : documents.scoreDocs) {
 				Document document = indexSearcher.doc(scoreDoc.doc);
 				records.add(DocumentMapper.mapRecord(document));

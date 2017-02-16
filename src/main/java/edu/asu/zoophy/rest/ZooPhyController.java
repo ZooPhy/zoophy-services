@@ -60,6 +60,9 @@ public class ZooPhyController {
 	@Value("${job.max.accessions}")
 	private Integer JOB_MAX_ACCESSIONS;
 	
+	@Value("${query.max.records}")
+	private Integer QUERY_MAX_RECORDS;
+	
 	@Autowired
 	private DownloadFormatter formatter;
 	
@@ -145,7 +148,7 @@ public class ZooPhyController {
     public List<GenBankRecord> queryLucene(@RequestParam(value="query") String query) throws LuceneSearcherException, InvalidLuceneQueryException, ParameterException {
     	if (security.checkParameter(query, Parameter.LUCENE_QUERY)) {
     		log.info("Searching query: "+query);
-    		List<GenBankRecord> results = indexSearcher.searchIndex(query);
+    		List<GenBankRecord> results = indexSearcher.searchIndex(query, QUERY_MAX_RECORDS);
     		log.info("Successfully searched query: "+query);
     		return results;
     	}
@@ -169,9 +172,9 @@ public class ZooPhyController {
     	List<GenBankRecord> records = null;
     	log.info("Searching accession list...");
     	if (accessions != null && accessions.size() > 0) {
-    		if (accessions.size() > 1023) {
-    			log.warning("Accession list is too long.");
-    			throw new ParameterException("accessions list is too long");
+    		if (accessions.size() > QUERY_MAX_RECORDS) {
+    			log.warning("Query accession list is too long.");
+	    		throw new ParameterException("accessions list is too long");
     		}
     		Set<String> uniqueAccessions = new LinkedHashSet<String>(accessions.size());
     		for (String accession : accessions) {
@@ -185,17 +188,23 @@ public class ZooPhyController {
     		}
     		List<String> usableAccessions = new LinkedList<String>(uniqueAccessions);
     		uniqueAccessions.clear();
-    		StringBuilder queryBuilder = new StringBuilder("Accession: (");
-    		queryBuilder.append(usableAccessions.get(0));
-    		usableAccessions.remove(0);
-    		for (String accession : usableAccessions) {
-    			queryBuilder.append(" OR ");
-    			queryBuilder.append(accession);
+    		records = new LinkedList<GenBankRecord>();
+    		final int INDIVIDUAL_QUERY_LIMIT = 1024;
+    		int current;
+    		while (!usableAccessions.isEmpty()) {
+    			current = 0;
+	    		StringBuilder queryBuilder = new StringBuilder("Accession: (");
+	    		queryBuilder.append(usableAccessions.remove(0));
+	    		current++;
+	    		while (!usableAccessions.isEmpty() && current < INDIVIDUAL_QUERY_LIMIT) {
+	    			queryBuilder.append(" OR ");
+	    			queryBuilder.append(usableAccessions.remove(0));
+	    			current++;
+	    		}
+	    		usableAccessions.clear();
+	    		queryBuilder.append(")");
+	    		records.addAll(indexSearcher.searchIndex(queryBuilder.toString(), INDIVIDUAL_QUERY_LIMIT));
     		}
-    		usableAccessions.clear();
-    		queryBuilder.append(")");
-    		// TODO: Need to use a different method to allow over 1024 accessions down the road. 
-    		records = indexSearcher.searchIndex(queryBuilder.toString());
     		log.info("Successfully searched accession list.");
     	}
     	else {
@@ -298,7 +307,7 @@ public class ZooPhyController {
     			log.warning("Empty accession list.");
     			return null;
     		}
-    		if (accessions.size() > 2500) {
+    		if (accessions.size() > QUERY_MAX_RECORDS) {
     			log.warning("Too many accessions.");
     			throw new ParameterException("accessions list is too long");
     		}
