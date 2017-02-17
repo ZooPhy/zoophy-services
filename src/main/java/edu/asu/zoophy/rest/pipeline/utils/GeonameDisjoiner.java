@@ -44,7 +44,7 @@ public class GeonameDisjoiner {
 	 * @throws GLMException 
 	 * @throws GeoHierarchyException 
 	 */
-	public List<GenBankRecord> disjoinRecords(List<GenBankRecord> recordsToCheck, boolean usingGLM) throws DisjoinerException, GLMException, GeoHierarchyException {
+	public List<GenBankRecord> disjoinRecords(List<GenBankRecord> recordsToCheck, boolean usingDefaultGLM) throws DisjoinerException, GLMException, GeoHierarchyException {
 		Map<Long,Long> disjoins = new HashMap<Long,Long>((int)(recordsToCheck.size()*.75)+1);
 		Set<Location> locations = new LinkedHashSet<Location>(50);
 		Map<String,Integer> types = new LinkedHashMap<String,Integer>();
@@ -90,7 +90,7 @@ public class GeonameDisjoiner {
 		catch (Exception e) {
 			throw new DisjoinerException("Error initially screening record locations:\t"+e.getMessage(), null);
 		}
-		if (usingGLM) {
+		if (usingDefaultGLM) {
 			commonType = "ADM1";
 		}
 		else {
@@ -148,7 +148,7 @@ public class GeonameDisjoiner {
 						}
 					}
 				}
-				if (usingGLM && !removed) {
+				if (usingDefaultGLM && !removed) {
 					location.setLocation(location.getLocation().toLowerCase());
 					Location stateLocation = convertToState(location);
 					if (!location.getGeonameID().equals(stateLocation.getGeonameID())) {

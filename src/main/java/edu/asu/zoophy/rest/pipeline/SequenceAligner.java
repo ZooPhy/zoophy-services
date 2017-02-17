@@ -102,8 +102,8 @@ public class SequenceAligner {
 	        log.addHandler(fileHandler);
 	        log.setUseParentHandlers(false);
 			log.info("Starting Mafft Job: "+job.getID());
-			List<GenBankRecord>recs = loadSequences(accessions, true);
-			String rawFasta = fastaFormat(recs);
+			List<GenBankRecord>recs = loadSequences(accessions, true, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
+			String rawFasta = fastaFormat(recs, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
 			createCoordinatesFile();
 			if (job.isUsingGLM()) {
 				createGLMFile(job.isUsingGLM() && !job.isUsingCustomPredictors());
@@ -185,7 +185,7 @@ public class SequenceAligner {
 	 * @throws DaoException
 	 * @throws PipelineException
 	 */
-	private List<GenBankRecord> loadSequences(List<String> accessions, boolean isDisjoint) throws GenBankRecordNotFoundException, DaoException, PipelineException {
+	public List<GenBankRecord> loadSequences(List<String> accessions, boolean isDisjoint, boolean isUsingDefaultGLM) throws GenBankRecordNotFoundException, DaoException, PipelineException {
 		log.info("Loading records for Mafft...");
 		List<GenBankRecord> records = new LinkedList<GenBankRecord>();
 		for (String accession : accessions) {
@@ -202,7 +202,7 @@ public class SequenceAligner {
 		log.info("Records loaded.");
 		if (isDisjoint) {
 		GeonameDisjoiner disjointer  = new GeonameDisjoiner(indexSearcher);
-			return disjointer.disjoinRecords(records, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
+			return disjointer.disjoinRecords(records, isUsingDefaultGLM);
 		}
 		else {
 			for (int i = 0; i < records.size(); i++) {
@@ -263,7 +263,7 @@ public class SequenceAligner {
 	 * @throws AlignerException 
 	 * @throws Exception 
 	 */
-	private String fastaFormat(List<GenBankRecord> records) throws AlignerException {
+	private String fastaFormat(List<GenBankRecord> records, boolean isUsingDefaultGLM) throws AlignerException {
 		log.info("Starting Fasta formatting");
 		StringBuilder builder = new StringBuilder();
 		StringBuilder tempBuilder;
@@ -289,7 +289,7 @@ public class SequenceAligner {
 				tempBuilder.append("_");
 				String normalizedLocation = Normalizer.normalizeLocation(record.getGeonameLocation());
 				tempBuilder.append(normalizedLocation);
-				if (job.isUsingGLM() && !job.isUsingCustomPredictors()) {
+				if (isUsingDefaultGLM) {
 					addOccurrence(normalizedLocation);
 				}
 				if (geonameCoordinates != null && geonameCoordinates.get(normalizedLocation) == null) {
@@ -368,8 +368,8 @@ public class SequenceAligner {
 	 * @throws PipelineException
 	 */
 	public String generateDownloadableRawFasta(List<String> accessions) throws GenBankRecordNotFoundException, DaoException, PipelineException {
-		List<GenBankRecord> records = loadSequences(accessions, false);
-		return fastaFormat(records);
+		List<GenBankRecord> records = loadSequences(accessions, false, false);
+		return fastaFormat(records, false);
 	}
 	
 	/**
