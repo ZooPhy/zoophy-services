@@ -66,18 +66,42 @@ The current services may be used via HTTPS requests. They return data in JSON fo
 ### Start ZooPhy Job
 * Type: POST
 * Path: /run
-* Required POST Body Data: JSON Object containing:
+* Required POST Body Data: [JobParameters] (src/main/java/edu/asu/zoophy/rest/JobParameters.java) JSON Object containing:
  * replyEmail - String
  * jobName - String (optional)
  * accessions - List of Strings (Limit 1000)
  * useGLM - Boolean (default is false)
+ * predictors - Map of \<String, List of [Predictors] (src/main/java/edu/asu/zoophy/rest/pipeline/glm/Predictor.java)> (optional)
+   * Note: This is only if custom GLM Predictors need to be used. Otherwise, if usedGLM is set to true, defualt predictors will be used that can only be applied to US States. If locations outside of the US, or more precise locations, are needed then custom predictors must contain at least lat, long, and SampleSize. All predictor values must be positive (< 0) numbers, except for lat/long. Predictor year is not needed, and will not be used for custom predictors. The predictor states must also exactly match the accession states as proccessed in our pipeline, for this reason it is critical to use the [Template Generator service] (#generate-glm-predictor-template-download) to generate locations, coordinates, and sample sizes. This feature is currently experimental. 
 * Example POST Body:
 ```
 {
   "replyEmail": 'fake@email.com',
   "jobName": 'Australia H1N1 Human HA 09',
   "accessions": ['GQ258462','CY055940','CY055932','CY055788','CY055780','CY055740','CY055661','HQ712184','HM624085'],
-  "useGLM": false
+  "useGLM": true,
+  "predictors": {
+    "merrylands" : [
+                      {"state": "merrylands", "name": "lat", "value": -33.833328, "year": null},
+                      {"state": "merrylands", "name": "long", "value": 150.98334, "year": null},
+                      {"state": "merrylands", "name": "SampleSize", "value": 2, "year": null}
+                   ],
+    "perth": [
+                {"state": "perth", "name": "lat", "value": -31.95224, "year": null},
+                {"state": "perth", "name": "long", "value": 115.8614, "year": null},
+                {"state": "perth", "name": "SampleSize", "value": 1, "year": null}
+             ],
+     "castle-hill" : [
+                        {"state": "castle-hill", "name": "lat", "value": -33.73333, "year": null},
+                        {"state": "castle-hill", "name": "long", "value": 151.0, "year": null},
+                        {"state": "castle-hill", "name": "SampleSize", "value": 4, "year": null}
+                     ],
+    "brisbane": [
+                  {"state": "brisbane", "name": "lat", "value": -27.467939, "year": null},
+                  {"state": "brisbane", "name": "long", "value": 153.02809, "year": null},
+                  {"state": "brisbane", "name": "SampleSize", "value": 1, "year": null}
+                ]
+  }
 }
 ```
 
@@ -95,6 +119,18 @@ The current services may be used via HTTPS requests. They return data in JSON fo
  * Note: The currently supported formats are CSV and FASTA.
  * Example Request URL: https://zodo.asu.edu/zoophy/api/download?format=fasta
 * Required POST Body Data: JSON list of valid accession Strings (Limit 2500)
+* Example POST body: 
+```
+['GQ258462','CY055940','CY055932','CY055788','CY055780','CY055740','CY055661','HQ712184','HM624085']
+```
+
+* Note: This service will not return an actual File, just a JSON String ready to be written into a file. 
+
+### Generate GLM Predictor template download
+* Type: POST
+* Path: /template
+ * Example Request URL: https://zodo.asu.edu/zoophy/api/template
+* Required POST Body Data: JSON list of valid accession Strings (Limit 1000)
 * Example POST body: 
 ```
 ['GQ258462','CY055940','CY055932','CY055788','CY055780','CY055740','CY055661','HQ712184','HM624085']

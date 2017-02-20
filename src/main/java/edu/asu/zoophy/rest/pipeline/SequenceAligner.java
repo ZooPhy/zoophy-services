@@ -25,7 +25,7 @@ import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.index.LuceneSearcher;
 import edu.asu.zoophy.rest.pipeline.glm.GLMException;
 import edu.asu.zoophy.rest.pipeline.glm.PredictorGenerator;
-import edu.asu.zoophy.rest.pipeline.utils.GeonameDisjointer;
+import edu.asu.zoophy.rest.pipeline.utils.GeonameDisjoiner;
 import edu.asu.zoophy.rest.pipeline.utils.Normalizer;
 import edu.asu.zoophy.rest.pipeline.utils.NormalizerException;
 
@@ -36,8 +36,7 @@ import edu.asu.zoophy.rest.pipeline.utils.NormalizerException;
 public class SequenceAligner {
 
 	private final String JOB_LOG_DIR;
-	private final String JOB_ID;
-	private final boolean USING_GLM;
+	private final ZooPhyJob job;
 	private final ZooPhyDAO dao;
 	private final LuceneSearcher indexSearcher;
 	private final Logger log;
@@ -46,65 +45,74 @@ public class SequenceAligner {
 	private Map<String,String> geonameCoordinates;
 	private int startYear = 3000;
 	private int endYear = 1000;
-	private Map<String, Integer> occurences;
+	private Map<String, Integer> occurrences = null;
 	
+	/**
+	 * Constructor for regular ZooPhy Pipeline usage
+	 * @param job - ZooPhyJob for Predictor data
+	 * @param dao - ZooPhyDAO for SQL operations
+	 * @param indexSearcher - LuceneSearcher for index operations
+	 * @throws PipelineException
+	 */
 	public SequenceAligner(ZooPhyJob job, ZooPhyDAO dao, LuceneSearcher indexSearcher) throws PipelineException {
 		this.dao = dao;
 		this.indexSearcher = indexSearcher;
-		JOB_ID = job.getID();
-		USING_GLM = job.isUsingGLM();
 		PropertyProvider provider = PropertyProvider.getInstance();
 		JOB_LOG_DIR = provider.getProperty("job.logs.dir");
 		log = Logger.getLogger("SequenceAligner");
 		uniqueGeonames = new LinkedHashSet<String>();
 		geonameCoordinates = new HashMap<String,String>();
-		if (job.isUsingGLM()) {
-			occurences = new HashMap<String, Integer>();
+		if (job.isUsingGLM() && !job.isUsingCustomPredictors()) {
+			occurrences = new HashMap<String, Integer>();
 		}
+		this.job = job;
 	}
 	
 	/**
 	 * NOTE: Only use this constructor for generating downloadable FASTA, not for ZooPhy Jobs
-	 * @param dao
-	 * @param indexSearcher
+	 * @param dao - ZooPhyDAO for SQL operations
+	 * @param indexSearcher - LuceneSearcher for index operations
 	 */
 	public SequenceAligner(ZooPhyDAO dao, LuceneSearcher indexSearcher) {
 		log = Logger.getLogger("SequenceAligner");
 		this.dao = dao;
 		this.indexSearcher = indexSearcher;
-		JOB_ID = null;
 		JOB_LOG_DIR = null;
-		USING_GLM = false;
+		job = null;
 	}
 	
 	/**
-	 * 
-	 * @param accessions
-	 * @return
+	 * Sequence Alignment Pipeline that runs:
+	 * 1) Geoname Disjoiner
+	 * 2) GLM Predictor Generator (only if job is using GLM)
+	 * 3) FASTA formatting of raw sequences
+	 * 4) MAFFT sequence alignment
+	 * @param accessions - record sequences to be included in FASTA
+	 * @return file path to aligned .fasta file
 	 * @throws AlignerException
 	 */
 	public String align(List<String> accessions) throws AlignerException {
-		String alignedFasta;
+		String alignedFastaPath;
 		FileHandler fileHandler = null;
 		try {
-			logFile = new File(JOB_LOG_DIR+JOB_ID+".log");
-			fileHandler = new FileHandler(JOB_LOG_DIR+JOB_ID+".log", true);
+			logFile = new File(JOB_LOG_DIR+job.getID()+".log");
+			fileHandler = new FileHandler(JOB_LOG_DIR+job.getID()+".log", true);
 			SimpleFormatter formatter = new SimpleFormatter();  
 	        fileHandler.setFormatter(formatter);
 	        log.addHandler(fileHandler);
 	        log.setUseParentHandlers(false);
-			log.info("Starting Mafft Job: "+JOB_ID);
-			List<GenBankRecord>recs = loadSequences(accessions, true);
-			String rawFasta = fastaFormat(recs);
+			log.info("Starting Mafft Job: "+job.getID());
+			List<GenBankRecord>recs = loadSequences(accessions, true, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
+			String rawFasta = fastaFormat(recs, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
 			createCoordinatesFile();
-			if (USING_GLM) {
-				createGLMFile();
+			if (job.isUsingGLM()) {
+				createGLMFile(job.isUsingGLM() && !job.isUsingCustomPredictors());
 			}
-			alignedFasta = runMafft(rawFasta);
-			log.info("Mafft Job: "+JOB_ID+" has finished.");
+			alignedFastaPath = runMafft(rawFasta);
+			log.info("Mafft Job: "+job.getID()+" has finished.");
 			log.info("Deleting raw fasta...");
 			try {
-				Path path = Paths.get(System.getProperty("user.dir")+"/ZooPhyJobs/"+JOB_ID+"-raw.fasta");
+				Path path = Paths.get(System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"-raw.fasta");
 				Files.delete(path);
 			}
 			catch (IOException e) {
@@ -123,17 +131,23 @@ public class SequenceAligner {
 				fileHandler.close();
 			}
 		}
-		return alignedFasta;
+		return alignedFastaPath;
 	}
 	
 	/**
-	 * Generates a GLM predictors file 
+	 * Generates the GLM predictors batch file 
+	 * @param usingDefault 
 	 * @throws GLMException 
 	 */
-	private void createGLMFile() throws GLMException {
-		String glmPath = System.getProperty("user.dir")+"/ZooPhyJobs/"+JOB_ID+"-"+"predictors.txt";
-		PredictorGenerator generator = new PredictorGenerator(glmPath, startYear, endYear, uniqueGeonames,dao);
-		generator.generatePredictorsFile(occurences);
+	private void createGLMFile(boolean usingDefault) throws GLMException {
+		String glmPath = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"-"+"predictors.txt";
+		if (usingDefault) {
+			PredictorGenerator generator = new PredictorGenerator(glmPath, startYear, endYear, uniqueGeonames,dao);
+			generator.generatePredictorsFile(occurrences);
+		}
+		else {
+			PredictorGenerator.writeCustomPredictorsFile(glmPath, job.getPredictors());
+		}
 	}
 
 	/**
@@ -146,7 +160,7 @@ public class SequenceAligner {
 			coordinates.append("\n");
 		}
 		coordinates.trimToSize();
-		String dir = System.getProperty("user.dir")+"/ZooPhyJobs/"+JOB_ID+"-";
+		String dir = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"-";
 		PrintWriter coordinateWriter = null;
 		try {
 			coordinateWriter = new PrintWriter(dir+"coords.txt");
@@ -163,15 +177,15 @@ public class SequenceAligner {
 	}
 
 	/**
-	 * 
-	 * @param accessions
-	 * @param isDisjoint
-	 * @return
+	 * Loads GenBank Records that contain the desired sequences. This may also include running the GeonameDisjoiner 
+	 * @param accessions - records to load
+	 * @param isDisjoint - whether to run GeonameDisjoiner on the records or not
+	 * @return list of GenBankRecords ready for MAFFT 
 	 * @throws GenBankRecordNotFoundException
 	 * @throws DaoException
 	 * @throws PipelineException
 	 */
-	private List<GenBankRecord> loadSequences(List<String> accessions, boolean isDisjoint) throws GenBankRecordNotFoundException, DaoException, PipelineException {
+	public List<GenBankRecord> loadSequences(List<String> accessions, boolean isDisjoint, boolean isUsingDefaultGLM) throws GenBankRecordNotFoundException, DaoException, PipelineException {
 		log.info("Loading records for Mafft...");
 		List<GenBankRecord> records = new LinkedList<GenBankRecord>();
 		for (String accession : accessions) {
@@ -187,8 +201,8 @@ public class SequenceAligner {
 		}
 		log.info("Records loaded.");
 		if (isDisjoint) {
-		GeonameDisjointer disjointer  = new GeonameDisjointer(indexSearcher);
-			return disjointer.disjointRecords(records, USING_GLM);
+		GeonameDisjoiner disjointer  = new GeonameDisjoiner(indexSearcher);
+			return disjointer.disjoinRecords(records, isUsingDefaultGLM);
 		}
 		else {
 			for (int i = 0; i < records.size(); i++) {
@@ -202,13 +216,14 @@ public class SequenceAligner {
 	}
 
 	/**
-	 * @param rawFasta String of raw fasta formatted sequences
-	 * @return String of MAFFT aligned fasta sequences
-	 * @throws Exception 
+	 * Runs MAFFT to Align Sequences
+	 * @param rawFasta - String of raw fasta formatted sequences
+	 * @return file path to MAFFT aligned .fasta file
+	 * @throws AlignerException 
 	 */
 	private String runMafft(String rawFasta) throws AlignerException {
-		log.info("Setting up Mafft for job: "+JOB_ID);
-		String dir = System.getProperty("user.dir")+"/ZooPhyJobs/"+JOB_ID+"-";
+		log.info("Setting up Mafft for job: "+job.getID());
+		String dir = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"-";
 		try {
 			PrintWriter printer = new PrintWriter(dir+"raw.fasta");
 			printer.write(rawFasta);
@@ -226,7 +241,7 @@ public class SequenceAligner {
 			builder.redirectError(Redirect.appendTo(logFile));
 			log.info("Running Mafft...");
 			Process mafftProcess = builder.start();
-			PipelineManager.setProcess(JOB_ID, mafftProcess);
+			PipelineManager.setProcess(job.getID(), mafftProcess);
 			mafftProcess.waitFor();
 			if (mafftProcess.exitValue() != 0) {
 				log.log(Level.SEVERE, "Mafft failed! with code: "+mafftProcess.exitValue());
@@ -242,12 +257,13 @@ public class SequenceAligner {
 	}
 
 	/**
+	 * Combines the records' sequences into a FASTA formatted String
 	 * @param records List of full GenBankRecords
-	 * @return String Fasta formatted sequences
+	 * @return String FASTA formatted sequences
 	 * @throws AlignerException 
 	 * @throws Exception 
 	 */
-	private String fastaFormat(List<GenBankRecord> records) throws AlignerException {
+	private String fastaFormat(List<GenBankRecord> records, boolean isUsingDefaultGLM) throws AlignerException {
 		log.info("Starting Fasta formatting");
 		StringBuilder builder = new StringBuilder();
 		StringBuilder tempBuilder;
@@ -273,8 +289,8 @@ public class SequenceAligner {
 				tempBuilder.append("_");
 				String normalizedLocation = Normalizer.normalizeLocation(record.getGeonameLocation());
 				tempBuilder.append(normalizedLocation);
-				if (USING_GLM) {
-					addOccurence(normalizedLocation);
+				if (isUsingDefaultGLM) {
+					addOccurrence(normalizedLocation);
 				}
 				if (geonameCoordinates != null && geonameCoordinates.get(normalizedLocation) == null) {
 					String coordinates = normalizedLocation+"\t"+record.getGeonameLocation().getLatitude()+"\t"+record.getGeonameLocation().getLongitude();
@@ -300,6 +316,7 @@ public class SequenceAligner {
 	}
 	
 	/**
+	 * Converts a raw String Date to FASTA formatted Decimal Date 
 	 * @param collectionDate
 	 * @return decimal date
 	 * @throws AlignerException 
@@ -318,6 +335,7 @@ public class SequenceAligner {
 	}
 
 	/**
+	 * Breaks up sequences into 80 character lines
 	 * @param sequence raw rna/dna sequence
 	 * @return sequence split into 80 character lines
 	 * @throws AlignerException 
@@ -350,21 +368,21 @@ public class SequenceAligner {
 	 * @throws PipelineException
 	 */
 	public String generateDownloadableRawFasta(List<String> accessions) throws GenBankRecordNotFoundException, DaoException, PipelineException {
-		List<GenBankRecord> records = loadSequences(accessions, false);
-		return fastaFormat(records);
+		List<GenBankRecord> records = loadSequences(accessions, false, false);
+		return fastaFormat(records, false);
 	}
 	
 	/**
-	 * 
+	 * Adds an occurrence of a GLM state
 	 * @param state
 	 */
-	private void addOccurence(String state) {
-		Integer currentCount = occurences.get(state);
+	private void addOccurrence(String state) {
+		Integer currentCount = occurrences.get(state);
 		if (currentCount == null) {
-			occurences.put(state, 1);
+			occurrences.put(state, 1);
 		}
 		else {
-			occurences.put(state, currentCount+1);
+			occurrences.put(state, currentCount+1);
 		}
 	}
 

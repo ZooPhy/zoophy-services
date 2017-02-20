@@ -1,6 +1,9 @@
 package edu.asu.zoophy.rest;
 
 import java.util.List;
+import java.util.Map;
+
+import edu.asu.zoophy.rest.pipeline.glm.Predictor;
 
 /**
  * Object to encapsulate parameters for ZooPhy jobs
@@ -12,6 +15,7 @@ public class JobParameters {
 	private String jobName;
 	private List<String> accessions;
 	private boolean useGLM = false;
+	private Map<String, List<Predictor>> predictors = null;
 	
 	public JobParameters() {
 		
@@ -47,6 +51,14 @@ public class JobParameters {
 
 	public void setUseGLM(boolean useGLM) {
 		this.useGLM = useGLM;
+	}
+
+	public Map<String, List<Predictor>> getPredictors() {
+		return predictors;
+	}
+
+	public void setPredictors(Map<String, List<Predictor>> predictors) {
+		this.predictors = predictors;
 	}
 	
 }

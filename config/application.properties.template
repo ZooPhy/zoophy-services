@@ -11,6 +11,7 @@ spring.datasource.tomcat.test-on-borrow=true
 
 # Lucene info
 lucene.index.location=<Lucene Index Path>
+query.max.records=<Maximum records per Lucene query>
 
 # Email info
 email.user=<Email Username>

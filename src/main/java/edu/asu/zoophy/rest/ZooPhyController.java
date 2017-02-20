@@ -5,6 +5,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,8 @@ import edu.asu.zoophy.rest.index.LuceneSearcherException;
 import edu.asu.zoophy.rest.pipeline.PipelineException;
 import edu.asu.zoophy.rest.pipeline.PipelineManager;
 import edu.asu.zoophy.rest.pipeline.ZooPhyRunner;
+import edu.asu.zoophy.rest.pipeline.glm.GLMException;
+import edu.asu.zoophy.rest.pipeline.glm.PredictorTemplateGenerator;
 import edu.asu.zoophy.rest.pipeline.utils.DownloadFormat;
 import edu.asu.zoophy.rest.pipeline.utils.DownloadFormatter;
 import edu.asu.zoophy.rest.pipeline.utils.FormatterException;
@@ -57,8 +60,14 @@ public class ZooPhyController {
 	@Value("${job.max.accessions}")
 	private Integer JOB_MAX_ACCESSIONS;
 	
+	@Value("${query.max.records}")
+	private Integer QUERY_MAX_RECORDS;
+	
 	@Autowired
 	private DownloadFormatter formatter;
+	
+	@Autowired
+	private PredictorTemplateGenerator templateGenerator;
 	
 	private static Logger log = Logger.getLogger("ZooPhyController");
 	
@@ -69,7 +78,7 @@ public class ZooPhyController {
 	@RequestMapping(value="/", method=RequestMethod.GET)
     @ResponseStatus(value=HttpStatus.OK)
 	public String checkService() {
-		return "ZooPhy Service is up and running.";
+		return "ZooPhy Services are up and running.";
 	}
 	
     /**
@@ -139,7 +148,7 @@ public class ZooPhyController {
     public List<GenBankRecord> queryLucene(@RequestParam(value="query") String query) throws LuceneSearcherException, InvalidLuceneQueryException, ParameterException {
     	if (security.checkParameter(query, Parameter.LUCENE_QUERY)) {
     		log.info("Searching query: "+query);
-    		List<GenBankRecord> results = indexSearcher.searchIndex(query);
+    		List<GenBankRecord> results = indexSearcher.searchIndex(query, QUERY_MAX_RECORDS);
     		log.info("Successfully searched query: "+query);
     		return results;
     	}
@@ -163,9 +172,9 @@ public class ZooPhyController {
     	List<GenBankRecord> records = null;
     	log.info("Searching accession list...");
     	if (accessions != null && accessions.size() > 0) {
-    		if (accessions.size() > 1023) {
-    			log.warning("Accession list is too long.");
-    			throw new ParameterException("accessions list is too long");
+    		if (accessions.size() > QUERY_MAX_RECORDS) {
+    			log.warning("Query accession list is too long.");
+	    		throw new ParameterException("accessions list is too long");
     		}
     		Set<String> uniqueAccessions = new LinkedHashSet<String>(accessions.size());
     		for (String accession : accessions) {
@@ -179,17 +188,22 @@ public class ZooPhyController {
     		}
     		List<String> usableAccessions = new LinkedList<String>(uniqueAccessions);
     		uniqueAccessions.clear();
-    		StringBuilder queryBuilder = new StringBuilder("Accession: (");
-    		queryBuilder.append(usableAccessions.get(0));
-    		usableAccessions.remove(0);
-    		for (String accession : usableAccessions) {
-    			queryBuilder.append(" OR ");
-    			queryBuilder.append(accession);
+    		records = new LinkedList<GenBankRecord>();
+    		final int INDIVIDUAL_QUERY_LIMIT = 1024;
+    		int current;
+    		while (!usableAccessions.isEmpty()) {
+    			current = 0;
+	    		StringBuilder queryBuilder = new StringBuilder("Accession: (");
+	    		queryBuilder.append(usableAccessions.remove(0));
+	    		current++;
+	    		while (!usableAccessions.isEmpty() && current < INDIVIDUAL_QUERY_LIMIT) {
+	    			queryBuilder.append(" OR ");
+	    			queryBuilder.append(usableAccessions.remove(0));
+	    			current++;
+	    		}
+	    		queryBuilder.append(")");
+	    		records.addAll(indexSearcher.searchIndex(queryBuilder.toString(), INDIVIDUAL_QUERY_LIMIT));
     		}
-    		usableAccessions.clear();
-    		queryBuilder.append(")");
-    		// TODO: Need to use a different method to allow over 1024 accessions down the road. 
-    		records = indexSearcher.searchIndex(queryBuilder.toString());
     		log.info("Successfully searched accession list.");
     	}
     	else {
@@ -200,11 +214,11 @@ public class ZooPhyController {
     }
     
     /**
-     * @param replyEmail - User email for results
-     * @param jobName - Custom job name (optional)
-     * @param accessions - List of accessions to to run the job on
-     * @return JobID for the started ZooPhy job
+     * Run ZooPhy Job
+     * @param parameters
+     * @return jobID for started ZooPhy Job
      * @throws ParameterException
+     * @throws PipelineException
      */
     @RequestMapping(value="/run", method=RequestMethod.POST, headers="Accept=application/json")
     @ResponseStatus(value=HttpStatus.ACCEPTED)
@@ -213,11 +227,11 @@ public class ZooPhyController {
     	if (security.checkParameter(parameters.getReplyEmail(), Parameter.EMAIL)) {
     		ZooPhyRunner zoophy;
 	    	if (parameters.getJobName() == null) {
-	    			zoophy = new ZooPhyRunner(parameters.getReplyEmail(), null, parameters.isUsingGLM());
+	    			zoophy = new ZooPhyRunner(parameters.getReplyEmail(), null, parameters.isUsingGLM(), parameters.getPredictors());
 	    	}
 	    	else {
 	    		if (security.checkParameter(parameters.getJobName(), Parameter.JOB_NAME)) {
-	    			zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM());
+	    			zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors());
 	    		}
 	    		else {
 	    			log.warning("Bad job name parameter: "+parameters.getJobName());
@@ -292,7 +306,7 @@ public class ZooPhyController {
     			log.warning("Empty accession list.");
     			return null;
     		}
-    		if (accessions.size() > 2500) {
+    		if (accessions.size() > QUERY_MAX_RECORDS) {
     			log.warning("Too many accessions.");
     			throw new ParameterException("accessions list is too long");
     		}
@@ -327,6 +341,51 @@ public class ZooPhyController {
     	else {
     		log.warning("Bad format parameter: "+format);
     		throw new ParameterException(format);
+    	}
+    }
+    
+    /**
+     * Generates a GLM Predictors template for users to fill in. Template already includes lat, long, and SampleSize.
+     * @param accessions - Accessions to base template on
+     * @return GLM Predictors template
+     * @throws ParameterException
+     * @throws GLMException
+     */
+    @RequestMapping(value="/template", method=RequestMethod.POST)
+    @ResponseStatus(value=HttpStatus.OK)
+    public String retrieveTemplate(@RequestBody List<String> accessions) throws ParameterException, GLMException {
+    	try {
+	    	log.info("Setting up GLM Predictors template...");
+			if (accessions == null || accessions.size() == 0) {
+				log.warning("Empty accession list.");
+				throw new ParameterException("accessions list is empty");
+			}
+			if (accessions.size() > 1000) {
+				log.warning("Too many accessions.");
+				throw new ParameterException("accessions list is too long");
+			}
+			Set<String> templateAccessions = new LinkedHashSet<String>(accessions.size());
+			for (String accession : accessions) {
+				if  (security.checkParameter(accession, Parameter.ACCESSION)) {
+					templateAccessions.add(accession);
+	    		}
+	    		else {
+	    			log.warning("Bad accession parameter: "+accession);
+	    			throw new ParameterException(accession);
+	    		}
+			}
+			accessions = new LinkedList<String>(templateAccessions);
+			templateAccessions.clear();
+			String template = templateGenerator.generateTemplate(accessions);
+			log.info("Successfully generated GLM Predictors template.");
+			return template;
+    	}
+    	catch (ParameterException pe) {
+    		throw pe;
+    	}
+    	catch (GLMException glme) {
+    		log.log(Level.SEVERE, "GLM error generating Predictors template:\t"+glme.getMessage());
+    		throw glme;
     	}
     }
     

@@ -121,11 +121,11 @@ public class ZooPhyDAO {
 	
 	/**
 	 * Retrieve the specified US State's GLM predictors from the database
-	 * @param state
-	 * @return
+	 * @param state - US State to retrieve default predictors
+	 * @return list of Predictors for given US State
 	 * @throws DaoException
 	 */
-	public List<Predictor> retrievePredictors(String state) throws DaoException {
+	public List<Predictor> retrieveDefaultPredictors(String state) throws DaoException {
 		try {
 			final String[] parameters = {state};
 			List<Predictor> predictors = jdbc.query(PULL_STATE_PREDICTORS, parameters, new PredictorRowMapper());

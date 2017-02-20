@@ -17,11 +17,12 @@ import edu.asu.zoophy.rest.database.ZooPhyDAO;
  */
 public class PredictorGenerator {
 	
-	private Logger log = Logger.getLogger("PredictorGenerator");
+	private static Logger log = Logger.getLogger("PredictorGenerator");
 	final private int START_YEAR;
 	final private int END_YEAR;
 	final private String TXT_FILE_PATH;
 	final private ZooPhyDAO dao;
+	final private static String DELIMITER = "\t";
 	private Map<String, StatePredictor> statePredictors;
 	
 	public PredictorGenerator(String filePath, int startYear, int endYear, Set<String> stateList, ZooPhyDAO dao) {
@@ -76,7 +77,7 @@ public class PredictorGenerator {
 				else {
 					normalizedState = (Character.toUpperCase(state.charAt(0)) + state.substring(1)).trim();
 				}
-				rawPredictors = dao.retrievePredictors(normalizedState);
+				rawPredictors = dao.retrieveDefaultPredictors(normalizedState);
 				Predictor tempPredictor;
 				double totalPopulation = 0;
 				double populationYears = 0;
@@ -134,7 +135,6 @@ public class PredictorGenerator {
 		log.info("Writing Predictors...");
 		PrintWriter predictorWriter = null;
 		try {
-			final String DELIMITER = "\t";
 			StringBuilder txtBuilder = new StringBuilder();
 			//TODO: for now we are just using Distance (needs Lat and Long), Temperature, Precipitation, and SampleSize as predictors
 			txtBuilder.append("state" + DELIMITER);
@@ -164,6 +164,56 @@ public class PredictorGenerator {
 		catch (Exception e) {
 			log.log(Level.SEVERE, "Failed to write Predictors: "+e.getMessage());
 			throw new GLMException("Failed to write Predictors: "+e.getMessage(), null);
+		}
+		finally {
+			if (predictorWriter != null) {
+				predictorWriter.close();
+			}
+		}
+	}
+	
+	/**
+	 * Creates a GLM Predictors file from user given predictors
+	 * @param path
+	 * @param predictors
+	 * @throws GLMException
+	 */
+	public static void writeCustomPredictorsFile(String path, Map<String, List<Predictor>> predictors) throws GLMException {
+		PrintWriter predictorWriter = null;
+		try {
+			log.info("Writing custom predictors...");
+			Set<String> states = predictors.keySet();
+			boolean missingHeader = true;
+			StringBuilder txtBuilder = new StringBuilder();
+			for (String state : states) {
+				List<Predictor> linePredictors = predictors.get(state);
+				if (missingHeader) {
+					txtBuilder.append("state"+DELIMITER);
+					for (int i = 0; i < linePredictors.size(); i++) {
+						txtBuilder.append(linePredictors.get(i).getName().trim());
+						if (i < linePredictors.size()-1) {
+							txtBuilder.append(DELIMITER);
+						}
+					}
+					txtBuilder.append("\n");
+					missingHeader = false;
+				}
+				txtBuilder.append(state+DELIMITER);
+				for (int i = 0; i < linePredictors.size(); i++) {
+					txtBuilder.append(linePredictors.get(i).getValue());
+					if (i < linePredictors.size()-1) {
+						txtBuilder.append(DELIMITER);
+					}
+				}
+				txtBuilder.append("\n");
+			}
+			predictorWriter = new PrintWriter(path);
+			predictorWriter.write(txtBuilder.toString());
+			log.info("Finished writing custom predictors.");
+		}
+		catch (Exception e) {
+			log.log(Level.SEVERE, "Invalid Custom Predictors: "+e.getMessage());
+			throw new GLMException("Invalid Custom Predictors: "+e.getMessage(), "Invalid Custom Predictors");
 		}
 		finally {
 			if (predictorWriter != null) {

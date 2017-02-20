@@ -2,11 +2,13 @@ package edu.asu.zoophy.rest.pipeline;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
 import edu.asu.zoophy.rest.index.LuceneSearcher;
+import edu.asu.zoophy.rest.pipeline.glm.Predictor;
 
 /**
  * Responsible for running ZooPhy jobs
@@ -18,10 +20,10 @@ public class ZooPhyRunner {
 	private final ZooPhyMailer mailer;
 	private final Logger log;
 
-	public ZooPhyRunner(String replyEmail, String jobName, boolean useGLM) throws PipelineException {
+	public ZooPhyRunner(String replyEmail, String jobName, boolean useGLM, Map<String, List<Predictor>> predictors) throws PipelineException {
 		log = Logger.getLogger("ZooPhyRunner");
 		log.info("Initializing ZooPhy Job");
-		job = new ZooPhyJob(generateID(),jobName,replyEmail, useGLM);
+		job = new ZooPhyJob(generateID(),jobName,replyEmail, useGLM, predictors);
 		log.info("Initializing ZooPhyMailer... : "+job.getID());
 		mailer = new ZooPhyMailer(job);
 	}

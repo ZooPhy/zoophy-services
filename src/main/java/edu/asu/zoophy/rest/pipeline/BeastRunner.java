@@ -77,9 +77,9 @@ public class BeastRunner {
 	/**
 	 * Runs the BEAST process
 	 * @return resulting Tree File
-	 * @throws BeastException
+	 * @throws PipelineException 
 	 */
-	public File run() throws BeastException {
+	public File run() throws PipelineException {
 		String resultingTree = null;
 		FileHandler fileHandler = null;
 		try {
@@ -124,6 +124,10 @@ public class BeastRunner {
 				throw new BeastException("TreeAnnotator did not proudce .tree file!", null);
 			}
 			return tree;
+		}
+		catch (PipelineException pe) {
+			log.log(Level.SEVERE, "BEAST process failed: "+pe.getMessage());
+			throw pe;
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "BEAST process failed: "+e.getMessage());
