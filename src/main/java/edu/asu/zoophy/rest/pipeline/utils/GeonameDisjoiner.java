@@ -327,6 +327,7 @@ public class GeonameDisjoiner {
 		usStates.put("west virginia", 4826850L);
 		usStates.put("wisconsin", 5279468L);
 		usStates.put("wyoming", 5843591L);
+		usStates.put("district of columbia", 4138106L);
 		return usStates;
 	}
 	
