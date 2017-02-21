@@ -140,10 +140,10 @@ public class BeastRunner {
 			if (rateTail != null) {
 				rateTail.stop();
 			}
+			cleanupBeast();
 			if (fileHandler != null) {
 				fileHandler.close();
 			}
-			cleanupBeast();
 		}
 	}
 	
