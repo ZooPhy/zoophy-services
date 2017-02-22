@@ -8,6 +8,7 @@ import java.util.logging.Logger;
 
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
 import edu.asu.zoophy.rest.index.LuceneSearcher;
+import edu.asu.zoophy.rest.pipeline.glm.GLMFigureGenerator;
 import edu.asu.zoophy.rest.pipeline.glm.Predictor;
 
 /**
@@ -47,8 +48,16 @@ public class ZooPhyRunner {
 			BeastRunner beast = new BeastRunner(job, mailer);
 			log.info("Starting Beast Runner... : "+job.getID());
 			File treeFile = beast.run();
+			File[] results = new File[2];
+			results[0] = treeFile;
+			if (job.isUsingGLM()) {
+				log.info("Running GLM Figure Generator... : "+job.getID());
+				GLMFigureGenerator figureGenerator = new GLMFigureGenerator(job);
+				File glmFile = figureGenerator.generateFigure();
+				results[1] = glmFile;
+			}
 			log.info("Sending Results Email... : "+job.getID());
-			mailer.sendSuccessEmail(treeFile); 
+			mailer.sendSuccessEmail(results); 
 			PipelineManager.removeProcess(job.getID());
 			log.info("ZooPhy Job Complete: "+job.getID());
 		}

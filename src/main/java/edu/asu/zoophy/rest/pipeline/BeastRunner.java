@@ -243,7 +243,7 @@ public class BeastRunner {
 			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+GLM_SUFFIX+"_states."+OUTPUT_TREES);
 			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+GLM_SUFFIX+"_states.log");
 			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+".ops");
-			filesToCleanup.add(JOB_WORK_DIR+jobID+GLM_SUFFIX+"_states.model.log");
+			// filesToCleanup.add(JOB_WORK_DIR+jobID+GLM_SUFFIX+"_states.model.log");
 		}
 		else {
 			input = jobID+INPUT_XML;
@@ -414,9 +414,8 @@ public class BeastRunner {
 
 	/**
 	 * Deletes unwanted files after the BEAST process is finished
-	 * @throws BeastException
 	 */
-	private void cleanupBeast() throws BeastException {
+	private void cleanupBeast() {
 		log.info("Cleaning up BEAST...");
 		try {
 			Path fileToDelete;
@@ -430,10 +429,11 @@ public class BeastRunner {
 					log.warning("Could not delete: "+filePath+" : "+e.getMessage());
 				}
 			}
+			filesToCleanup.clear();
 			log.info("Cleanup complete.");
 		}
 		catch (Exception e) {
-			log.log(Level.SEVERE, "Cleanup failed: "+e.getMessage());
+			log.log(Level.SEVERE, "BEAST cleanup failed: "+e.getMessage());
 		}
 	}
 	

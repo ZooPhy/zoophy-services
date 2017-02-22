@@ -66,9 +66,10 @@ public class ZooPhyMailer {
 	
 	/**
 	 * Sends successful results to user
+	 * @param results - Array of Files to send to user. results[0] must contain the .tree file. results[1] contains the GLB figure PDF if applicable.
 	 * @throws MailerException 
 	 */
-	public void sendSuccessEmail(File treeFile) throws MailerException {
+	public void sendSuccessEmail(File[] results) throws MailerException {
 		log.info("Sending results email to: "+job.getReplyEmail());
 		try {
 			String messageText;
@@ -81,7 +82,7 @@ public class ZooPhyMailer {
 			messageText += "\nThe SpreaD3 simulation for your job is available <a href=\"https://zodo.asu.edu/spread3/"+job.getID()+"/renderers/d3/d3renderer/index.html\">here</a>.";
 			messageText += "\nFor viewing the attached .tree file, we recommend downloading the latest version of <a href=\"http://tree.bio.ed.ac.uk/software/figtree/\">FigTree</a>.\n";
 			messageText += "\nThank You,\nZooPhy Lab";
-			sendEmail(messageText, treeFile);
+			sendEmail(messageText, results);
 		}
 		catch (Exception e) {
 			throw new MailerException(e.getMessage(), "Failed to send Success Email");
@@ -140,11 +141,11 @@ public class ZooPhyMailer {
 	/**
 	 * Sends the actual email with the given text and attachments
 	 * @param messageText
-	 * @param attachement
+	 * @param results
 	 * @throws AddressException
 	 * @throws MessagingException
 	 */
-	private void sendEmail(String messageText, File attachement) throws AddressException, MessagingException {
+	private void sendEmail(String messageText, File[] results) throws AddressException, MessagingException {
 		Properties properties = new Properties();
 		properties.put("mail.smtp.auth", "true");
 		properties.put("mail.smtp.starttls.enable", "true");
@@ -162,24 +163,37 @@ public class ZooPhyMailer {
         message.setSubject("ZooPhy Job: "+getCustomName());
         messageText = messageText.replaceAll("\n", "<br/>");
         messageText = messageText.replaceAll("\t", "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
-		if (attachement == null) {
+		if (results == null || results.length == 0) {
 	        message.setContent(messageText, "text/html");
 	        Transport.send(message);
 		}
 		else {
-			BodyPart messageBodyPart = new MimeBodyPart();
-			messageBodyPart.setContent(messageText, "text/html");
+			File treeFile = results[0];
+			File glmFile = results[1];
 	        Multipart multipart = new MimeMultipart();
+	        BodyPart messageBodyPart = new MimeBodyPart();
+			messageBodyPart.setContent(messageText, "text/html");
 	        multipart.addBodyPart(messageBodyPart);
-	        messageBodyPart = new MimeBodyPart();
-	        DataSource source = new FileDataSource(attachement.getAbsolutePath());
-	        messageBodyPart.setDataHandler(new DataHandler(source));
-	        String ending = "";
-	        if (attachement.getName().contains(".")) {
-	        	ending = attachement.getName().substring(attachement.getName().lastIndexOf(".")).trim();
+	        BodyPart treeBodyPart = new MimeBodyPart();
+	        DataSource treeSource = new FileDataSource(treeFile.getAbsolutePath());
+	        treeBodyPart.setDataHandler(new DataHandler(treeSource));
+	        String treeEnding = "";
+	        if (treeFile.getName().contains(".")) {
+	        	treeEnding = treeFile.getName().substring(treeFile.getName().lastIndexOf(".")).trim();
 	        }
-	        messageBodyPart.setFileName(getCustomName()+ending);
-	        multipart.addBodyPart(messageBodyPart);
+	        treeBodyPart.setFileName(getCustomName()+treeEnding);
+	        multipart.addBodyPart(treeBodyPart);
+	        if (glmFile != null) {
+	        	BodyPart glmBodyPart = new MimeBodyPart();
+		        DataSource glmSource = new FileDataSource(glmFile.getAbsolutePath());
+		        glmBodyPart.setDataHandler(new DataHandler(glmSource));
+		        String glmEnding = "_figure";
+		        if (glmFile.getName().contains(".")) {
+		        	glmEnding += glmFile.getName().substring(glmFile.getName().lastIndexOf(".")).trim();
+		        }
+		        glmBodyPart.setFileName(getCustomName()+glmEnding);
+		        multipart.addBodyPart(glmBodyPart);
+	        }
 	        message.setContent(multipart);
 	        Transport.send(message);
 	        log.info("Email successfully sent to :"+job.getReplyEmail());

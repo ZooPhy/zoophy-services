@@ -262,7 +262,7 @@ public class GeonameDisjoiner {
 	}
 
 	/**
-	 * 
+	 * Update a record's Geoname Location
 	 * @param record
 	 * @param locationName
 	 */
