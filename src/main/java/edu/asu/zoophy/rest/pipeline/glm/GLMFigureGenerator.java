@@ -109,7 +109,7 @@ public class GLMFigureGenerator {
 				log.log(Level.SEVERE, "Log Analyser failed! with code: "+logAnalyserProcess.exitValue());
 				throw new GLMException("Log Analyser failed! with code: "+logAnalyserProcess.exitValue(), null);
 			}
-			log.info("Tree Annotator finished.");
+			log.info("Log Analyser finished.");
 			filesToCleanup.add(analyserOutput);
 			return analyserOutput;
 		}
@@ -130,7 +130,7 @@ public class GLMFigureGenerator {
 	 */
 	private File runDanScripts(String analyserOutput) throws GLMException {
 		String cleanedData = baseName+"_summary_clean.txt";
-		String predictorData = baseName+"_predictorNames.txt";
+		String predictorData = JOB_WORK_DIR+job.getID()+"_predictorNames.txt";
 		String figurePath = baseName+"_figure.pdf";
 		try {
 			ProcessBuilder bashBuilder = new ProcessBuilder(DAN_BASH_SCRIPT, analyserOutput, cleanedData);
