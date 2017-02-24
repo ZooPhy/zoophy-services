@@ -149,6 +149,10 @@ public class PredictorGenerator {
 			for (String state : statePredictors.keySet()) {
 				txtBuilder.append(state + DELIMITER);
 				StatePredictor predictors = statePredictors.get(state);
+				if (hasNull(predictors)) {
+					log.log(Level.SEVERE, "Found null Predictor for : "+state);
+					throw new GLMException("Found null Predictor for : "+state, null);
+				}
 				txtBuilder.append(predictors.getLatitude() + DELIMITER);
 				txtBuilder.append(predictors.getLongitude() + DELIMITER);
 //				txtBuilder.append(predictors.getElevation() + DELIMITER);
@@ -172,6 +176,18 @@ public class PredictorGenerator {
 		}
 	}
 	
+	/**
+	 * Checks for null values in required fields
+	 * @param predictors Predictor values to check
+	 * @return true if any required Predictor values are null, false otherwise
+	 */
+	private boolean hasNull(StatePredictor predictors) {
+		if (predictors.getLatitude() == null || predictors.getLongitude() == null || predictors.getTemperature() == null || predictors.getSampleSize() == 0) {
+			return true;
+		}
+		return false;
+	}
+
 	/**
 	 * Creates a GLM Predictors file from user given predictors
 	 * @param path

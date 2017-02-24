@@ -1,4 +1,4 @@
-# Template for Spring Properties file. Original should NEVER be commited to GitHub
+# Template for Spring Properties file. Original should NEVER be committed to GitHub
 
 # SQL connection info
 spring.datasource.url=jdbc:postgresql://<Host URL>/<DB Name>
@@ -28,6 +28,8 @@ geojson.location=<Path to world.geojson file>
 spread3.result.dir=<SpreaD3 results folder path>
 job.logs.dir=<ZooPhy job logs folder path>
 glm.script=<Path to create_glm_xml.py file>
+dan.r.script=<Path to make_predictor_fig.R file>
+dan.bash.script=<Path to make_table.sh file>
 
 # Server HTTP port binding
 server.port=<Server HTTP Port #>
