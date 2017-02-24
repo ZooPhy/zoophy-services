@@ -243,7 +243,6 @@ public class BeastRunner {
 			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+GLM_SUFFIX+"_states."+OUTPUT_TREES);
 			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+GLM_SUFFIX+"_states.log");
 			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+".ops");
-			// filesToCleanup.add(JOB_WORK_DIR+jobID+GLM_SUFFIX+"_states.model.log");
 		}
 		else {
 			input = jobID+INPUT_XML;

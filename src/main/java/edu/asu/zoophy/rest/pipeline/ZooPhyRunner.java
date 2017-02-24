@@ -56,6 +56,9 @@ public class ZooPhyRunner {
 				File glmFile = figureGenerator.generateFigure();
 				results[1] = glmFile;
 			}
+			else {
+				results[1] = null;
+			}
 			log.info("Sending Results Email... : "+job.getID());
 			mailer.sendSuccessEmail(results); 
 			PipelineManager.removeProcess(job.getID());
