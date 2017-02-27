@@ -17,7 +17,9 @@ RESTful services for [ZooPhy] (https://zodo.asu.edu/zoophy/). This consists of:
 * [BeastGen 1.0.2] (http://beast.bio.ed.ac.uk/beastgen)
 * [BEAST 1.8.4] (https://github.com/beast-dev/beast-mcmc/releases/tag/v1.8.4)
 * [SpreaD3 0.9.6] (https://rega.kuleuven.be/cev/ecv/software/SpreaD3)
+* [Python 3.4.x] (https://www.python.org/) with [numpy] (http://www.numpy.org/) package
 * [BEAST GLM] (https://github.com/djmagee5/BEAST_GLM)
+* [R 3.x] (https://www.r-project.org/) with [gridExtra] (https://cran.r-project.org/web/packages/gridExtra/index.html) and [ggplot2] (http://ggplot2.org/) packages 
 
 ## Setup:
 
