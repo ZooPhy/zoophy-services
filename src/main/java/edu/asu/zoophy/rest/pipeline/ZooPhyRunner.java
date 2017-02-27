@@ -1,7 +1,6 @@
 package edu.asu.zoophy.rest.pipeline;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -103,7 +102,7 @@ public class ZooPhyRunner {
 	}
 
 	
-	public void testZooPhy(ArrayList<String> accessions, ZooPhyDAO dao, LuceneSearcher indexSearcher) throws PipelineException {
+	public void testZooPhy(List<String> accessions, ZooPhyDAO dao, LuceneSearcher indexSearcher) throws PipelineException {
 		try {
 			log.info("Initializing test Sequence Aligner... : "+job.getID());
 			SequenceAligner aligner = new SequenceAligner(job, dao, indexSearcher);
