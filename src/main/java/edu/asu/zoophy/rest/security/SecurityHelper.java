@@ -5,6 +5,8 @@ import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Repository;
 
+import edu.asu.zoophy.rest.pipeline.XMLParameters;
+
 /**
  * Helps with basic security features such as screening input
  * @author devdemetri
@@ -50,6 +52,28 @@ public class SecurityHelper {
 		}
 		Matcher matcher = regex.matcher(parameter);
 		return matcher.matches();
+	}
+
+	/**
+	 * Validates XML values
+	 * @param xmlOptions XML Options to validate
+	 * @throws ParameterException if any XML values are invalid
+	 */
+	public void verifyXMLOptions(XMLParameters xmlOptions) throws ParameterException {
+		if (xmlOptions == null) {
+			throw new ParameterException("Missing XML Parameters!");
+		}
+		if (!xmlOptions.isDefault()) {
+			if (xmlOptions.getChainLength() == null) {
+				throw new ParameterException("Missing XML Chain Length!");
+			}
+			if (xmlOptions.getChainLength() < 10000000 || xmlOptions.getChainLength() > 250000000) {
+				throw new ParameterException("Invalid XML Chain Length!");
+			}
+			if (xmlOptions.getSubstitutionModel() == null) {
+				throw new ParameterException("Missing XML Substitution Model!");
+			}
+		}
 	}
 
 }

@@ -226,18 +226,20 @@ public class ZooPhyController {
     	log.info("Starting new job...");
     	if (security.checkParameter(parameters.getReplyEmail(), Parameter.EMAIL)) {
     		ZooPhyRunner zoophy;
-	    	if (parameters.getJobName() == null) {
-	    			zoophy = new ZooPhyRunner(parameters.getReplyEmail(), null, parameters.isUsingGLM(), parameters.getPredictors());
-	    	}
-	    	else {
-	    		if (security.checkParameter(parameters.getJobName(), Parameter.JOB_NAME)) {
-	    			zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors());
-	    		}
-	    		else {
+	    	if (parameters.getJobName() != null) {
+	    		if (!security.checkParameter(parameters.getJobName(), Parameter.JOB_NAME)) {
 	    			log.warning("Bad job name parameter: "+parameters.getJobName());
 	    			throw new ParameterException(parameters.getJobName());
 	    		}
 	    	}
+    		try {
+    			security.verifyXMLOptions(parameters.getXmlOptions());
+    		}
+    		catch (ParameterException pe) {
+    			log.warning("Bad XML Parameters: "+pe.getMessage());
+    			throw pe;
+    		}
+	    	zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors());
 	    	Set<String> jobAccessions = new LinkedHashSet<String>(parameters.getAccessions().size());
 	    	for(String accession : parameters.getAccessions()) {
 	    		if  (security.checkParameter(accession, Parameter.ACCESSION)) {

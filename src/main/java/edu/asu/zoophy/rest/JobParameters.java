@@ -3,10 +3,11 @@ package edu.asu.zoophy.rest;
 import java.util.List;
 import java.util.Map;
 
+import edu.asu.zoophy.rest.pipeline.XMLParameters;
 import edu.asu.zoophy.rest.pipeline.glm.Predictor;
 
 /**
- * Object to encapsulate parameters for ZooPhy jobs
+ * Parameters for ZooPhy jobs
  * @author devdemetri
  */
 public class JobParameters {
@@ -16,6 +17,7 @@ public class JobParameters {
 	private List<String> accessions;
 	private boolean useGLM = false;
 	private Map<String, List<Predictor>> predictors = null;
+	private XMLParameters xmlOptions = XMLParameters.getDefault();
 	
 	public JobParameters() {
 		
@@ -59,6 +61,14 @@ public class JobParameters {
 
 	public void setPredictors(Map<String, List<Predictor>> predictors) {
 		this.predictors = predictors;
+	}
+
+	public XMLParameters getXmlOptions() {
+		return xmlOptions;
+	}
+
+	public void setXmlOptions(XMLParameters xmlOptions) {
+		this.xmlOptions = xmlOptions;
 	}
 	
 }
