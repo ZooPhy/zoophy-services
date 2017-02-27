@@ -57,6 +57,7 @@ public class BeastRunner {
 	private Tailer rateTail = null;
 	private Process beastProcess;
 	private boolean wasKilled = false;
+	private boolean isTest = false;
 	
 	public BeastRunner(ZooPhyJob job, ZooPhyMailer mailer) throws PipelineException {
 		PropertyProvider provider = PropertyProvider.getInstance();
@@ -165,7 +166,9 @@ public class BeastRunner {
 		builder.redirectError(Redirect.appendTo(logFile));
 		log.info("Starting Process: "+builder.command().toString());
 		Process beastGenProcess = builder.start();
-		PipelineManager.setProcess(job.getID(), beastGenProcess);
+		if (!isTest) {
+			PipelineManager.setProcess(job.getID(), beastGenProcess);
+		}
 		beastGenProcess.waitFor();
 		if (beastGenProcess.exitValue() != 0) {
 			log.log(Level.SEVERE, "BeastGen failed! with code: "+beastGenProcess.exitValue());
@@ -192,7 +195,9 @@ public class BeastRunner {
 			builder.redirectError(Redirect.appendTo(logFile));
 			log.info("Starting Process: "+builder.command().toString());
 			Process beastGLMProcess = builder.start();
-			PipelineManager.setProcess(job.getID(), beastGLMProcess);
+			if (!isTest) {
+				PipelineManager.setProcess(job.getID(), beastGLMProcess);
+			}
 			OutputStream glmStream = beastGLMProcess.getOutputStream();
 	        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(glmStream));
 	        // Yes to creating Distance predictor from Latitude and Longitude
@@ -658,6 +663,54 @@ public class BeastRunner {
 			}
 		}
 		
+	}
+
+	/**
+	 * Test the given ZooPhy job in the quick early stages
+	 * @throws PipelineException
+	 */
+	public void test() throws PipelineException {
+		isTest = true;
+		FileHandler fileHandler = null;
+		try {
+			logFile = new File(JOB_LOG_DIR+job.getID()+".log");
+			fileHandler = new FileHandler(JOB_LOG_DIR+job.getID()+".log", true);
+			SimpleFormatter formatter = new SimpleFormatter();
+	        fileHandler.setFormatter(formatter);
+	        log.addHandler(fileHandler);
+	        log.setUseParentHandlers(false);
+			log.info("Starting the BEAST test process...");
+			runBeastGen(job.getID()+ALIGNED_FASTA, job.getID()+INPUT_XML);
+			log.info("Adding location trait...");
+			DiscreteTraitInserter traitInserter = new DiscreteTraitInserter(job);
+			traitInserter.addLocation();
+			log.info("Location trait added.");
+			if (job.isUsingGLM()) {
+				log.info("Adding GLM Predictors...");
+				runGLM();
+				log.info("GLM Predictors added.");
+				String predictorData = JOB_WORK_DIR+job.getID()+"_predictorNames.txt";
+				filesToCleanup.add(predictorData);
+			}
+			else {
+				log.info("Job is not using GLM.");
+			}
+			// TODO: maybe try starting BEAST? -> will likely take too long
+		}
+		catch (PipelineException pe) {
+			log.log(Level.SEVERE, "BEAST test process failed: "+pe.getMessage());
+			throw pe;
+		}
+		catch (Exception e) {
+			log.log(Level.SEVERE, "BEAST test process failed: "+e.getMessage());
+			throw new BeastException("BEAST test process failed: "+e.getMessage(), null);
+		}
+		finally {
+			cleanupBeast();
+			if (fileHandler != null) {
+				fileHandler.close();
+			}
+		}
 	}
 	
 }

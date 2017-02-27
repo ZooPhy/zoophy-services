@@ -1,6 +1,7 @@
 package edu.asu.zoophy.rest.pipeline;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -99,6 +100,29 @@ public class ZooPhyRunner {
 	 */
 	public String getJobID() {
 		return job.getID();
+	}
+
+	
+	public void testZooPhy(ArrayList<String> accessions, ZooPhyDAO dao, LuceneSearcher indexSearcher) throws PipelineException {
+		try {
+			log.info("Initializing test Sequence Aligner... : "+job.getID());
+			SequenceAligner aligner = new SequenceAligner(job, dao, indexSearcher);
+			log.info("Running test Sequence Aligner... : "+job.getID());
+			aligner.align(accessions);
+			log.info("Initializing test Beast Runner... : "+job.getID());
+			BeastRunner beast = new BeastRunner(job, null);
+			log.info("Starting test Beast Runner... : "+job.getID());
+			beast.test();
+			log.info("ZooPhy Job Test completed successfully: "+job.getID());
+		}
+		catch (PipelineException pe) {
+			log.log(Level.SEVERE, "PipelineException for test job: "+job.getID()+" : "+pe.getMessage());
+			throw pe;
+		}
+		catch (Exception e) {
+			log.log(Level.SEVERE, "Unhandled Exception for test job: "+job.getID()+" : "+e.getMessage());
+			throw new PipelineException("Unhandled Exception: "+e.getMessage(), null);
+		}	
 	}
 
 }
