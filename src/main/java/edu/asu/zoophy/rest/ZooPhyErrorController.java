@@ -49,7 +49,7 @@ public class ZooPhyErrorController implements ErrorController{
     @ResponseBody
     public ResponseEntity<Map<String, Object>> error(HttpServletRequest request) {
         Map<String, Object> attributes = getErrorAttributes(request, getTraceParameter(request));
-        log.warning("Handling request error from: "+ request.getRemoteAddr() + " : " + attributes.get("exception"));
+        log.warning("Handling request error from: "+ request.getRemoteAddr() + " : " + attributes.get("exception") + " : " + attributes.get("message"));
         HttpStatus status = getStatus(request);
         Map<String, Object> body = new HashMap<String, Object>();
         body.put("status", attributes.get("status"));

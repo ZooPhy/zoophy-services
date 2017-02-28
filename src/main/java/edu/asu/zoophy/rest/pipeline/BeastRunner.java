@@ -66,7 +66,7 @@ public class BeastRunner {
 		WORLD_GEOJSON = provider.getProperty("geojson.location");
 		RENDER_DIR = provider.getProperty("spread3.result.dir");
 		FIGTREE_TEMPLATE = System.getProperty("user.dir")+"/Templates/figtreeBlock.template";
-		SPREAD3 = System.getProperty("user.dir")+"/spread.jar";
+		SPREAD3 = provider.getProperty("spread3.jar");
 		GLM_SCRIPT = provider.getProperty("glm.script");
 		log = Logger.getLogger("BeastRunner");
 		this.mailer = mailer;

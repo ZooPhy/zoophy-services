@@ -1,6 +1,10 @@
 package edu.asu.zoophy.rest.database;
 
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -26,7 +30,33 @@ public class ZooPhyDAO {
 	private static final String PULL_RECORD_PUBLICATION = "SELECT \"Accession\", \"Pubmed_ID\", \"Pubmed_Central_ID\", \"Authors\", \"Title\", \"Journal\" FROM \"Sequence_Publication\" JOIN \"Publication\" ON \"Sequence_Publication\".\"Pub_ID\"=\"Publication\".\"Pubmed_ID\" WHERE \"Accession\"=?";
 	private static final String PULL_RECORD_LOCATION = "SELECT \"Accession\", \"Geoname_ID\", \"Location\", \"Latitude\", \"Longitude\", \"Type\", \"Country\" FROM \"Location_Geoname\" WHERE \"Accession\"=?";
 	private static final String PULL_STATE_PREDICTORS = "SELECT \"Key\", \"Value\", \"State\", \"Year\" FROM \"Predictor\" WHERE \"State\"=?";
+	private static final String TEST_QUERY = "SELECT DISTINCT(\"Accession\") FROM \"Sequence_Details\" LIMIT 500";
 	
+	private Logger log = Logger.getLogger("ZooPhyDAO");
+	
+	/**
+	 * Tests connection to SQL Database
+	 * @throws DaoException
+	 */
+	@PostConstruct 
+	private void testConnection() throws DaoException {
+		try {
+			List<String> testAccessions = jdbc.queryForList(TEST_QUERY, String.class);
+			if (testAccessions.size() != 500) {
+				throw new DaoException("Expected 500 Accessions, received: "+testAccessions.size());
+			}
+			log.info("SQL Database Connection Successfully tested.");
+		}
+		catch (DaoException de) {
+			log.log(Level.SEVERE, "Connection Test Failed: "+de.getMessage());
+			throw de;
+		}
+		catch (Exception e) {
+			log.log(Level.SEVERE, "Connection Test Failed: "+e.getMessage());
+			throw new DaoException("Connection Test Failed: "+e.getMessage());
+		}
+	}
+
 	/**
 	 * Retrieve the specified GenBankRecord from the database without Gene or Publication details
 	 * @param accession - unique accession of record to be returned

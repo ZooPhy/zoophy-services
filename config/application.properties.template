@@ -25,6 +25,7 @@ job.max.locations=<Maximum Unique Locations per Job>
 # Pipeline Settings
 beast.scripts.dir=<Beast scripts folder path>
 geojson.location=<Path to world.geojson file>
+spread3.jar=<Path to Spread3 jar file>
 spread3.result.dir=<SpreaD3 results folder path>
 job.logs.dir=<ZooPhy job logs folder path>
 glm.script=<Path to create_glm_xml.py file>
