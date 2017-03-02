@@ -78,7 +78,7 @@ public class ZooPhyRunner {
 
 	/**
 	 * Generates a UUID to be used as a jobID
-	 * @return Unused UUID
+	 * @return randomly generated UUID
 	 * @throws PipelineException 
 	 */
 	private String generateID() throws PipelineException {
@@ -101,7 +101,13 @@ public class ZooPhyRunner {
 		return job.getID();
 	}
 
-	
+	/**
+	 * Runs early stages of the pipeline to test ZooPhy job viability
+	 * @param accessions
+	 * @param dao
+	 * @param indexSearcher
+	 * @throws PipelineException
+	 */
 	public void testZooPhy(List<String> accessions, ZooPhyDAO dao, LuceneSearcher indexSearcher) throws PipelineException {
 		try {
 			log.info("Initializing test Sequence Aligner... : "+job.getID());

@@ -389,7 +389,15 @@ public class BeastRunner {
 		String treeFile = workingDir+".tree";
 		String youngestDate = findYougestAge(treeFile);
 		String spreadFile = workingDir+"-spread3.json";
-		ProcessBuilder builder = new ProcessBuilder("java","-jar",SPREAD3,"-parse","-locations",coordinatesFile,"-header","false","-tree",treeFile,"-locationTrait","states","-intervals","10","-mrsd",youngestDate,"-geojson",WORLD_GEOJSON,"-output",spreadFile);
+		File spreadDirectory = new File(SPREAD3);
+		if (spreadDirectory.exists() && spreadDirectory.isFile() && spreadDirectory.getParent() != null) {
+			spreadDirectory = new File(spreadDirectory.getParent());
+		}
+		else {
+			log.log(Level.SEVERE, "Invalid absolute path to SpreaD3 given: "+SPREAD3);
+			throw new BeastException("Invalid absolute path to SpreaD3 given!", null);
+		}
+		ProcessBuilder builder = new ProcessBuilder("java","-jar",SPREAD3,"-parse","-locations",coordinatesFile,"-header","false","-tree",treeFile,"-locationTrait","states","-intervals","10","-mrsd",youngestDate,"-geojson",WORLD_GEOJSON,"-output",spreadFile).directory(spreadDirectory);
 		builder.redirectOutput(Redirect.appendTo(logFile));
 		builder.redirectError(Redirect.appendTo(logFile));
 		log.info("Starting Process: "+builder.command().toString());
