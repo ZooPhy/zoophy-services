@@ -43,7 +43,7 @@ public class ZooPhyRunner {
 			log.info("Initializing Sequence Aligner... : "+job.getID());
 			SequenceAligner aligner = new SequenceAligner(job, dao, indexSearcher);
 			log.info("Running Sequence Aligner... : "+job.getID());
-			aligner.align(accessions);
+			aligner.align(accessions, false);
 			log.info("Initializing Beast Runner... : "+job.getID());
 			BeastRunner beast = new BeastRunner(job, mailer);
 			log.info("Starting Beast Runner... : "+job.getID());
@@ -113,7 +113,7 @@ public class ZooPhyRunner {
 			log.info("Initializing test Sequence Aligner... : "+job.getID());
 			SequenceAligner aligner = new SequenceAligner(job, dao, indexSearcher);
 			log.info("Running test Sequence Aligner... : "+job.getID());
-			aligner.align(accessions);
+			aligner.align(accessions, true);
 			log.info("Initializing test Beast Runner... : "+job.getID());
 			BeastRunner beast = new BeastRunner(job, null);
 			log.info("Starting test Beast Runner... : "+job.getID());
