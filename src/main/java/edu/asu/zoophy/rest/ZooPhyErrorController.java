@@ -29,7 +29,7 @@ public class ZooPhyErrorController implements ErrorController{
     private ErrorAttributes errorAttributes;
 
     private final static String ERROR_PATH = "/error";
-    
+
     private final static Logger log = Logger.getLogger("ZooPhyErrorController");
 
     /**

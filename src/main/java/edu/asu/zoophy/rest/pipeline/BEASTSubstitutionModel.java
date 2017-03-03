@@ -7,6 +7,5 @@ package edu.asu.zoophy.rest.pipeline;
 public enum BEASTSubstitutionModel {
 	HKY,
 	GTR,
-	JC,
 	TN93;
 }

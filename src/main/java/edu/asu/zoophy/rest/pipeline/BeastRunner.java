@@ -411,7 +411,7 @@ public class BeastRunner {
 		log.info("SpreaD3 finished.");
 		log.info("Running SpreaD3 render...");
 		String renderPath = RENDER_DIR+"/"+job.getID();
-		builder = new ProcessBuilder("java","-jar", SPREAD3,"-render","d3","-json",spreadFile,"-output",renderPath);
+		builder = new ProcessBuilder("java","-jar", SPREAD3,"-render","d3","-json",spreadFile,"-output",renderPath).directory(spreadDirectory);
 		builder.redirectOutput(Redirect.appendTo(logFile));
 		builder.redirectError(Redirect.appendTo(logFile));
 		log.info("Starting Process: "+builder.command().toString());

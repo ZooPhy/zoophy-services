@@ -67,8 +67,14 @@ public class SecurityHelper {
 			if (xmlOptions.getChainLength() == null) {
 				throw new ParameterException("Missing XML Chain Length!");
 			}
-			if (xmlOptions.getChainLength() < 10000000 || xmlOptions.getChainLength() > 250000000) {
+			else if (xmlOptions.getChainLength() < 10000000 || xmlOptions.getChainLength() > 250000000) {
 				throw new ParameterException("Invalid XML Chain Length!");
+			}
+			if (xmlOptions.getSubSampleRate() == null) {
+				throw new ParameterException("Missing XML Sub Sample Rate!");
+			}
+			else if (xmlOptions.getSubSampleRate() < 1000 || xmlOptions.getSubSampleRate() > 25000) {
+				throw new ParameterException("Invalid XML Sub Sample Rate!");
 			}
 			if (xmlOptions.getSubstitutionModel() == null) {
 				throw new ParameterException("Missing XML Substitution Model!");
