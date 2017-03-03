@@ -122,7 +122,7 @@ public class BeastRunner {
 			}
 			else {
 				log.log(Level.SEVERE, "TreeAnnotator did not proudce .tree file!");
-				throw new BeastException("TreeAnnotator did not proudce .tree file!", null);
+				throw new BeastException("TreeAnnotator did not proudce .tree file!", "Tree Annotator Failed");
 			}
 			return tree;
 		}
@@ -132,7 +132,7 @@ public class BeastRunner {
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "BEAST process failed: "+e.getMessage());
-			throw new BeastException("BEAST process failed: "+e.getMessage(), null);
+			throw new BeastException("BEAST process failed: "+e.getMessage(), "BEAST Pipeline Failed");
 		}
 		finally {
 			if (tail != null) {
@@ -172,7 +172,7 @@ public class BeastRunner {
 		beastGenProcess.waitFor();
 		if (beastGenProcess.exitValue() != 0) {
 			log.log(Level.SEVERE, "BeastGen failed! with code: "+beastGenProcess.exitValue());
-			throw new BeastException("BeastGen failed! with code: "+beastGenProcess.exitValue(), null);
+			throw new BeastException("BeastGen failed! with code: "+beastGenProcess.exitValue(), "BeastGen Failed");
 		}
 		filesToCleanup.add(JOB_WORK_DIR+beastInput);
 		log.info("BEAST input created.");
@@ -220,8 +220,8 @@ public class BeastRunner {
 		    glmStream.close();
 		    beastGLMProcess.waitFor();
 			if (beastGLMProcess.exitValue() != 0) {
-				log.log(Level.SEVERE, "BEAST_GLM failed! with code: "+beastGLMProcess.exitValue());
-				throw new GLMException("BEAST_GLM failed! with code: "+beastGLMProcess.exitValue(), null);
+				log.log(Level.SEVERE, "BEAST GLM failed! with code: "+beastGLMProcess.exitValue());
+				throw new GLMException("BEAST GLM failed! with code: "+beastGLMProcess.exitValue(), "BEAST GLM failed");
 			}
 			filesToCleanup.add(GLM_PATH);
 			filesToCleanup.add(JOB_WORK_DIR+job.getID()+GLM_SUFFIX+INPUT_XML);
@@ -230,7 +230,7 @@ public class BeastRunner {
 		}
 		else {
 			log.log(Level.SEVERE, "Predictors file does not exist: "+GLM_PATH);
-			throw new GLMException("No Predictors file found: "+PREDICTORS_FILE.getAbsolutePath(), "GLM Error! No Predictors file found.");
+			throw new GLMException("No Predictors file found: "+PREDICTORS_FILE.getAbsolutePath(), "No GLM Predictors file found!");
 		}
 	}
 	
@@ -274,7 +274,7 @@ public class BeastRunner {
 		if (beastProcess.exitValue() != 0) {
 			tail.stop();
 			log.log(Level.SEVERE, "BEAST failed! with code: "+beastProcess.exitValue());
-			throw new BeastException("BEAST failed! with code: "+beastProcess.exitValue(), null);
+			throw new BeastException("BEAST failed! with code: "+beastProcess.exitValue(), "BEAST Failed");
 		}
 		if (wasKilled) {
 			return;
@@ -301,12 +301,12 @@ public class BeastRunner {
 			if (beastRerunProcess.exitValue() != 0) {
 				tail.stop();
 				log.log(Level.SEVERE, "Always-scaling BEAST failed! with code: "+beastProcess.exitValue());
-				throw new BeastException("Always-scaling BEAST failed! with code: "+beastProcess.exitValue(), null);
+				throw new BeastException("Always-scaling BEAST failed! with code: "+beastProcess.exitValue(), "BEAST Failed");
 			}
 			beastOutput = new File(outputPath);
 			if (!beastOutput.exists()) {
 				log.log(Level.SEVERE, "Always-scaling BEAST did not produce output!");
-				throw new BeastException("Always-scaling BEAST did not produce output!", null);
+				throw new BeastException("Always-scaling BEAST did not produce output!", "BEAST Failed");
 			}
 		}
 		log.info("BEAST finished.");
@@ -339,7 +339,7 @@ public class BeastRunner {
 		treeAnnotatorProcess.waitFor();
 		if (treeAnnotatorProcess.exitValue() != 0) {
 			log.log(Level.SEVERE, "Tree Annotator failed! with code: "+treeAnnotatorProcess.exitValue());
-			throw new BeastException("Tree Annotator failed! with code: "+treeAnnotatorProcess.exitValue(), null);
+			throw new BeastException("Tree Annotator failed! with code: "+treeAnnotatorProcess.exitValue(), "Tree Annotator Failed");
 		}
 		log.info("Tree Annotator finished.");
 		return JOB_WORK_DIR+tree;
@@ -372,7 +372,7 @@ public class BeastRunner {
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "ERROR ADDING FIGTREE BLOCK: "+e.getMessage());
-			throw new BeastException("ERROR ADDING FIGTREE BLOCK: "+e.getMessage(), null);
+			throw new BeastException("ERROR ADDING FIGTREE BLOCK: "+e.getMessage(), "BEAST Pipeline Failed");
 		}
 	}
 	
@@ -395,7 +395,7 @@ public class BeastRunner {
 		}
 		else {
 			log.log(Level.SEVERE, "Invalid absolute path to SpreaD3 given: "+SPREAD3);
-			throw new BeastException("Invalid absolute path to SpreaD3 given!", null);
+			throw new BeastException("Invalid absolute path to SpreaD3 given!", "SpreaD3 Failed");
 		}
 		ProcessBuilder builder = new ProcessBuilder("java","-jar",SPREAD3,"-parse","-locations",coordinatesFile,"-header","false","-tree",treeFile,"-locationTrait","states","-intervals","10","-mrsd",youngestDate,"-geojson",WORLD_GEOJSON,"-output",spreadFile).directory(spreadDirectory);
 		builder.redirectOutput(Redirect.appendTo(logFile));
@@ -406,7 +406,7 @@ public class BeastRunner {
 		spreadGenerationProcess.waitFor();
 		if (spreadGenerationProcess.exitValue() != 0) {
 			log.log(Level.SEVERE, "SpreaD3 generation failed! with code: "+spreadGenerationProcess.exitValue());
-			throw new BeastException("SpreaD3 generation failed! with code: "+spreadGenerationProcess.exitValue(), null);
+			throw new BeastException("SpreaD3 generation failed! with code: "+spreadGenerationProcess.exitValue(), "SpreaD3 Failed");
 		}
 		log.info("SpreaD3 finished.");
 		log.info("Running SpreaD3 render...");
@@ -420,7 +420,7 @@ public class BeastRunner {
 		spreadRenderProcess.waitFor();
 		if (spreadRenderProcess.exitValue() != 0) {
 			log.log(Level.SEVERE, "SpreaD3 rendering failed! with code: "+spreadRenderProcess.exitValue());
-			throw new BeastException("SpreaD3 rendering failed! with code: "+spreadRenderProcess.exitValue(), null);
+			throw new BeastException("SpreaD3 rendering failed! with code: "+spreadRenderProcess.exitValue(), "SpreaD3 Failed");
 		}
 	}
 
@@ -478,7 +478,7 @@ public class BeastRunner {
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "ERROR SETTING FIGTREE START DATE: "+e.getMessage());
-			throw new BeastException("ERROR SETTING FIGTREE START DATE: "+e.getMessage() , null);
+			throw new BeastException("ERROR SETTING FIGTREE START DATE: "+e.getMessage() , "BEAST Pipeline Failed");
 		}
 		return youngestAge;
 	}
@@ -711,7 +711,7 @@ public class BeastRunner {
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "BEAST test process failed: "+e.getMessage());
-			throw new BeastException("BEAST test process failed: "+e.getMessage(), null);
+			throw new BeastException("BEAST test process failed: "+e.getMessage(), "BEAST Pipeline Failed");
 		}
 		finally {
 			cleanupBeast();

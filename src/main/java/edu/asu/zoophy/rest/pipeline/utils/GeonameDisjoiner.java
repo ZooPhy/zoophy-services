@@ -45,165 +45,182 @@ public class GeonameDisjoiner {
 	 * @throws GeoHierarchyException 
 	 */
 	public List<GenBankRecord> disjoinRecords(List<GenBankRecord> recordsToCheck, boolean usingDefaultGLM) throws DisjoinerException, GLMException, GeoHierarchyException {
-		Map<Long,Long> disjoins = new HashMap<Long,Long>((int)(recordsToCheck.size()*.75)+1);
-		Set<Location> locations = new LinkedHashSet<Location>(50);
-		Map<String,Integer> types = new LinkedHashMap<String,Integer>();
-		Set<Location> locationsToRemove;
-		Map<Long,String> idToLocation = new HashMap<Long,String>(50);
-		ancestors = new HashMap<String,Set<Long>>((int)(recordsToCheck.size())+1, 1.0f);
-		String commonType = null;
-		int maxType = 0;
 		try {
-			for (int i = 0; i < recordsToCheck.size(); i++) {
-				GenBankRecord record = recordsToCheck.get(i);
-				if (record.getGeonameLocation() == null || Normalizer.normalizeLocation(record.getGeonameLocation()).equalsIgnoreCase("unknown") || record.getGeonameLocation().getGeonameType() == null) {
-					recordsToCheck.remove(i);
-				}
-				else {
-					Set<Long> recordAncestors;
-					try {
-						recordAncestors = indexSearcher.findLocationAncestors(record.getAccession());
-						if (recordAncestors == null) {
-							recordsToCheck.remove(i);
-						}
-						else {
-							recordAncestors.remove(record.getGeonameLocation().getGeonameID());
-							if (recordAncestors.isEmpty()) {
+			Map<Long,Long> disjoins = new HashMap<Long,Long>((int)(recordsToCheck.size()*.75)+1);
+			Set<Location> locations = new LinkedHashSet<Location>(50);
+			Map<String,Integer> types = new LinkedHashMap<String,Integer>();
+			Set<Location> locationsToRemove;
+			Map<Long,String> idToLocation = new HashMap<Long,String>(50);
+			ancestors = new HashMap<String,Set<Long>>((int)(recordsToCheck.size())+1, 1.0f);
+			String commonType = null;
+			int maxType = 0;
+			try {
+				for (int i = 0; i < recordsToCheck.size(); i++) {
+					GenBankRecord record = recordsToCheck.get(i);
+					if (record.getGeonameLocation() == null || Normalizer.normalizeLocation(record.getGeonameLocation()).equalsIgnoreCase("unknown") || record.getGeonameLocation().getGeonameType() == null) {
+						recordsToCheck.remove(i);
+					}
+					else {
+						Set<Long> recordAncestors;
+						try {
+							recordAncestors = indexSearcher.findLocationAncestors(record.getAccession());
+							if (recordAncestors == null) {
 								recordsToCheck.remove(i);
 							}
 							else {
-								String type = record.getGeonameLocation().getGeonameType();
-								if (types.get(type) == null) {
-									types.put(type, 0);
+								recordAncestors.remove(record.getGeonameLocation().getGeonameID());
+								if (recordAncestors.isEmpty()) {
+									recordsToCheck.remove(i);
 								}
-								types.put(type, (types.get(type)+1));
-								ancestors.put(record.getAccession(), recordAncestors);
+								else {
+									String type = record.getGeonameLocation().getGeonameType();
+									if (types.get(type) == null) {
+										types.put(type, 0);
+									}
+									types.put(type, (types.get(type)+1));
+									ancestors.put(record.getAccession(), recordAncestors);
+								}
 							}
 						}
-					}
-					catch (LuceneSearcherException lse) {
-						throw new DisjoinerException("Error retrieving location ancestors: "+lse.getMessage(), "Error Disjointing Locations");
-					}
-				}
-			}
-		}
-		catch (Exception e) {
-			throw new DisjoinerException("Error initially screening record locations:\t"+e.getMessage(), null);
-		}
-		if (usingDefaultGLM) {
-			commonType = "ADM1";
-		}
-		else {
-			for (String type : types.keySet()) {
-				if (types.get(type) > maxType) {
-					maxType = types.get(type);
-					commonType = type;
-				}
-			}
-		}
-		try {
-			for (int i = 0; i < recordsToCheck.size(); i++) {
-				GenBankRecord record = recordsToCheck.get(i);
-				Location recordLocation = record.getGeonameLocation();
-				boolean isDisjoint = true;
-				if (hierarchy.isParent(commonType, record.getGeonameLocation().getGeonameType())) {
-					isDisjoint = false;
-					recordsToCheck.remove(i);
-				}
-				else {
-					for (Location parent : locations) {
-						if (isAncestor(parent, recordLocation)) {
-							isDisjoint = false;
-							if (!parent.getGeonameID().equals(recordLocation.getGeonameID())) {
-								disjoins.put(recordLocation.getGeonameID(), parent.getGeonameID());
-							}
-							break;
+						catch (LuceneSearcherException lse) {
+							throw new DisjoinerException("Error retrieving location ancestors: "+lse.getMessage(), "Error Disjoining Locations");
 						}
 					}
 				}
-				if (isDisjoint) {
-					locations.add(recordLocation);
+			}
+			catch (PipelineException pe) {
+				throw pe;
+			}
+			catch (Exception e) {
+				throw new DisjoinerException("Error initially screening record locations:\t"+e.getMessage(), "Error Filtering Locations");
+			}
+			if (usingDefaultGLM) {
+				commonType = "ADM1";
+			}
+			else {
+				for (String type : types.keySet()) {
+					if (types.get(type) > maxType) {
+						maxType = types.get(type);
+						commonType = type;
+					}
 				}
 			}
-		}
-		catch (GeoHierarchyException ghe) {
-			throw ghe;
-		}
-		catch (Exception e) {
-			throw new DisjoinerException("Error filtering out locations above Common Type:\t"+e.getMessage(), null);
-		}
-		locationsToRemove = new HashSet<Location>();
-		try {
-			for (Location location : locations) {
-				boolean removed = false;
-				for (Location locationParent : locations) {
-					if (!(locationParent.getGeonameID().equals(location.getGeonameID()) || locationsToRemove.contains(locationParent))) {
-						if (isAncestor(locationParent,location)) {
-							if (!location.getGeonameID().equals(locationParent.getGeonameID())) {
-								disjoins.put(location.getGeonameID(), locationParent.getGeonameID());
+			try {
+				for (int i = 0; i < recordsToCheck.size(); i++) {
+					GenBankRecord record = recordsToCheck.get(i);
+					Location recordLocation = record.getGeonameLocation();
+					boolean isDisjoint = true;
+					if (hierarchy.isParent(commonType, record.getGeonameLocation().getGeonameType())) {
+						isDisjoint = false;
+						recordsToCheck.remove(i);
+					}
+					else {
+						for (Location parent : locations) {
+							if (isAncestor(parent, recordLocation)) {
+								isDisjoint = false;
+								if (!parent.getGeonameID().equals(recordLocation.getGeonameID())) {
+									disjoins.put(recordLocation.getGeonameID(), parent.getGeonameID());
+								}
+								break;
 							}
+						}
+					}
+					if (isDisjoint) {
+						locations.add(recordLocation);
+					}
+				}
+			}
+			catch (GeoHierarchyException ghe) {
+				throw new GeoHierarchyException(ghe.getMessage(), "Error Filtering Locations");
+			}
+			catch (PipelineException pe) {
+				throw pe;
+			}
+			catch (Exception e) {
+				throw new DisjoinerException("Error filtering out locations above Common Type:\t"+e.getMessage(), "Error Filtering Locations");
+			}
+			locationsToRemove = new HashSet<Location>();
+			try {
+				for (Location location : locations) {
+					boolean removed = false;
+					for (Location locationParent : locations) {
+						if (!(locationParent.getGeonameID().equals(location.getGeonameID()) || locationsToRemove.contains(locationParent))) {
+							if (isAncestor(locationParent,location)) {
+								if (!location.getGeonameID().equals(locationParent.getGeonameID())) {
+									disjoins.put(location.getGeonameID(), locationParent.getGeonameID());
+								}
+								locationsToRemove.add(location);
+								removed = true;
+								break;
+							}
+						}
+					}
+					if (usingDefaultGLM && !removed) {
+						location.setLocation(location.getLocation().toLowerCase());
+						Location stateLocation = convertToState(location);
+						if (!location.getGeonameID().equals(stateLocation.getGeonameID())) {
 							locationsToRemove.add(location);
-							removed = true;
-							break;
+							locations.add(stateLocation);
+							disjoins.put(location.getGeonameID(), stateLocation.getGeonameID());
 						}
 					}
 				}
-				if (usingDefaultGLM && !removed) {
-					location.setLocation(location.getLocation().toLowerCase());
-					Location stateLocation = convertToState(location);
-					if (!location.getGeonameID().equals(stateLocation.getGeonameID())) {
-						locationsToRemove.add(location);
-						locations.add(stateLocation);
-						disjoins.put(location.getGeonameID(), stateLocation.getGeonameID());
-					}
+				locations.removeAll(locationsToRemove);
+			}
+			catch (PipelineException pe) {
+				throw pe;
+			}
+			catch (Exception e) {
+				throw new DisjoinerException("Error removing overlapping locations:\t"+e.getMessage(), "Error Disjoining Locations");
+			}
+			locationsToRemove.clear();
+			if (locations.size() < 2) {
+				String userErr = "Too few distinct locations (need at least 2): " + locations.size();
+				if (locations.size() == 1) {
+					userErr += "\nLocation: "+locations.iterator().next().getLocation();
 				}
+				throw new DisjoinerException("Too few distinct locations: "+locations.size(),userErr);
 			}
-			locations.removeAll(locationsToRemove);
-		}
-		catch (Exception e) {
-			throw new DisjoinerException("Error removing overlapping locations:\t"+e.getMessage(), null);
-		}
-		locationsToRemove.clear();
-		if (locations.size() < 2) {
-			String userErr = "Too few distinct locations (need at least 2): " + locations.size();
-			if (locations.size() == 1) {
-				userErr += "\nLocation: "+locations.iterator().next().getLocation();
+			else if (locations.size() > MAX_STATES) {
+				StringBuilder userErr = new StringBuilder("Too many distinct locations (limit is "+MAX_STATES+"): " + locations.size());
+				userErr.append("\nLocations: ");
+				for (Location location : locations) {
+					userErr.append("\n\t");
+					userErr.append(location.getLocation());
+				}
+				throw new DisjoinerException("Too many distinct locations: "+locations.size(), userErr.toString());
 			}
-			throw new DisjoinerException("Too few distinct locations: "+locations.size(),userErr);
-		}
-		else if (locations.size() > MAX_STATES) {
-			StringBuilder userErr = new StringBuilder("Too many distinct locations (limit is "+MAX_STATES+"): " + locations.size());
-			userErr.append("\nLocations: ");
-			for (Location location : locations) {
-				userErr.append("\n\t");
-				userErr.append(location.getLocation());
-			}
-			throw new DisjoinerException("Too many distinct locations: "+locations.size(), userErr.toString());
-		}
-		try {
-			for (Location location : locations) {
-				idToLocation.put(location.getGeonameID(), location.getLocation());
-			}
-			for (GenBankRecord record : recordsToCheck) {
-				Long tempGeonameID = record.getGeonameLocation().getGeonameID();
-				if (disjoins.get(tempGeonameID) != null) {
-					Long disjointID = null;
-					while (disjoins.get(tempGeonameID) != null) {
-						if (disjoins.get(tempGeonameID) != null) {
-							disjointID = disjoins.get(tempGeonameID);
+			try {
+				for (Location location : locations) {
+					idToLocation.put(location.getGeonameID(), location.getLocation());
+				}
+				for (GenBankRecord record : recordsToCheck) {
+					Long tempGeonameID = record.getGeonameLocation().getGeonameID();
+					if (disjoins.get(tempGeonameID) != null) {
+						Long disjointID = null;
+						while (disjoins.get(tempGeonameID) != null) {
+							if (disjoins.get(tempGeonameID) != null) {
+								disjointID = disjoins.get(tempGeonameID);
+							}
+							tempGeonameID = disjoins.get(tempGeonameID);
 						}
-						tempGeonameID = disjoins.get(tempGeonameID);
+						String newLoc = idToLocation.get(disjointID);
+						setLocationName(record, newLoc);
 					}
-					String newLoc = idToLocation.get(disjointID);
-					setLocationName(record, newLoc);
 				}
 			}
-		}
+			catch (Exception e) {
+				throw new DisjoinerException("Error updating record locations to disjoint locations:\t"+e.getMessage(), "Error Disjoining Locations");
+			}
+			idToLocation.clear();
+			return recordsToCheck;
+			}
+			catch (PipelineException pe) {
+				throw pe;
+			}
 		catch (Exception e) {
-			throw new DisjoinerException("Error updating record locations to disjoint locations:\t"+e.getMessage(), null);
+			throw new DisjoinerException("Uncaught Disjoiner error:"+e.getMessage(), "Error Disjoining Locations");
 		}
-		idToLocation.clear();
-		return recordsToCheck;
 	}
 	
 	/**
@@ -228,7 +245,7 @@ public class GeonameDisjoiner {
 					}
 				}
 				if (!found) {
-					throw new GLMException("Could not match Location to US State: "+recordLocation.getLocation(), null);
+					throw new GLMException("Could not match Location to US State: "+recordLocation.getLocation(), "Error matching Locations to US States");
 				}
 				return recordLocation;
 			}
@@ -237,7 +254,7 @@ public class GeonameDisjoiner {
 			throw glme;
 		}
 		catch (Exception e) {
-			throw new GLMException("Error matching Location to US State: "+recordLocation.getLocation()+" : "+e.getMessage(), null);
+			throw new GLMException("Error matching Location to US State: "+recordLocation.getLocation()+" : "+e.getMessage(), "Error matching Locations to US States");
 		}
 	}
 
@@ -251,7 +268,7 @@ public class GeonameDisjoiner {
 	private boolean isAncestor(Location suspectedAncestor, Location location) throws DisjoinerException {
 	    Set<Long> locationAncestors = ancestors.get(location.getAccession());
 	    if (locationAncestors == null) {
-	    	throw new DisjoinerException("Null Ancestors for location ID:\t"+location.getGeonameID(), null);
+	    	throw new DisjoinerException("Null Ancestors for location ID:\t"+location.getGeonameID(), "Error Disjoining Locations");
 	    }
 	    else if (location.getGeonameID().equals(suspectedAncestor.getGeonameID()) || locationAncestors.contains(suspectedAncestor.getGeonameID())) {
 			return true;

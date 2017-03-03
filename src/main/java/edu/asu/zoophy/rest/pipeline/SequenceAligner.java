@@ -90,9 +90,9 @@ public class SequenceAligner {
 	 * @param accessions - record sequences to be included in FASTA
 	 * @param isTest - True iff actual alignment can be skipped for a test run
 	 * @return file path to aligned .fasta file
-	 * @throws AlignerException
+	 * @throws PipelineException
 	 */
-	public String align(List<String> accessions, boolean isTest) throws AlignerException {
+	public String align(List<String> accessions, boolean isTest) throws PipelineException {
 		String alignedFastaPath;
 		FileHandler fileHandler = null;
 		try {
@@ -127,6 +127,10 @@ public class SequenceAligner {
 			}
 			log.info("Mafft process complete");
 			fileHandler.close();
+		}
+		catch (PipelineException pe) {
+			log.log(Level.SEVERE, "ERROR! Mafft process failed: "+pe.getMessage());
+			throw pe;
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "ERROR! Mafft process failed: "+e.getMessage());
