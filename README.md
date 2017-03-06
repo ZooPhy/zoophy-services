@@ -109,6 +109,12 @@ The current services may be used via HTTPS requests. They return data in JSON fo
 
 * Note: The ZooPhy Pipeline ties together several packages of complex software that may fail for numerous reasons. A common reason is having too few or too many unique disjoint Geoname locations (must have between 2 and 50). Jobs may also take very long to run, and time estimates will be provided in update emails. 
 
+### Validate ZooPhy Job
+* Type: POST
+* Path: /validate
+* Required POST Body Data: Exact same as the Run service
+* Note: This service is intended to check ZooPhy jobs for common errors before starting the jobs. It will return null if no errors are found, otherwise it returns an error message describing the reason(s) that the job will not succeed. Just because the validation test runs successfully, the job is NOT guaranteed to succeed. 
+
 ### Stop ZooPhy Job
 * Type: GET
 * Path: /stop?id=\<Zoophy Job ID>
