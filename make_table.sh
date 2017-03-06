@@ -11,4 +11,4 @@ sed -e '/coefficientsTimesIndicators1/,$d' |
 	
 # delete everything up through the "burnIn" line
 # results in just the "cleaned" data needed
-sed '1,/burnIn/d' > "$output"
+sed '0,/burnIn/d' > "$output"
