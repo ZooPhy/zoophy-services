@@ -17,7 +17,9 @@ RESTful services for [ZooPhy] (https://zodo.asu.edu/zoophy/). This consists of:
 * [BeastGen 1.0.2] (http://beast.bio.ed.ac.uk/beastgen)
 * [BEAST 1.8.4] (https://github.com/beast-dev/beast-mcmc/releases/tag/v1.8.4)
 * [SpreaD3 0.9.6] (https://rega.kuleuven.be/cev/ecv/software/SpreaD3)
+* [Python 3.4.x] (https://www.python.org/) with [numpy] (http://www.numpy.org/) package
 * [BEAST GLM] (https://github.com/djmagee5/BEAST_GLM)
+* [R 3.x] (https://www.r-project.org/) with [gridExtra] (https://cran.r-project.org/web/packages/gridExtra/index.html) and [ggplot2] (http://ggplot2.org/) packages 
 
 ## Setup:
 
@@ -106,6 +108,12 @@ The current services may be used via HTTPS requests. They return data in JSON fo
 ```
 
 * Note: The ZooPhy Pipeline ties together several packages of complex software that may fail for numerous reasons. A common reason is having too few or too many unique disjoint Geoname locations (must have between 2 and 50). Jobs may also take very long to run, and time estimates will be provided in update emails. 
+
+### Validate ZooPhy Job
+* Type: POST
+* Path: /validate
+* Required POST Body Data: Exact same as the Run service
+* Note: This service is intended to check ZooPhy jobs for common errors before starting the jobs. It will return null if no errors are found, otherwise it returns an error message describing the reason(s) that the job will not succeed. Just because the validation test runs successfully, the job is NOT guaranteed to succeed. 
 
 ### Stop ZooPhy Job
 * Type: GET

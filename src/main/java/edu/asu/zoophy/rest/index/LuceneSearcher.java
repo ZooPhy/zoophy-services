@@ -10,6 +10,9 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
@@ -52,6 +55,43 @@ public class LuceneSearcher {
 		}
 	}
 	
+	/**
+	 * Tests connection to Lucene Index
+	 * @throws LuceneSearcherException
+	 */
+	@PostConstruct
+	private void testIndex() throws LuceneSearcherException {
+		try {
+			List<GenBankRecord> testList = searchIndex("TaxonID:197911", 100);
+			if (testList.size() != 100) {
+				throw new LuceneSearcherException("Test query should have retrieved 100 records, instead retrieved: "+testList.size());
+			}
+			log.info("Successfully Tested Lucene Connection.");
+		}
+		catch (LuceneSearcherException lse) {
+			log.log(Level.SEVERE, "Failed to connect to Lucene Index: "+lse.getMessage());
+			throw lse;
+		}
+		catch (Exception e) {
+			log.log(Level.SEVERE, "Failed to connect to Lucene Index: "+e.getMessage());
+			throw new LuceneSearcherException("Failed to connect to Lucene Index: "+e.getMessage());
+		}
+	}
+	
+	/**
+	 * Closes Lucene resources
+	 */
+	@PreDestroy
+	private void close() {
+		try {
+			indexDirectory.close();
+			log.info("Lucene Index closed");
+		}
+		catch (IOException ioe) {
+			log.warning("Issue closing Lucene Index: "+ioe.getMessage());
+		}
+	}
+
 	/**
 	 * Search Lucene Index for matching GenBank Records
 	 * @param querystring - valid Lucene query string

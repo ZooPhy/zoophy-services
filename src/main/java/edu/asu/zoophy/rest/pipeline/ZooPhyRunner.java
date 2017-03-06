@@ -43,7 +43,7 @@ public class ZooPhyRunner {
 			log.info("Initializing Sequence Aligner... : "+job.getID());
 			SequenceAligner aligner = new SequenceAligner(job, dao, indexSearcher);
 			log.info("Running Sequence Aligner... : "+job.getID());
-			aligner.align(accessions);
+			aligner.align(accessions, false);
 			log.info("Initializing Beast Runner... : "+job.getID());
 			BeastRunner beast = new BeastRunner(job, mailer);
 			log.info("Starting Beast Runner... : "+job.getID());
@@ -78,7 +78,7 @@ public class ZooPhyRunner {
 
 	/**
 	 * Generates a UUID to be used as a jobID
-	 * @return Unused UUID
+	 * @return randomly generated UUID
 	 * @throws PipelineException 
 	 */
 	private String generateID() throws PipelineException {
@@ -99,6 +99,35 @@ public class ZooPhyRunner {
 	 */
 	public String getJobID() {
 		return job.getID();
+	}
+
+	/**
+	 * Runs early stages of the pipeline to test ZooPhy job viability
+	 * @param accessions
+	 * @param dao
+	 * @param indexSearcher
+	 * @throws PipelineException
+	 */
+	public void testZooPhy(List<String> accessions, ZooPhyDAO dao, LuceneSearcher indexSearcher) throws PipelineException {
+		try {
+			log.info("Initializing test Sequence Aligner... : "+job.getID());
+			SequenceAligner aligner = new SequenceAligner(job, dao, indexSearcher);
+			log.info("Running test Sequence Aligner... : "+job.getID());
+			aligner.align(accessions, true);
+			log.info("Initializing test Beast Runner... : "+job.getID());
+			BeastRunner beast = new BeastRunner(job, null);
+			log.info("Starting test Beast Runner... : "+job.getID());
+			beast.test();
+			log.info("ZooPhy Job Test completed successfully: "+job.getID());
+		}
+		catch (PipelineException pe) {
+			log.log(Level.SEVERE, "PipelineException for test job: "+job.getID()+" : "+pe.getMessage());
+			throw pe;
+		}
+		catch (Exception e) {
+			log.log(Level.SEVERE, "Unhandled Exception for test job: "+job.getID()+" : "+e.getMessage());
+			throw new PipelineException("Unhandled Exception: "+e.getMessage(), null);
+		}	
 	}
 
 }

@@ -57,6 +57,7 @@ public class BeastRunner {
 	private Tailer rateTail = null;
 	private Process beastProcess;
 	private boolean wasKilled = false;
+	private boolean isTest = false;
 	
 	public BeastRunner(ZooPhyJob job, ZooPhyMailer mailer) throws PipelineException {
 		PropertyProvider provider = PropertyProvider.getInstance();
@@ -65,7 +66,7 @@ public class BeastRunner {
 		WORLD_GEOJSON = provider.getProperty("geojson.location");
 		RENDER_DIR = provider.getProperty("spread3.result.dir");
 		FIGTREE_TEMPLATE = System.getProperty("user.dir")+"/Templates/figtreeBlock.template";
-		SPREAD3 = System.getProperty("user.dir")+"/spread.jar";
+		SPREAD3 = provider.getProperty("spread3.jar");
 		GLM_SCRIPT = provider.getProperty("glm.script");
 		log = Logger.getLogger("BeastRunner");
 		this.mailer = mailer;
@@ -121,7 +122,7 @@ public class BeastRunner {
 			}
 			else {
 				log.log(Level.SEVERE, "TreeAnnotator did not proudce .tree file!");
-				throw new BeastException("TreeAnnotator did not proudce .tree file!", null);
+				throw new BeastException("TreeAnnotator did not proudce .tree file!", "Tree Annotator Failed");
 			}
 			return tree;
 		}
@@ -131,7 +132,7 @@ public class BeastRunner {
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "BEAST process failed: "+e.getMessage());
-			throw new BeastException("BEAST process failed: "+e.getMessage(), null);
+			throw new BeastException("BEAST process failed: "+e.getMessage(), "BEAST Pipeline Failed");
 		}
 		finally {
 			if (tail != null) {
@@ -165,11 +166,13 @@ public class BeastRunner {
 		builder.redirectError(Redirect.appendTo(logFile));
 		log.info("Starting Process: "+builder.command().toString());
 		Process beastGenProcess = builder.start();
-		PipelineManager.setProcess(job.getID(), beastGenProcess);
+		if (!isTest) {
+			PipelineManager.setProcess(job.getID(), beastGenProcess);
+		}
 		beastGenProcess.waitFor();
 		if (beastGenProcess.exitValue() != 0) {
 			log.log(Level.SEVERE, "BeastGen failed! with code: "+beastGenProcess.exitValue());
-			throw new BeastException("BeastGen failed! with code: "+beastGenProcess.exitValue(), null);
+			throw new BeastException("BeastGen failed! with code: "+beastGenProcess.exitValue(), "BeastGen Failed");
 		}
 		filesToCleanup.add(JOB_WORK_DIR+beastInput);
 		log.info("BEAST input created.");
@@ -192,7 +195,9 @@ public class BeastRunner {
 			builder.redirectError(Redirect.appendTo(logFile));
 			log.info("Starting Process: "+builder.command().toString());
 			Process beastGLMProcess = builder.start();
-			PipelineManager.setProcess(job.getID(), beastGLMProcess);
+			if (!isTest) {
+				PipelineManager.setProcess(job.getID(), beastGLMProcess);
+			}
 			OutputStream glmStream = beastGLMProcess.getOutputStream();
 	        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(glmStream));
 	        // Yes to creating Distance predictor from Latitude and Longitude
@@ -215,8 +220,8 @@ public class BeastRunner {
 		    glmStream.close();
 		    beastGLMProcess.waitFor();
 			if (beastGLMProcess.exitValue() != 0) {
-				log.log(Level.SEVERE, "BEAST_GLM failed! with code: "+beastGLMProcess.exitValue());
-				throw new GLMException("BEAST_GLM failed! with code: "+beastGLMProcess.exitValue(), null);
+				log.log(Level.SEVERE, "BEAST GLM failed! with code: "+beastGLMProcess.exitValue());
+				throw new GLMException("BEAST GLM failed! with code: "+beastGLMProcess.exitValue(), "BEAST GLM failed");
 			}
 			filesToCleanup.add(GLM_PATH);
 			filesToCleanup.add(JOB_WORK_DIR+job.getID()+GLM_SUFFIX+INPUT_XML);
@@ -225,7 +230,7 @@ public class BeastRunner {
 		}
 		else {
 			log.log(Level.SEVERE, "Predictors file does not exist: "+GLM_PATH);
-			throw new GLMException("No Predictors file found: "+PREDICTORS_FILE.getAbsolutePath(), "GLM Error! No Predictors file found.");
+			throw new GLMException("No Predictors file found: "+PREDICTORS_FILE.getAbsolutePath(), "No GLM Predictors file found!");
 		}
 	}
 	
@@ -269,7 +274,7 @@ public class BeastRunner {
 		if (beastProcess.exitValue() != 0) {
 			tail.stop();
 			log.log(Level.SEVERE, "BEAST failed! with code: "+beastProcess.exitValue());
-			throw new BeastException("BEAST failed! with code: "+beastProcess.exitValue(), null);
+			throw new BeastException("BEAST failed! with code: "+beastProcess.exitValue(), "BEAST Failed");
 		}
 		if (wasKilled) {
 			return;
@@ -296,12 +301,12 @@ public class BeastRunner {
 			if (beastRerunProcess.exitValue() != 0) {
 				tail.stop();
 				log.log(Level.SEVERE, "Always-scaling BEAST failed! with code: "+beastProcess.exitValue());
-				throw new BeastException("Always-scaling BEAST failed! with code: "+beastProcess.exitValue(), null);
+				throw new BeastException("Always-scaling BEAST failed! with code: "+beastProcess.exitValue(), "BEAST Failed");
 			}
 			beastOutput = new File(outputPath);
 			if (!beastOutput.exists()) {
 				log.log(Level.SEVERE, "Always-scaling BEAST did not produce output!");
-				throw new BeastException("Always-scaling BEAST did not produce output!", null);
+				throw new BeastException("Always-scaling BEAST did not produce output!", "BEAST Failed");
 			}
 		}
 		log.info("BEAST finished.");
@@ -334,7 +339,7 @@ public class BeastRunner {
 		treeAnnotatorProcess.waitFor();
 		if (treeAnnotatorProcess.exitValue() != 0) {
 			log.log(Level.SEVERE, "Tree Annotator failed! with code: "+treeAnnotatorProcess.exitValue());
-			throw new BeastException("Tree Annotator failed! with code: "+treeAnnotatorProcess.exitValue(), null);
+			throw new BeastException("Tree Annotator failed! with code: "+treeAnnotatorProcess.exitValue(), "Tree Annotator Failed");
 		}
 		log.info("Tree Annotator finished.");
 		return JOB_WORK_DIR+tree;
@@ -367,7 +372,7 @@ public class BeastRunner {
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "ERROR ADDING FIGTREE BLOCK: "+e.getMessage());
-			throw new BeastException("ERROR ADDING FIGTREE BLOCK: "+e.getMessage(), null);
+			throw new BeastException("ERROR ADDING FIGTREE BLOCK: "+e.getMessage(), "BEAST Pipeline Failed");
 		}
 	}
 	
@@ -384,7 +389,15 @@ public class BeastRunner {
 		String treeFile = workingDir+".tree";
 		String youngestDate = findYougestAge(treeFile);
 		String spreadFile = workingDir+"-spread3.json";
-		ProcessBuilder builder = new ProcessBuilder("java","-jar",SPREAD3,"-parse","-locations",coordinatesFile,"-header","false","-tree",treeFile,"-locationTrait","states","-intervals","10","-mrsd",youngestDate,"-geojson",WORLD_GEOJSON,"-output",spreadFile);
+		File spreadDirectory = new File(SPREAD3);
+		if (spreadDirectory.exists() && spreadDirectory.isFile() && spreadDirectory.getParent() != null) {
+			spreadDirectory = new File(spreadDirectory.getParent());
+		}
+		else {
+			log.log(Level.SEVERE, "Invalid absolute path to SpreaD3 given: "+SPREAD3);
+			throw new BeastException("Invalid absolute path to SpreaD3 given!", "SpreaD3 Failed");
+		}
+		ProcessBuilder builder = new ProcessBuilder("java","-jar",SPREAD3,"-parse","-locations",coordinatesFile,"-header","false","-tree",treeFile,"-locationTrait","states","-intervals","10","-mrsd",youngestDate,"-geojson",WORLD_GEOJSON,"-output",spreadFile).directory(spreadDirectory);
 		builder.redirectOutput(Redirect.appendTo(logFile));
 		builder.redirectError(Redirect.appendTo(logFile));
 		log.info("Starting Process: "+builder.command().toString());
@@ -393,12 +406,12 @@ public class BeastRunner {
 		spreadGenerationProcess.waitFor();
 		if (spreadGenerationProcess.exitValue() != 0) {
 			log.log(Level.SEVERE, "SpreaD3 generation failed! with code: "+spreadGenerationProcess.exitValue());
-			throw new BeastException("SpreaD3 generation failed! with code: "+spreadGenerationProcess.exitValue(), null);
+			throw new BeastException("SpreaD3 generation failed! with code: "+spreadGenerationProcess.exitValue(), "SpreaD3 Failed");
 		}
 		log.info("SpreaD3 finished.");
 		log.info("Running SpreaD3 render...");
 		String renderPath = RENDER_DIR+"/"+job.getID();
-		builder = new ProcessBuilder("java","-jar", SPREAD3,"-render","d3","-json",spreadFile,"-output",renderPath);
+		builder = new ProcessBuilder("java","-jar", SPREAD3,"-render","d3","-json",spreadFile,"-output",renderPath).directory(spreadDirectory);
 		builder.redirectOutput(Redirect.appendTo(logFile));
 		builder.redirectError(Redirect.appendTo(logFile));
 		log.info("Starting Process: "+builder.command().toString());
@@ -407,7 +420,7 @@ public class BeastRunner {
 		spreadRenderProcess.waitFor();
 		if (spreadRenderProcess.exitValue() != 0) {
 			log.log(Level.SEVERE, "SpreaD3 rendering failed! with code: "+spreadRenderProcess.exitValue());
-			throw new BeastException("SpreaD3 rendering failed! with code: "+spreadRenderProcess.exitValue(), null);
+			throw new BeastException("SpreaD3 rendering failed! with code: "+spreadRenderProcess.exitValue(), "SpreaD3 Failed");
 		}
 	}
 
@@ -465,7 +478,7 @@ public class BeastRunner {
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "ERROR SETTING FIGTREE START DATE: "+e.getMessage());
-			throw new BeastException("ERROR SETTING FIGTREE START DATE: "+e.getMessage() , null);
+			throw new BeastException("ERROR SETTING FIGTREE START DATE: "+e.getMessage() , "BEAST Pipeline Failed");
 		}
 		return youngestAge;
 	}
@@ -658,6 +671,54 @@ public class BeastRunner {
 			}
 		}
 		
+	}
+
+	/**
+	 * Test the given ZooPhy job in the quick early stages
+	 * @throws PipelineException
+	 */
+	public void test() throws PipelineException {
+		isTest = true;
+		FileHandler fileHandler = null;
+		try {
+			logFile = new File(JOB_LOG_DIR+job.getID()+".log");
+			fileHandler = new FileHandler(JOB_LOG_DIR+job.getID()+".log", true);
+			SimpleFormatter formatter = new SimpleFormatter();
+	        fileHandler.setFormatter(formatter);
+	        log.addHandler(fileHandler);
+	        log.setUseParentHandlers(false);
+			log.info("Starting the BEAST test process...");
+			runBeastGen(job.getID()+ALIGNED_FASTA, job.getID()+INPUT_XML);
+			log.info("Adding location trait...");
+			DiscreteTraitInserter traitInserter = new DiscreteTraitInserter(job);
+			traitInserter.addLocation();
+			log.info("Location trait added.");
+			if (job.isUsingGLM()) {
+				log.info("Adding GLM Predictors...");
+				runGLM();
+				log.info("GLM Predictors added.");
+				String predictorData = JOB_WORK_DIR+job.getID()+"_predictorNames.txt";
+				filesToCleanup.add(predictorData);
+			}
+			else {
+				log.info("Job is not using GLM.");
+			}
+			// TODO: maybe try starting BEAST? -> will likely take too long
+		}
+		catch (PipelineException pe) {
+			log.log(Level.SEVERE, "BEAST test process failed: "+pe.getMessage());
+			throw pe;
+		}
+		catch (Exception e) {
+			log.log(Level.SEVERE, "BEAST test process failed: "+e.getMessage());
+			throw new BeastException("BEAST test process failed: "+e.getMessage(), "BEAST Pipeline Failed");
+		}
+		finally {
+			cleanupBeast();
+			if (fileHandler != null) {
+				fileHandler.close();
+			}
+		}
 	}
 	
 }

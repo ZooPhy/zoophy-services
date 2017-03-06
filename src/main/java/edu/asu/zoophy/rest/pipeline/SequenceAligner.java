@@ -88,10 +88,11 @@ public class SequenceAligner {
 	 * 3) FASTA formatting of raw sequences
 	 * 4) MAFFT sequence alignment
 	 * @param accessions - record sequences to be included in FASTA
+	 * @param isTest - True iff actual alignment can be skipped for a test run
 	 * @return file path to aligned .fasta file
-	 * @throws AlignerException
+	 * @throws PipelineException
 	 */
-	public String align(List<String> accessions) throws AlignerException {
+	public String align(List<String> accessions, boolean isTest) throws PipelineException {
 		String alignedFastaPath;
 		FileHandler fileHandler = null;
 		try {
@@ -108,7 +109,12 @@ public class SequenceAligner {
 			if (job.isUsingGLM()) {
 				createGLMFile(job.isUsingGLM() && !job.isUsingCustomPredictors());
 			}
-			alignedFastaPath = runMafft(rawFasta);
+			if (isTest) {
+				alignedFastaPath = fakeMafft(rawFasta);
+			}
+			else {
+				alignedFastaPath = runMafft(rawFasta);
+			}
 			log.info("Mafft Job: "+job.getID()+" has finished.");
 			log.info("Deleting raw fasta...");
 			try {
@@ -122,6 +128,10 @@ public class SequenceAligner {
 			log.info("Mafft process complete");
 			fileHandler.close();
 		}
+		catch (PipelineException pe) {
+			log.log(Level.SEVERE, "ERROR! Mafft process failed: "+pe.getMessage());
+			throw pe;
+		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "ERROR! Mafft process failed: "+e.getMessage());
 			throw new AlignerException(e.getMessage(), null);
@@ -133,7 +143,7 @@ public class SequenceAligner {
 		}
 		return alignedFastaPath;
 	}
-	
+
 	/**
 	 * Generates the GLM predictors batch file 
 	 * @param usingDefault 
@@ -224,16 +234,16 @@ public class SequenceAligner {
 	private String runMafft(String rawFasta) throws AlignerException {
 		log.info("Setting up Mafft for job: "+job.getID());
 		String dir = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"-";
+		String rawFilePath = dir + "raw.fasta";
+		String alignedFilePath = dir+"aligned.fasta";
 		try {
-			PrintWriter printer = new PrintWriter(dir+"raw.fasta");
+			PrintWriter printer = new PrintWriter(rawFilePath);
 			printer.write(rawFasta);
 			printer.close();
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "Error setting up raw.fasta: "+e.getMessage());
 		}
-		String rawFilePath = dir + "raw.fasta";
-		String alignedFilePath = dir+"aligned.fasta";
 		File outFile = new File(alignedFilePath);
 		try {
 			ProcessBuilder builder = new ProcessBuilder("mafft", "--auto", rawFilePath);
@@ -253,6 +263,33 @@ public class SequenceAligner {
 			log.log(Level.SEVERE, "Error running mafft: "+e.getMessage());
 			throw new AlignerException("Error running mafft: "+e.getMessage(), null);
 		}
+		return alignedFilePath;
+	}
+	
+	/**
+	 * FOR TEST USE ONLY
+	 * To save time, the raw fasta is copied to an aligned fasta file instead of actually funning Mafft
+	 * Useful for quickly validating job parameters before starting job
+	 * @param rawFasta
+	 * @return file path to fake aligned .fasta file that is really just a copy of the raw .fasta file
+	 */
+	private String fakeMafft(String rawFasta) {
+		log.info("Faking Mafft for job: "+job.getID());
+		String dir = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"-";
+		String rawFilePath = dir + "raw.fasta";
+		String alignedFilePath = dir+"aligned.fasta";
+		try {
+			PrintWriter printer = new PrintWriter(rawFilePath);
+			printer.write(rawFasta);
+			printer.close();
+			printer = new PrintWriter(alignedFilePath);
+			printer.write(rawFasta);
+			printer.close();
+		}
+		catch (Exception e) {
+			log.log(Level.SEVERE, "Error faking aligned fasta: "+e.getMessage());
+		}
+		log.info("Fake aligned fasta file created.");
 		return alignedFilePath;
 	}
 

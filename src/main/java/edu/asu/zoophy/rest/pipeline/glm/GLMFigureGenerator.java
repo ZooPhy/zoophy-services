@@ -37,8 +37,8 @@ public class GLMFigureGenerator {
 		PropertyProvider provider = PropertyProvider.getInstance();
 		JOB_LOG_DIR = provider.getProperty("job.logs.dir");
 		BEAST_SCRIPTS_DIR = provider.getProperty("beast.scripts.dir");
-		DAN_R_SCRIPT = provider.getProperty("dan.r.script");
-		DAN_BASH_SCRIPT =  provider.getProperty("dan.bash.script");
+		DAN_R_SCRIPT = System.getProperty("user.dir")+"/make_predictor_fig.R";
+		DAN_BASH_SCRIPT = System.getProperty("user.dir")+"/make_table.sh";
 		JOB_WORK_DIR = System.getProperty("user.dir")+"/ZooPhyJobs/";
 		filesToCleanup = new LinkedHashSet<String>();
 		log = Logger.getLogger("GLMFigureGenerator");
