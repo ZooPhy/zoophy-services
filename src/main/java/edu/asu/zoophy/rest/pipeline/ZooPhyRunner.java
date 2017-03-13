@@ -21,10 +21,10 @@ public class ZooPhyRunner {
 	private final ZooPhyMailer mailer;
 	private final Logger log;
 
-	public ZooPhyRunner(String replyEmail, String jobName, boolean useGLM, Map<String, List<Predictor>> predictors) throws PipelineException {
+	public ZooPhyRunner(String replyEmail, String jobName, boolean useGLM, Map<String, List<Predictor>> predictors, XMLParameters xmlOptions) throws PipelineException {
 		log = Logger.getLogger("ZooPhyRunner");
 		log.info("Initializing ZooPhy Job");
-		job = new ZooPhyJob(generateID(),jobName,replyEmail, useGLM, predictors);
+		job = new ZooPhyJob(generateID(),jobName,replyEmail, useGLM, predictors, xmlOptions);
 		log.info("Initializing ZooPhyMailer... : "+job.getID());
 		mailer = new ZooPhyMailer(job);
 	}

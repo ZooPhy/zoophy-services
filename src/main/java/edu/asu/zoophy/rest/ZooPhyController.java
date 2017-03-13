@@ -239,7 +239,7 @@ public class ZooPhyController {
     			log.warning("Bad XML Parameters: "+pe.getMessage());
     			throw pe;
     		}
-	    	zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors());
+	    	zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors(), parameters.getXmlOptions());
 	    	Set<String> jobAccessions = new LinkedHashSet<String>(parameters.getAccessions().size());
 	    	for(String accession : parameters.getAccessions()) {
 	    		if  (security.checkParameter(accession, Parameter.ACCESSION)) {
@@ -418,7 +418,7 @@ public class ZooPhyController {
 	    			log.warning("Bad XML Parameters: "+pe.getMessage());
 	    			throw pe;
 	    		}
-		    	zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors());
+		    	zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors(), parameters.getXmlOptions());
 		    	Set<String> jobAccessions = new LinkedHashSet<String>(parameters.getAccessions().size());
 		    	for(String accession : parameters.getAccessions()) {
 		    		if  (security.checkParameter(accession, Parameter.ACCESSION)) {

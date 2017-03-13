@@ -55,7 +55,7 @@ public class XMLParameters {
 		return subSampleRate;
 	}
 
-	public void setSubSampleRate(Integer subSampleRate) {
+	public void setSubSampleRate(int subSampleRate) {
 		this.subSampleRate = subSampleRate;
 	}
 	
