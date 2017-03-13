@@ -4,6 +4,12 @@ import java.io.File;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
 /**
  * Modifies BEAST XML parameters to reflect user options
  * @author devdemetri
@@ -11,13 +17,18 @@ import java.util.logging.Logger;
 public class XMLParameterModifier {
 
 	private Logger log;
+	private Document document;
+	private final String DOCUMENT_PATH;
 	
 	public XMLParameterModifier(File beastXML) throws XMLParameterException {
 		log = Logger.getLogger("XMLParameterModifier");
 		if (beastXML != null && beastXML.exists() && !beastXML.isDirectory()) {
 			try {
 				log.info("Initializing XML Parameter Modifier...");
-				//TODO: load in XML and set key nodes
+				DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+				DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+				DOCUMENT_PATH = beastXML.getAbsolutePath();
+				document = docBuilder.parse(DOCUMENT_PATH);
 				log.info("XML Parameter Modifier initialized.");
 			}
 			catch (Exception e) {
@@ -32,11 +43,16 @@ public class XMLParameterModifier {
 	}
 	
 	/**
-	 * Modifies the BEAST input XML to reflect custom parameters
+	 * Modifies the BEAST input XML to reflect custom parameters.
+	 * Can only be called once per XMLParameterModifier instance.
 	 * @param customParameters
 	 * @throws XMLParameterException
 	 */
 	public void setCustomXMLParameters(XMLParameters customParameters) throws XMLParameterException {
+		if (document == null) {
+			log.log(Level.SEVERE, "Error setting custom XML Parameters: NULL document.");
+			throw new XMLParameterException("Error setting custom XML Parameters: NULL document.", "Error setting custom XML Parameters.");
+		}
 		try {
 			final XMLParameters defaultParamters = XMLParameters.getDefault();
 			log.info("Setting custom XML Parameters...");
@@ -61,6 +77,8 @@ public class XMLParameterModifier {
 			else {
 				log.info("Default Substitution Model selected.");
 			}
+			DiscreteTraitInserter.saveChanges(document, DOCUMENT_PATH);
+			document = null;
 			log.info("Custom XML Parameters set.");
 		}
 		catch (XMLParameterException xmlpe) {
@@ -80,8 +98,10 @@ public class XMLParameterModifier {
 	 */
 	private void setChainLength(int chainLength) throws XMLParameterException {
 		try {
+			final String targetAttributeName = "chainLength";
 			log.info("Setting custom Chain Length...");
-			//TODO: set chain length
+			Element mcmc = document.getElementById("mcmc");
+			mcmc.setAttribute(targetAttributeName, String.valueOf(chainLength));
 			log.info("Custom Chain Length set.");
 		}
 		catch (Exception e) {
@@ -97,8 +117,14 @@ public class XMLParameterModifier {
 	 */
 	private void setSubSamplingRate(int subSamplingRate) throws XMLParameterException {
 		try {
+			final String targetAttributeName = "logEvery";
 			log.info("Setting custom Sub Sampling Rate...");
-			//TODO: set sub sampling rate
+			Element screenLog = document.getElementById("screenLog");
+			screenLog.setAttribute(targetAttributeName, String.valueOf(subSamplingRate));
+			Element fileLog = document.getElementById("fileLog");
+			fileLog.setAttribute(targetAttributeName, String.valueOf(subSamplingRate));
+			Element treeFileLog = document.getElementById("treeFileLog");
+			treeFileLog.setAttribute(targetAttributeName, String.valueOf(subSamplingRate));
 			log.info("Custom Sub Sampling Rate set.");
 		}
 		catch (Exception e) {
