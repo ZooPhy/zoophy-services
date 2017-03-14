@@ -1,6 +1,8 @@
 package edu.asu.zoophy.rest.index;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Logger;
 
 import org.apache.lucene.document.Document;
@@ -97,16 +99,22 @@ public class DocumentMapper {
 			}
 			if (luceneDocument.getFields("Gene").length > 0) {
 				List<Gene> genes = record.getGenes();
+				Set<String> uniqueGenes = new HashSet<String>(8);
 				boolean isComplete = false;
 				for (IndexableField field : luceneDocument.getFields("Gene")) {
-					if (field.stringValue().equalsIgnoreCase("Complete")) {
+					String geneName = field.stringValue();
+					if (geneName.equalsIgnoreCase("Complete")) {
 						isComplete = true;
 					}
-					Gene gene = new Gene();
-					gene.setAccession(recordAccession);
-					gene.setName(field.stringValue());
-					genes.add(gene);
+					if (!uniqueGenes.contains(geneName)) {
+						uniqueGenes.add(geneName);
+						Gene gene = new Gene();
+						gene.setAccession(recordAccession);
+						gene.setName(field.stringValue());
+						genes.add(gene);
+					}
 				}
+				uniqueGenes.clear();
 				if (isComplete) {
 					genes.clear();
 					Gene gene = new Gene();
