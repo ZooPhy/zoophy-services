@@ -134,7 +134,7 @@ public class SequenceAligner {
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "ERROR! Mafft process failed: "+e.getMessage());
-			throw new AlignerException(e.getMessage(), null);
+			throw new AlignerException(e.getMessage(), "ERROR Mafft process failed.");
 		}
 		finally {
 			if (fileHandler != null) {

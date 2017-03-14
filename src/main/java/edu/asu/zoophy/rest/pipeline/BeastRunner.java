@@ -227,7 +227,7 @@ public class BeastRunner {
 		    beastGLMProcess.waitFor();
 			if (beastGLMProcess.exitValue() != 0) {
 				log.log(Level.SEVERE, "BEAST GLM failed! with code: "+beastGLMProcess.exitValue());
-				throw new GLMException("BEAST GLM failed! with code: "+beastGLMProcess.exitValue(), "BEAST GLM failed");
+				throw new GLMException("BEAST GLM failed! with code: "+beastGLMProcess.exitValue(), "BEAST_GLM failed!");
 			}
 			filesToCleanup.add(GLM_PATH);
 			filesToCleanup.add(JOB_WORK_DIR+job.getID()+GLM_SUFFIX+INPUT_XML);

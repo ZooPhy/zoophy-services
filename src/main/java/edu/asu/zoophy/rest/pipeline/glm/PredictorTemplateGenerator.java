@@ -42,7 +42,7 @@ public class PredictorTemplateGenerator {
 				records = aligner.loadSequences(accessions, true, false);
 			}
 			catch (Exception e) {
-				throw new GLMException("Error loading records for Predictor Template: "+e.getMessage(), "Error loading records for Predictor Template: "+e.getMessage());
+				throw new GLMException("Error loading records for Predictor Template: "+e.getMessage(), "Error loading records for Predictor Template.");
 			}
 			Map<String, LocationPredictor> locationPredictors = new LinkedHashMap<String, LocationPredictor>();
 			try {
@@ -60,7 +60,7 @@ public class PredictorTemplateGenerator {
 				}
 			}
 			catch (Exception e) {
-				throw new GLMException("Error setting Predictors for Predictor Template: "+e.getMessage(), "Error setting Predictors for Predictor Template: "+e.getMessage());
+				throw new GLMException("Error setting Predictors for Predictor Template: "+e.getMessage(), "Error setting Predictors for Predictor Template.");
 			}
 			StringBuilder template = new StringBuilder();
 			template.append("state" + DELIMITER);
@@ -84,7 +84,7 @@ public class PredictorTemplateGenerator {
 			throw glme;
 		}
 		catch (Exception e) {
-			throw new GLMException("Error generating Predictor Template: "+e.getMessage(), "Error generating Predictor Template: "+e.getMessage());
+			throw new GLMException("Error generating Predictor Template: "+e.getMessage(), "Error generating Predictor Template.");
 		}
 	}
 	
