@@ -61,7 +61,7 @@ public class DiscreteTraitInserter {
 		if (beastNode == null) {
 			throw new TraitException("Error adding Location trait: NULL beastNode.", "Error adding Location trait.");
 		}
-		addTrait("states");
+		addTrait("states", job.getXMLOptions().getSubstitutionModel());
 		saveChanges(document, DOCUMENT_PATH);
 		document = null;
 		beastNode = null;
@@ -72,9 +72,9 @@ public class DiscreteTraitInserter {
 	 * @param traitName
 	 * @throws TraitException
 	 */
-	private void addTrait(String traitName) throws TraitException {
+	private void addTrait(String traitName, BeastSubstitutionModel substitutionModel) throws TraitException {
 		try {
-			//I tried to make this block readable, but it was an especially convoluted process. Will refactor at some point for readability.
+			//TODO: take sub model into account to work for GTR as well as current HKY
 			String baseName = job.getID()+"-aligned";
 			//add trait to taxa list
 			int numTaxa = 0;

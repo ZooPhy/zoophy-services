@@ -70,13 +70,6 @@ public class XMLParameterModifier {
 			else {
 				log.info("Default Sub Sampling Rate selected.");
 			}
-			if (defaultParamters.getSubstitutionModel() != customParameters.getSubstitutionModel()) {
-				log.info("Setting custom Substitution Model: "+customParameters.getSubstitutionModel().toString());
-				setSubstitutionModel(customParameters.getSubstitutionModel());
-			}
-			else {
-				log.info("Default Substitution Model selected.");
-			}
 			DiscreteTraitInserter.saveChanges(document, DOCUMENT_PATH);
 			document = null;
 			log.info("Custom XML Parameters set.");
@@ -130,24 +123,6 @@ public class XMLParameterModifier {
 		catch (Exception e) {
 			log.log(Level.SEVERE, "Error setting custom Sub Sampling Rate: "+e.getMessage());
 			throw new XMLParameterException("Error setting custom Sub Sampling Rate: "+e.getMessage(), "Error setting custom Sub Sampling Rate.");
-		}
-	}
-	
-	/**
-	 * Modifies the BEAST input XML Substitution Model
-	 * @param beastSubstitutionModel
-	 * @throws XMLParameterException
-	 */
-	private void setSubstitutionModel(BEASTSubstitutionModel beastSubstitutionModel) throws XMLParameterException {
-		//TODO: may need to use different BeastGen template instead of altering XML afterwards 
-		try {
-			log.info("Setting custom Substitution Model...");
-			//TODO: set substitution model
-			log.info("Custom Substitution Model set.");
-		}
-		catch (Exception e) {
-			log.log(Level.SEVERE, "Error setting custom Substitution Model: "+e.getMessage());
-			throw new XMLParameterException("Error setting custom Substitution Model: "+e.getMessage(), "Error setting custom Substitution Model.");
 		}
 	}
 	

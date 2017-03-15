@@ -9,7 +9,7 @@ public class XMLParameters {
 	private boolean isDefault = false;
 	private Integer chainLength = null;
 	private Integer subSampleRate = null;
-	private BEASTSubstitutionModel substitutionModel = null;
+	private BeastSubstitutionModel substitutionModel = null;
 	
 	private static XMLParameters defaultParams = null;
 	
@@ -25,7 +25,7 @@ public class XMLParameters {
 			defaultParams = new XMLParameters();
 			defaultParams.setSubSampleRate(1000);
 			defaultParams.setChainLength(10000000);
-			defaultParams.setSubstitutionModel(BEASTSubstitutionModel.HKY);
+			defaultParams.setSubstitutionModel(BeastSubstitutionModel.HKY);
 			defaultParams.isDefault = true;
 		}
 		return defaultParams;
@@ -43,11 +43,11 @@ public class XMLParameters {
 		return isDefault;
 	}
 
-	public BEASTSubstitutionModel getSubstitutionModel() {
+	public BeastSubstitutionModel getSubstitutionModel() {
 		return substitutionModel;
 	}
 
-	public void setSubstitutionModel(BEASTSubstitutionModel substitutionModel) {
+	public void setSubstitutionModel(BeastSubstitutionModel substitutionModel) {
 		this.substitutionModel = substitutionModel;
 	}
 
