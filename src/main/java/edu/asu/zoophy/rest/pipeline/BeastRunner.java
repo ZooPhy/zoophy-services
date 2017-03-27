@@ -167,7 +167,8 @@ public class BeastRunner {
 		String workingDir =  "../ZooPhyJobs/";
 		File beastGenDir = new File(System.getProperty("user.dir")+"/BeastGen");
 		filesToCleanup.add(JOB_WORK_DIR+fastaFile);
-		String template = substitutionModel.toString() + ".template"; //TODO add/change templates
+		//String template = substitutionModel.toString() + ".template"; //TODO add/change templates
+		String template = "beastgen.template";
 		log.info("Running BEASTGen...");
 		ProcessBuilder builder = new ProcessBuilder("java", "-jar", "beastgen.jar", "-date_order", "4", template, workingDir+fastaFile, workingDir+beastInput).directory(beastGenDir);
 		builder.redirectOutput(Redirect.appendTo(logFile));
