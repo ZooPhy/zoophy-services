@@ -1,5 +1,5 @@
 # zoophy-services
-RESTful services for [ZooPhy] (https://zodo.asu.edu/zoophy/). This consists of:
+RESTful services for [ZooPhy](https://zodo.asu.edu/zoophy/). This consists of:
 
 1) Retrieving GenBankRecords from the ZooPhy SQL Database
 
@@ -8,18 +8,18 @@ RESTful services for [ZooPhy] (https://zodo.asu.edu/zoophy/). This consists of:
 3) Starting/Stopping ZooPhy Pipeline jobs
 
 ## Dependencies:
-* [JDK 1.7.x] (http://www.oracle.com/technetwork/java/javase/overview/index.html)
-* [Maven 3.x] (https://maven.apache.org/index.html)
-* [PostgreSQL 9.x] (https://www.postgresql.org/) for SQL Database
-* [Lucene 5.5.x] (https://lucene.apache.org/core/5_5_0/) for Lucene Index
-* Java IDE, [Spring Tool Suite] (https://spring.io/tools) is heavily recommended for best Spring integration
-* [MAFFT 7.x] (http://mafft.cbrc.jp/alignment/software/)
-* [BeastGen 1.0.2] (http://beast.bio.ed.ac.uk/beastgen)
-* [BEAST 1.8.4] (https://github.com/beast-dev/beast-mcmc/releases/tag/v1.8.4)
-* [SpreaD3 0.9.6] (https://rega.kuleuven.be/cev/ecv/software/SpreaD3)
-* [Python 3.4.x] (https://www.python.org/) with [numpy] (http://www.numpy.org/) package
-* [BEAST GLM] (https://github.com/djmagee5/BEAST_GLM)
-* [R 3.x] (https://www.r-project.org/) with [gridExtra] (https://cran.r-project.org/web/packages/gridExtra/index.html) and [ggplot2] (http://ggplot2.org/) packages 
+* [JDK 1.7.x](http://www.oracle.com/technetwork/java/javase/overview/index.html)
+* [Maven 3.x](https://maven.apache.org/index.html)
+* [PostgreSQL 9.x](https://www.postgresql.org/) for SQL Database
+* [Lucene 5.5.x](https://lucene.apache.org/core/5_5_0/) for Lucene Index
+* Java IDE, [Spring Tool Suite](https://spring.io/tools) is heavily recommended for best Spring integration
+* [MAFFT 7.x](http://mafft.cbrc.jp/alignment/software/)
+* [BeastGen 1.0.2](http://beast.bio.ed.ac.uk/beastgen)
+* [BEAST 1.8.4](https://github.com/beast-dev/beast-mcmc/releases/tag/v1.8.4)
+* [SpreaD3 0.9.6](https://rega.kuleuven.be/cev/ecv/software/SpreaD3)
+* [Python 3.4.x](https://www.python.org/) with [numpy](http://www.numpy.org/) package
+* [BEAST GLM](https://github.com/djmagee5/BEAST_GLM)
+* [R 3.x](https://www.r-project.org/) with [gridExtra](https://cran.r-project.org/web/packages/gridExtra/index.html) and [ggplot2](http://ggplot2.org/) packages 
 
 ## Setup:
 
@@ -48,7 +48,7 @@ The current services may be used via HTTPS requests. They return data in JSON fo
 * Type: GET
 * Path: /search?query=\<URL Encoded Lucene Query>
 * Lucene Terms: TaxonID, GeonameID, HostID, Gene, SegmentLength, Date, etc.
- * Note: TaxonID is the taxonomy ID for the actual virus. Both the TaxonID and HostID are from the [NCBI Taxonomy database](https://www.ncbi.nlm.nih.gov/taxonomy). The GeonameID is a location ID from [Geonames] (http://www.geonames.org/).
+ * Note: TaxonID is the taxonomy ID for the actual virus. Both the TaxonID and HostID are from the [NCBI Taxonomy database](https://www.ncbi.nlm.nih.gov/taxonomy). The GeonameID is a location ID from [Geonames](http://www.geonames.org/).
 * Example Lucene Query: TaxonID:114727 AND Gene:(HA NOT Complete) AND Date:[2007 TO 20081231] AND HostID:9606 AND GeonameID: (5551752 OR 5332921 OR 5855797 OR 5509151) AND SegmentLength:[1650 TO 9999] 
 * Example Request:  https://zodo.asu.edu/zoophy/api/search?query=TaxonID%3A114727%20AND%20Gene%3A(HA%20NOT%20Complete)%20AND%20Date%3A%5B2007%20TO%2020081231%5D%20AND%20HostID%3A9606%20AND%20GeonameID%3A%20(5551752%20OR%205332921%20OR%205855797%20OR%205509151)%20AND%20SegmentLength%3A%5B1650%20TO%209999%5D 
 * Details on Lucene Query syntax can be found [here](https://lucene.apache.org/core/2_9_4/queryparsersyntax.html).
@@ -68,13 +68,13 @@ The current services may be used via HTTPS requests. They return data in JSON fo
 ### Start ZooPhy Job
 * Type: POST
 * Path: /run
-* Required POST Body Data: [JobParameters] (src/main/java/edu/asu/zoophy/rest/JobParameters.java) JSON Object containing:
+* Required POST Body Data: [JobParameters](src/main/java/edu/asu/zoophy/rest/JobParameters.java) JSON Object containing:
  * replyEmail - String
  * jobName - String (optional)
  * accessions - List of Strings (Limit 1000)
  * useGLM - Boolean (default is false)
- * predictors - Map of \<String, List of [Predictors] (src/main/java/edu/asu/zoophy/rest/pipeline/glm/Predictor.java)> (optional)
-   * Note: This is only if custom GLM Predictors need to be used. Otherwise, if usedGLM is set to true, defualt predictors will be used that can only be applied to US States. If locations outside of the US, or more precise locations, are needed then custom predictors must contain at least lat, long, and SampleSize. All predictor values must be positive (< 0) numbers, except for lat/long. Predictor year is not needed, and will not be used for custom predictors. The predictor states must also exactly match the accession states as proccessed in our pipeline, for this reason it is critical to use the [Template Generator service] (#generate-glm-predictor-template-download) to generate locations, coordinates, and sample sizes. This feature is currently experimental. 
+ * predictors - Map of \<String, List of [Predictors](src/main/java/edu/asu/zoophy/rest/pipeline/glm/Predictor.java)> (optional)
+   * Note: This is only if custom GLM Predictors need to be used. Otherwise, if usedGLM is set to true, defualt predictors will be used that can only be applied to US States. If locations outside of the US, or more precise locations, are needed then custom predictors must contain at least lat, long, and SampleSize. All predictor values must be positive (< 0) numbers, except for lat/long. Predictor year is not needed, and will not be used for custom predictors. The predictor states must also exactly match the accession states as proccessed in our pipeline, for this reason it is critical to use the [Template Generator service](#generate-glm-predictor-template-download) to generate locations, coordinates, and sample sizes. This feature is currently experimental. 
 * Example POST Body:
 ```
 {
