@@ -270,7 +270,7 @@ public class ZooPhyController {
      * @throws PipelineException
      * @throws ParameterException
      */
-    @RequestMapping(value="/stop", method=RequestMethod.GET)
+    @RequestMapping(value="/stop", method=RequestMethod.DELETE)
     @ResponseStatus(value=HttpStatus.OK)
     public String stopZooPhyJob(@RequestParam(value="id") String jobID) throws PipelineException, ParameterException {
     	if (security.checkParameter(jobID, Parameter.JOB_ID)) {
