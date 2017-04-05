@@ -9,6 +9,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
 /**
  * Modifies BEAST XML parameters to reflect user options
@@ -19,6 +20,7 @@ public class XMLParameterModifier {
 	private Logger log;
 	private Document document;
 	private final String DOCUMENT_PATH;
+	private final Node beastNode;
 	
 	public XMLParameterModifier(File beastXML) throws XMLParameterException {
 		log = Logger.getLogger("XMLParameterModifier");
@@ -29,7 +31,12 @@ public class XMLParameterModifier {
 				DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
 				DOCUMENT_PATH = beastXML.getAbsolutePath();
 				document = docBuilder.parse(DOCUMENT_PATH);
+				beastNode = document.getElementsByTagName("beast").item(0);
 				log.info("XML Parameter Modifier initialized.");
+				if (beastNode == null) {
+					log.log(Level.SEVERE, "Failed to load XML document: "+DOCUMENT_PATH);
+					throw new XMLParameterException("Failed to load XML document: "+DOCUMENT_PATH, "Failed to load XML Document");
+				}
 			}
 			catch (Exception e) {
 				log.log(Level.SEVERE, "Error setting up XML Parameter Modifier: "+e.getMessage());
@@ -56,14 +63,14 @@ public class XMLParameterModifier {
 		try {
 			final XMLParameters defaultParamters = XMLParameters.getDefault();
 			log.info("Setting custom XML Parameters...");
-			if (defaultParamters.getChainLength() != customParameters.getChainLength()) {
+			if (defaultParamters.getChainLength().intValue() != customParameters.getChainLength().intValue()) {
 				log.info("Setting custom Chain Length: "+customParameters.getChainLength());
 				setChainLength(customParameters.getChainLength());
 			}
 			else {
 				log.info("Default Chain Length selected.");
 			}
-			if (defaultParamters.getSubSampleRate() != customParameters.getSubSampleRate()) {
+			if (defaultParamters.getSubSampleRate().intValue() != customParameters.getSubSampleRate().intValue()) {
 				log.info("Setting custom Sub Sampling Rate: "+customParameters.getSubSampleRate());
 				setSubSamplingRate(customParameters.getSubSampleRate());
 			}
@@ -93,7 +100,7 @@ public class XMLParameterModifier {
 		try {
 			final String targetAttributeName = "chainLength";
 			log.info("Setting custom Chain Length...");
-			Element mcmc = document.getElementById("mcmc");
+			Element mcmc = (Element) document.getElementsByTagName("mcmc").item(0);
 			mcmc.setAttribute(targetAttributeName, String.valueOf(chainLength));
 			log.info("Custom Chain Length set.");
 		}
@@ -112,11 +119,11 @@ public class XMLParameterModifier {
 		try {
 			final String targetAttributeName = "logEvery";
 			log.info("Setting custom Sub Sampling Rate...");
-			Element screenLog = document.getElementById("screenLog");
+			Element screenLog = (Element) document.getElementsByTagName("log").item(0);
 			screenLog.setAttribute(targetAttributeName, String.valueOf(subSamplingRate));
-			Element fileLog = document.getElementById("fileLog");
+			Element fileLog = (Element) document.getElementsByTagName("log").item(1);
 			fileLog.setAttribute(targetAttributeName, String.valueOf(subSamplingRate));
-			Element treeFileLog = document.getElementById("treeFileLog");
+			Element treeFileLog = (Element) document.getElementsByTagName("logTree").item(0);
 			treeFileLog.setAttribute(targetAttributeName, String.valueOf(subSamplingRate));
 			log.info("Custom Sub Sampling Rate set.");
 		}

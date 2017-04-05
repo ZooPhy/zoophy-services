@@ -698,6 +698,12 @@ public class BeastRunner {
 	        log.setUseParentHandlers(false);
 			log.info("Starting the BEAST test process...");
 			runBeastGen(job.getID()+ALIGNED_FASTA, job.getID()+INPUT_XML, job.getXMLOptions().getSubstitutionModel());
+			if (!job.getXMLOptions().isDefault()) {
+				log.info("Running XML Parameter Modifier...");
+				File beastInputFile = new File(JOB_WORK_DIR+job.getID()+INPUT_XML);
+				XMLParameterModifier xmlModifier = new XMLParameterModifier(beastInputFile);
+				xmlModifier.setCustomXMLParameters(job.getXMLOptions());
+			}
 			log.info("Adding location trait...");
 			DiscreteTraitInserter traitInserter = new DiscreteTraitInserter(job);
 			traitInserter.addLocation();
