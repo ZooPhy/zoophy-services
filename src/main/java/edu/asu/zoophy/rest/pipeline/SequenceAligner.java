@@ -104,6 +104,7 @@ public class SequenceAligner {
 	        log.setUseParentHandlers(false);
 			log.info("Starting Mafft Job: "+job.getID());
 			List<GenBankRecord>recs = loadSequences(accessions, true, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
+			log.info("After screening job includes: "+recs.size()+" records.");
 			String rawFasta = fastaFormat(recs, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
 			createCoordinatesFile();
 			if (job.isUsingGLM()) {
