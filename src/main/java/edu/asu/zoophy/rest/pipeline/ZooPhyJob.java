@@ -17,8 +17,9 @@ public final class ZooPhyJob {
 	private final boolean USE_GLM;
 	private final boolean USE_CUSTOM_PREDICTORS;
 	private final Map<String, List<Predictor>> predictors;
+	private final XMLParameters XML_OPTIONS;
 	
-	public ZooPhyJob(String id, String name, String email, boolean useGLM, Map<String, List<Predictor>> predictors) {
+	public ZooPhyJob(String id, String name, String email, boolean useGLM, Map<String, List<Predictor>> predictors, XMLParameters xmlOptions) {
 		ID = id;
 		JOB_NAME = name;
 		REPLY_EMAIL = email;
@@ -31,6 +32,7 @@ public final class ZooPhyJob {
 			this.predictors = predictors;
 			USE_CUSTOM_PREDICTORS = true;
 		}
+		XML_OPTIONS = xmlOptions;
 	}
 	
 	public String getID() {
@@ -55,6 +57,10 @@ public final class ZooPhyJob {
 
 	public Map<String, List<Predictor>> getPredictors() {
 		return predictors;
+	}
+	
+	public XMLParameters getXMLOptions() {
+		return XML_OPTIONS;
 	}
 	
 }

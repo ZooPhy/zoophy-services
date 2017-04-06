@@ -239,7 +239,7 @@ public class ZooPhyController {
     			log.warning("Bad XML Parameters: "+pe.getMessage());
     			throw pe;
     		}
-	    	zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors());
+	    	zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors(), parameters.getXmlOptions());
 	    	Set<String> jobAccessions = new LinkedHashSet<String>(parameters.getAccessions().size());
 	    	for(String accession : parameters.getAccessions()) {
 	    		if  (security.checkParameter(accession, Parameter.ACCESSION)) {
@@ -270,7 +270,7 @@ public class ZooPhyController {
      * @throws PipelineException
      * @throws ParameterException
      */
-    @RequestMapping(value="/stop", method=RequestMethod.GET)
+    @RequestMapping(value="/stop", method=RequestMethod.DELETE)
     @ResponseStatus(value=HttpStatus.OK)
     public String stopZooPhyJob(@RequestParam(value="id") String jobID) throws PipelineException, ParameterException {
     	if (security.checkParameter(jobID, Parameter.JOB_ID)) {
@@ -400,8 +400,9 @@ public class ZooPhyController {
      */
     @RequestMapping(value="/validate", method=RequestMethod.POST, headers="Accept=application/json")
     @ResponseStatus(value=HttpStatus.OK)
-    public String validateJob(@RequestBody JobParameters parameters) throws ParameterException, PipelineException {
+    public ValidationResults validateJob(@RequestBody JobParameters parameters) throws ParameterException, PipelineException {
     	log.info("Validating job...");
+    	ValidationResults results = new ValidationResults();
     	try {
 	    	if (security.checkParameter(parameters.getReplyEmail(), Parameter.EMAIL)) {
 	    		ZooPhyRunner zoophy;
@@ -418,7 +419,7 @@ public class ZooPhyController {
 	    			log.warning("Bad XML Parameters: "+pe.getMessage());
 	    			throw pe;
 	    		}
-		    	zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors());
+		    	zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors(), parameters.getXmlOptions());
 		    	Set<String> jobAccessions = new LinkedHashSet<String>(parameters.getAccessions().size());
 		    	for(String accession : parameters.getAccessions()) {
 		    		if  (security.checkParameter(accession, Parameter.ACCESSION)) {
@@ -433,8 +434,11 @@ public class ZooPhyController {
 		    		log.warning("Job accession list is too long.");
 		    		throw new ParameterException("accessions list is too long");
 		    	}
-		    	zoophy.testZooPhy(new ArrayList<String>(jobAccessions), dao, indexSearcher);
-		    	return null;
+		    	Set<String> remainingAccessions = zoophy.testZooPhy(new ArrayList<String>(jobAccessions), dao, indexSearcher);
+		    	jobAccessions.removeAll(remainingAccessions);
+		    	results.setAccessionsRemoved(new LinkedList<String>(jobAccessions));
+		    	results.setAccessionsUsed(new LinkedList<String>(remainingAccessions));
+		    	return results;
 	    	}
 	    	else {
 	    		log.warning("Bad reply email parameter: "+parameters.getReplyEmail());
@@ -442,27 +446,34 @@ public class ZooPhyController {
 	    	}
     	}
     	catch (ParameterException pe) {
-    		return pe.getMessage();
+    		results.setError(pe.getMessage());
+    		return results;
     	}
     	catch (GLMException glme) {
     		if (glme.getUserMessage() != null) {
-    			return glme.getUserMessage();
+    			results.setError(glme.getMessage());
+        		return results;
     		}
     		else {
-    			return "GLM Tools Failed";
+    			results.setError("GLM Tools Failed");
+        		return results;
     		}
     	}
     	catch (PipelineException pe) {
     		if (pe.getUserMessage() != null) {
-    			return pe.getUserMessage();
+    			results.setError(pe.getUserMessage());
+    			return results;
+    			
     		}
     		else {
-    			return "ZooPhy Pipeline Failed";
+    			results.setError("ZooPhy Pipeline Failed");
+    			return results;
     		}
     	}
     	catch (Exception e) {
     		log.warning("Unknown Pipeline error occurred: "+e.getMessage());;
-    		return "Unkown Error occurred";
+    		results.setError("Unkown Error occurred");
+    		return results;
     	}
     }
     

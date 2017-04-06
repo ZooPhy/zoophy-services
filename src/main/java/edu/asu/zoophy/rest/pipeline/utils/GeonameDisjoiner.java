@@ -2,6 +2,7 @@ package edu.asu.zoophy.rest.pipeline.utils;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -28,6 +29,8 @@ public class GeonameDisjoiner {
 	private final int MAX_STATES;
 	private Map<String,Set<Long>> ancestors;
 	private final Map<String, Long> US_STATES;
+	private final long BAD_DISJOIN = -1L;
+	private Iterator<GenBankRecord> recordIter = null;
 	
 	public GeonameDisjoiner(LuceneSearcher indexSearcher) throws PipelineException {
 		this.indexSearcher = indexSearcher;
@@ -55,22 +58,23 @@ public class GeonameDisjoiner {
 			String commonType = null;
 			int maxType = 0;
 			try {
-				for (int i = 0; i < recordsToCheck.size(); i++) {
-					GenBankRecord record = recordsToCheck.get(i);
+				recordIter = recordsToCheck.listIterator();
+				while (recordIter.hasNext()) {
+					GenBankRecord record = recordIter.next();
 					if (record.getGeonameLocation() == null || Normalizer.normalizeLocation(record.getGeonameLocation()).equalsIgnoreCase("unknown") || record.getGeonameLocation().getGeonameType() == null) {
-						recordsToCheck.remove(i);
+						recordIter.remove();
 					}
 					else {
 						Set<Long> recordAncestors;
 						try {
 							recordAncestors = indexSearcher.findLocationAncestors(record.getAccession());
 							if (recordAncestors == null) {
-								recordsToCheck.remove(i);
+								recordIter.remove();
 							}
 							else {
 								recordAncestors.remove(record.getGeonameLocation().getGeonameID());
 								if (recordAncestors.isEmpty()) {
-									recordsToCheck.remove(i);
+									recordIter.remove();
 								}
 								else {
 									String type = record.getGeonameLocation().getGeonameType();
@@ -87,6 +91,7 @@ public class GeonameDisjoiner {
 						}
 					}
 				}
+				recordIter = null;
 			}
 			catch (PipelineException pe) {
 				throw pe;
@@ -106,13 +111,14 @@ public class GeonameDisjoiner {
 				}
 			}
 			try {
-				for (int i = 0; i < recordsToCheck.size(); i++) {
-					GenBankRecord record = recordsToCheck.get(i);
+				recordIter = recordsToCheck.listIterator();
+				while (recordIter.hasNext()) {
+					GenBankRecord record = recordIter.next();
 					Location recordLocation = record.getGeonameLocation();
 					boolean isDisjoint = true;
 					if (hierarchy.isParent(commonType, record.getGeonameLocation().getGeonameType())) {
 						isDisjoint = false;
-						recordsToCheck.remove(i);
+						recordIter.remove();
 					}
 					else {
 						for (Location parent : locations) {
@@ -129,6 +135,7 @@ public class GeonameDisjoiner {
 						locations.add(recordLocation);
 					}
 				}
+				recordIter = null;
 			}
 			catch (GeoHierarchyException ghe) {
 				throw new GeoHierarchyException(ghe.getMessage(), "Error Filtering Locations");
@@ -157,11 +164,18 @@ public class GeonameDisjoiner {
 					}
 					if (usingDefaultGLM && !removed) {
 						location.setLocation(location.getLocation().toLowerCase());
-						Location stateLocation = convertToState(location);
-						if (!location.getGeonameID().equals(stateLocation.getGeonameID())) {
+						try {
+							Location stateLocation = convertToState(location);
+							if (!location.getGeonameID().equals(stateLocation.getGeonameID())) {
+								locationsToRemove.add(location);
+								locations.add(stateLocation);
+								disjoins.put(location.getGeonameID(), stateLocation.getGeonameID());
+							}
+						}
+						catch (GLMException glme) {
 							locationsToRemove.add(location);
-							locations.add(stateLocation);
-							disjoins.put(location.getGeonameID(), stateLocation.getGeonameID());
+							removed = true;
+							disjoins.put(location.getGeonameID(), BAD_DISJOIN);
 						}
 					}
 				}
@@ -194,9 +208,14 @@ public class GeonameDisjoiner {
 				for (Location location : locations) {
 					idToLocation.put(location.getGeonameID(), location.getLocation());
 				}
-				for (GenBankRecord record : recordsToCheck) {
+				recordIter = recordsToCheck.listIterator();
+				while (recordIter.hasNext()) {
+					GenBankRecord record = recordIter.next();
 					Long tempGeonameID = record.getGeonameLocation().getGeonameID();
 					if (disjoins.get(tempGeonameID) != null) {
+						if (disjoins.get(tempGeonameID).longValue() == BAD_DISJOIN) {
+							recordIter.remove();
+						}
 						Long disjointID = null;
 						while (disjoins.get(tempGeonameID) != null) {
 							if (disjoins.get(tempGeonameID) != null) {
@@ -208,6 +227,7 @@ public class GeonameDisjoiner {
 						setLocationName(record, newLoc);
 					}
 				}
+				recordIter = null;
 			}
 			catch (Exception e) {
 				throw new DisjoinerException("Error updating record locations to disjoint locations:\t"+e.getMessage(), "Error Disjoining Locations");
@@ -241,7 +261,6 @@ public class GeonameDisjoiner {
 						found = true;
 						recordLocation.setLocation(state);
 						recordLocation.setGeonameID(US_STATES.get(state));
-						//TODO: updating coordinates may also be an issue to handle later
 					}
 				}
 				if (!found) {
