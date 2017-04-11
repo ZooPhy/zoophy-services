@@ -683,7 +683,6 @@ public class BeastRunner {
 					  killBeast("Process was already terminated.");
 				}
 				else {
-					System.out.println("\nRateTailer read: "+line.trim());
 					try {
 						String[] row = line.trim().split("\t");
 						for (int i = 1; i < row.length; i++) {
