@@ -552,7 +552,7 @@ public class BeastRunner {
 			}
 			File rateLog = new File(rateLogPath);
 			if (rateLog.exists()) {
-				RateTailerListener rateListener = new RateTailerListener(); 
+				RateTailerListener rateListener = new RateTailerListener();
 				rateTail = new Tailer(rateLog, rateListener);
 				System.out.print("Starting rateTailer on "+rateLog.getAbsolutePath());
 				rateTail.run();
@@ -594,12 +594,11 @@ public class BeastRunner {
 	 */
 	private class BeastTailerListener extends TailerListenerAdapter {
 	  boolean reached = false;
-	  String checkPoint = "100000";
 	  boolean finalUpdate = false;
 	  
 	  public void handle(String line) {
 		  if (line != null && !(line.trim().isEmpty() || line.contains("INFO:") || line.contains("usa.ac.asu.dbi.diego.viralcontamination3"))) {
-			  if (line.contains("hours/million states") && (line.trim().startsWith(checkPoint) || reached)) {
+			  if (line.contains("hours/million states") && (reachedCheck(line.trim()) || reached)) {
 				  if (!PipelineManager.checkProcess(job.getID())) {
 					  tail.stop();
 					  killBeast("Process was already terminated.");
@@ -626,7 +625,6 @@ public class BeastRunner {
 					  		  String finishTime = calendar.getTime().toString();
 					  		  sendUpdate(finishTime, finalUpdate);
 					  		  reached = false;
-					  		  checkPoint = "5000000";
 					  		  finalUpdate = true;
 					  	  }
 					  }
@@ -641,6 +639,33 @@ public class BeastRunner {
 		  }
 	  }
 	  
+	  /**
+	   * @return True if tailer checkpoint reached, False otherwise
+	   */
+	  private boolean reachedCheck(String line) {
+		  int checkpoint;
+		  if (finalUpdate) {
+			  checkpoint = job.getXMLOptions().getChainLength() / 2;
+		  }
+		  else {
+			  checkpoint = job.getXMLOptions().getChainLength() / 10;
+		  }
+		  try {
+			  String[] beastColumns = line.split("\t");
+			  int sample = Integer.parseInt(beastColumns[0].trim());
+			  if (sample >= checkpoint) {
+				  return true;
+			  }
+			  else {
+				  return false;
+			  }
+		  }
+		  catch (Exception e) {
+			  log.warning("Error checking for time checkpoint: "+e.getMessage());
+			  return false;
+		  }
+	  }
+	  
 	}
 	
 	/**
@@ -652,7 +677,7 @@ public class BeastRunner {
 		public void handle(String line) {
 			boolean isFailing = true;
 			final double standard = 1.0;
-			if (line != null && line.startsWith("15000")) {
+			if (line != null && line.contains("hours/million states") && reachedCheck(line.trim())) {
 				rateTail.stop();
 				if (!PipelineManager.checkProcess(job.getID())) {
 					  killBeast("Process was already terminated.");
@@ -679,6 +704,27 @@ public class BeastRunner {
 				}
 			}
 		}
+		
+		/**
+		   * @return True if tailer checkpoint reached, False otherwise
+		   */
+		  private boolean reachedCheck(String line) {
+			  int checkpoint = job.getXMLOptions().getChainLength() / 500;
+			  try {
+				  String[] beastColumns = line.split("\t");
+				  int sample = Integer.parseInt(beastColumns[0].trim());
+				  if (sample >= checkpoint) {
+					  return true;
+				  }
+				  else {
+					  return false;
+				  }
+			  }
+			  catch (Exception e) {
+				  log.warning("Error checking for initial checkpoint: "+e.getMessage());
+				  return false;
+			  }
+		  }
 		
 	}
 
