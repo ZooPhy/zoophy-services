@@ -89,11 +89,10 @@ public class SequenceAligner {
 	 * 4) MAFFT sequence alignment
 	 * @param accessions - record sequences to be included in FASTA
 	 * @param isTest - True iff actual alignment can be skipped for a test run
-	 * @return file path to aligned .fasta file
+	 * @return Final List of Records to be used in the Job
 	 * @throws PipelineException
 	 */
-	public String align(List<String> accessions, boolean isTest) throws PipelineException {
-		String alignedFastaPath;
+	public List<GenBankRecord> align(List<String> accessions, boolean isTest) throws PipelineException {
 		FileHandler fileHandler = null;
 		try {
 			logFile = new File(JOB_LOG_DIR+job.getID()+".log");
@@ -104,16 +103,17 @@ public class SequenceAligner {
 	        log.setUseParentHandlers(false);
 			log.info("Starting Mafft Job: "+job.getID());
 			List<GenBankRecord>recs = loadSequences(accessions, true, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
+			log.info("After screening job includes: "+recs.size()+" records.");
 			String rawFasta = fastaFormat(recs, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
 			createCoordinatesFile();
 			if (job.isUsingGLM()) {
 				createGLMFile(job.isUsingGLM() && !job.isUsingCustomPredictors());
 			}
 			if (isTest) {
-				alignedFastaPath = fakeMafft(rawFasta);
+				fakeMafft(rawFasta);
 			}
 			else {
-				alignedFastaPath = runMafft(rawFasta);
+				runMafft(rawFasta);
 			}
 			log.info("Mafft Job: "+job.getID()+" has finished.");
 			log.info("Deleting raw fasta...");
@@ -127,6 +127,7 @@ public class SequenceAligner {
 			}
 			log.info("Mafft process complete");
 			fileHandler.close();
+			return recs;
 		}
 		catch (PipelineException pe) {
 			log.log(Level.SEVERE, "ERROR! Mafft process failed: "+pe.getMessage());
@@ -134,14 +135,13 @@ public class SequenceAligner {
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "ERROR! Mafft process failed: "+e.getMessage());
-			throw new AlignerException(e.getMessage(), null);
+			throw new AlignerException(e.getMessage(), "ERROR Mafft process failed.");
 		}
 		finally {
 			if (fileHandler != null) {
 				fileHandler.close();
 			}
 		}
-		return alignedFastaPath;
 	}
 
 	/**

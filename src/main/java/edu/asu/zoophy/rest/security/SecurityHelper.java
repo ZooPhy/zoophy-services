@@ -16,9 +16,9 @@ public class SecurityHelper {
 	
 	private static final String ACCESSION_REGEX = "^([A-Z]|\\d|_|\\.){5,10}+$";
 	private static final String LUCENE_REGEX = "^(\\w| |:|\\[|\\]|\\(|\\)){5,5000}+$";
-	private static final String EMAIL_REGEX = "^[-a-z0-9~!$%^&*_=+}{\\'?]+(\\.[-a-z0-9~!$%^&*_=+}{\\'?]+)*@([a-z0-9_][-a-z0-9_]*(\\.[-a-z0-9_]+[a-z][a-z])|([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}))(:[0-9]{1,5})?$";
+	private static final String EMAIL_REGEX = "^[^@\\s]+@[^@\\s]+\\.[^@\\s]++$";
 	private static final String JOB_NAME_REGEX = "^(\\w| |-|_|#|&){3,255}+$";
-	private static final String JOB_ID_REGEX = "^\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12}$";
+	private static final String JOB_ID_REGEX = "^\\w{8}+-\\w{4}+-\\w{4}+-\\w{4}+-\\w{12}+$";
 	
 	/**
 	 * Verifies parameters via regular expression

@@ -32,6 +32,7 @@ public class DiscreteTraitInserter {
 	private Set<String> locations;
 	private Document document;
 	private Node beastNode;
+	private final String LOG_EVERY;
 
 	public DiscreteTraitInserter(ZooPhyJob job) throws TraitException {
 		try {
@@ -42,6 +43,7 @@ public class DiscreteTraitInserter {
 			DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
 			document = docBuilder.parse(DOCUMENT_PATH);
 			beastNode = document.getElementsByTagName("beast").item(0);
+			LOG_EVERY = String.valueOf(job.getXMLOptions().getSubSampleRate());
 		}
 		catch (Exception e) {
 			throw new TraitException("Error initializing DiscreteTraitInserter: "+e.getMessage(), null);
@@ -49,11 +51,20 @@ public class DiscreteTraitInserter {
 	}
 
 	/**
-	 * Inserts locations as a discrete trait named States
+	 * Inserts locations as a discrete trait named States.
+	 * Can only be called once per DiscreteTraitInserter instance.
 	 */
 	public void addLocation() throws TraitException {
-		addTrait("states");
-		saveChanges();
+		if (document == null) {
+			throw new TraitException("Error adding Location trait: NULL document.", "Error adding Location trait.");
+		}
+		if (beastNode == null) {
+			throw new TraitException("Error adding Location trait: NULL beastNode.", "Error adding Location trait.");
+		}
+		addTrait("states", job.getXMLOptions().getSubstitutionModel());
+		saveChanges(document, DOCUMENT_PATH);
+		document = null;
+		beastNode = null;
 	}
 	
 	/**
@@ -61,9 +72,9 @@ public class DiscreteTraitInserter {
 	 * @param traitName
 	 * @throws TraitException
 	 */
-	private void addTrait(String traitName) throws TraitException {
+	private void addTrait(String traitName, BeastSubstitutionModel substitutionModel) throws TraitException {
 		try {
-			//I tried to make this block readable, but it was an especially convoluted process. Will refactor at some point for readability.
+			//TODO: take sub model into account to work for GTR as well as current HKY
 			String baseName = job.getID()+"-aligned";
 			//add trait to taxa list
 			int numTaxa = 0;
@@ -437,7 +448,7 @@ public class DiscreteTraitInserter {
 			mcmc.insertBefore(startComment.cloneNode(true), treeLog);
 			Element traitLog = document.createElement("log");
 			traitLog.setAttribute("id", baseName+"."+traitName+"rateMatrixLog");
-			traitLog.setAttribute("logEvery", "1000");
+			traitLog.setAttribute("logEvery", LOG_EVERY);
 			traitLog.setAttribute("fileName", baseName+"."+traitName+".rates.log");
 			traitLog.appendChild(productStatisticRatesParameter.cloneNode(false));
 			traitLog.appendChild(sumParameter.cloneNode(false));
@@ -465,17 +476,21 @@ public class DiscreteTraitInserter {
 		}
 	}
 
-	private void saveChanges() throws TraitException {
+	/**
+	 * Saves updated XML in updatedDocument to the XML file at documentPath
+	 * @param updatedDocument
+	 * @param documentPath
+	 * @throws TraitException
+	 */
+	protected static void saveChanges(Document updatedDocument, String documentPath) throws TraitException {
 		try {
 			TransformerFactory transformerFactory = TransformerFactory.newInstance();
 			Transformer transformer = transformerFactory.newTransformer();
 			transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
 			transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-			DOMSource source = new DOMSource(document);
-			StreamResult result = new StreamResult(new File(DOCUMENT_PATH));
+			DOMSource source = new DOMSource(updatedDocument);
+			StreamResult result = new StreamResult(new File(documentPath));
 			transformer.transform(source, result);
-			beastNode = null;
-			document = null;
 		} 
 		catch (Exception e) {
 			throw new TraitException("ERROR could not save updated XML: "+e.getMessage(), null);

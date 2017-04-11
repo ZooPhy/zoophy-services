@@ -1,12 +1,15 @@
 package edu.asu.zoophy.rest.pipeline;
 
 import java.io.File;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
+import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.index.LuceneSearcher;
 import edu.asu.zoophy.rest.pipeline.glm.GLMFigureGenerator;
 import edu.asu.zoophy.rest.pipeline.glm.Predictor;
@@ -21,10 +24,10 @@ public class ZooPhyRunner {
 	private final ZooPhyMailer mailer;
 	private final Logger log;
 
-	public ZooPhyRunner(String replyEmail, String jobName, boolean useGLM, Map<String, List<Predictor>> predictors) throws PipelineException {
+	public ZooPhyRunner(String replyEmail, String jobName, boolean useGLM, Map<String, List<Predictor>> predictors, XMLParameters xmlOptions) throws PipelineException {
 		log = Logger.getLogger("ZooPhyRunner");
 		log.info("Initializing ZooPhy Job");
-		job = new ZooPhyJob(generateID(),jobName,replyEmail, useGLM, predictors);
+		job = new ZooPhyJob(generateID(),jobName,replyEmail, useGLM, predictors, xmlOptions);
 		log.info("Initializing ZooPhyMailer... : "+job.getID());
 		mailer = new ZooPhyMailer(job);
 	}
@@ -108,17 +111,22 @@ public class ZooPhyRunner {
 	 * @param indexSearcher
 	 * @throws PipelineException
 	 */
-	public void testZooPhy(List<String> accessions, ZooPhyDAO dao, LuceneSearcher indexSearcher) throws PipelineException {
+	public Set<String> testZooPhy(List<String> accessions, ZooPhyDAO dao, LuceneSearcher indexSearcher) throws PipelineException {
 		try {
 			log.info("Initializing test Sequence Aligner... : "+job.getID());
 			SequenceAligner aligner = new SequenceAligner(job, dao, indexSearcher);
 			log.info("Running test Sequence Aligner... : "+job.getID());
-			aligner.align(accessions, true);
+			final List<GenBankRecord> finalRecs = aligner.align(accessions, true);
 			log.info("Initializing test Beast Runner... : "+job.getID());
 			BeastRunner beast = new BeastRunner(job, null);
 			log.info("Starting test Beast Runner... : "+job.getID());
 			beast.test();
 			log.info("ZooPhy Job Test completed successfully: "+job.getID());
+			Set<String> usedAccessions = new HashSet<String>((int)(finalRecs.size()*1.1), 1.0f);
+			for (GenBankRecord rec : finalRecs) {
+				usedAccessions.add(rec.getAccession());
+			}
+			return usedAccessions;
 		}
 		catch (PipelineException pe) {
 			log.log(Level.SEVERE, "PipelineException for test job: "+job.getID()+" : "+pe.getMessage());

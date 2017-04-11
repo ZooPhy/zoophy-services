@@ -91,7 +91,13 @@ public class BeastRunner {
 	        log.addHandler(fileHandler);
 	        log.setUseParentHandlers(false);
 			log.info("Starting the BEAST process...");
-			runBeastGen(job.getID()+ALIGNED_FASTA, job.getID()+INPUT_XML);
+			runBeastGen(job.getID()+ALIGNED_FASTA, job.getID()+INPUT_XML, job.getXMLOptions().getSubstitutionModel());
+			if (!job.getXMLOptions().isDefault()) {
+				log.info("Running XML Parameter Modifier...");
+				File beastInputFile = new File(JOB_WORK_DIR+job.getID()+INPUT_XML);
+				XMLParameterModifier xmlModifier = new XMLParameterModifier(beastInputFile);
+				xmlModifier.setCustomXMLParameters(job.getXMLOptions());
+			}
 			log.info("Adding location trait...");
 			DiscreteTraitInserter traitInserter = new DiscreteTraitInserter(job);
 			traitInserter.addLocation();
@@ -152,16 +158,19 @@ public class BeastRunner {
 	 * Generates an input.xml file to feed into BEAST
 	 * @param fastaFile
 	 * @param beastInput
+	 * @param beastSubstitutionModel 
 	 * @throws BeastException
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	private void runBeastGen(String fastaFile, String beastInput) throws BeastException, IOException, InterruptedException {
+	private void runBeastGen(String fastaFile, String beastInput, BeastSubstitutionModel substitutionModel) throws BeastException, IOException, InterruptedException {
 		String workingDir =  "../ZooPhyJobs/";
 		File beastGenDir = new File(System.getProperty("user.dir")+"/BeastGen");
 		filesToCleanup.add(JOB_WORK_DIR+fastaFile);
+		//String template = substitutionModel.toString() + ".template"; //TODO add/change templates
+		String template = "beastgen.template";
 		log.info("Running BEASTGen...");
-		ProcessBuilder builder = new ProcessBuilder("java", "-jar", "beastgen.jar", "-date_order", "4", "beastgen.template", workingDir+fastaFile, workingDir+beastInput).directory(beastGenDir);
+		ProcessBuilder builder = new ProcessBuilder("java", "-jar", "beastgen.jar", "-date_order", "4", template, workingDir+fastaFile, workingDir+beastInput).directory(beastGenDir);
 		builder.redirectOutput(Redirect.appendTo(logFile));
 		builder.redirectError(Redirect.appendTo(logFile));
 		log.info("Starting Process: "+builder.command().toString());
@@ -221,7 +230,7 @@ public class BeastRunner {
 		    beastGLMProcess.waitFor();
 			if (beastGLMProcess.exitValue() != 0) {
 				log.log(Level.SEVERE, "BEAST GLM failed! with code: "+beastGLMProcess.exitValue());
-				throw new GLMException("BEAST GLM failed! with code: "+beastGLMProcess.exitValue(), "BEAST GLM failed");
+				throw new GLMException("BEAST GLM failed! with code: "+beastGLMProcess.exitValue(), "BEAST_GLM failed!");
 			}
 			filesToCleanup.add(GLM_PATH);
 			filesToCleanup.add(JOB_WORK_DIR+job.getID()+GLM_SUFFIX+INPUT_XML);
@@ -688,7 +697,13 @@ public class BeastRunner {
 	        log.addHandler(fileHandler);
 	        log.setUseParentHandlers(false);
 			log.info("Starting the BEAST test process...");
-			runBeastGen(job.getID()+ALIGNED_FASTA, job.getID()+INPUT_XML);
+			runBeastGen(job.getID()+ALIGNED_FASTA, job.getID()+INPUT_XML, job.getXMLOptions().getSubstitutionModel());
+			if (!job.getXMLOptions().isDefault()) {
+				log.info("Running XML Parameter Modifier...");
+				File beastInputFile = new File(JOB_WORK_DIR+job.getID()+INPUT_XML);
+				XMLParameterModifier xmlModifier = new XMLParameterModifier(beastInputFile);
+				xmlModifier.setCustomXMLParameters(job.getXMLOptions());
+			}
 			log.info("Adding location trait...");
 			DiscreteTraitInserter traitInserter = new DiscreteTraitInserter(job);
 			traitInserter.addLocation();
@@ -703,7 +718,6 @@ public class BeastRunner {
 			else {
 				log.info("Job is not using GLM.");
 			}
-			// TODO: maybe try starting BEAST? -> will likely take too long
 		}
 		catch (PipelineException pe) {
 			log.log(Level.SEVERE, "BEAST test process failed: "+pe.getMessage());

@@ -54,7 +54,7 @@ public class PredictorGenerator {
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "ERROR generating predictors file: "+e.getMessage());
-			throw new GLMException("ERROR generating predictors file: "+e.getMessage(), null);
+			throw new GLMException("ERROR generating predictors file: "+e.getMessage(), "Error generating predictors file.");
 		}
 	}
 
@@ -123,7 +123,7 @@ public class PredictorGenerator {
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "Failed to load Predictors: "+e.getMessage());
-			throw new GLMException("Failed to load Predictors: "+e.getMessage(), null);
+			throw new GLMException("Failed to load Predictors: "+e.getMessage(), "Error loading Predictors");
 		}
 	}
 	
@@ -151,7 +151,7 @@ public class PredictorGenerator {
 				StatePredictor predictors = statePredictors.get(state);
 				if (hasNull(predictors)) {
 					log.log(Level.SEVERE, "Found null Predictor for : "+state);
-					throw new GLMException("Found null Predictor for : "+state, null);
+					throw new GLMException("Found null Predictor for : "+state, "Found null Predictor for : "+state);
 				}
 				txtBuilder.append(predictors.getLatitude() + DELIMITER);
 				txtBuilder.append(predictors.getLongitude() + DELIMITER);
@@ -167,7 +167,7 @@ public class PredictorGenerator {
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "Failed to write Predictors: "+e.getMessage());
-			throw new GLMException("Failed to write Predictors: "+e.getMessage(), null);
+			throw new GLMException("Failed to write Predictors: "+e.getMessage(), "Error writing Predictors file.");
 		}
 		finally {
 			if (predictorWriter != null) {

@@ -51,12 +51,17 @@ public class ZooPhyMailer {
 		log.info("Sending start email to: "+job.getReplyEmail());
 		try {
 	        String messageText;
+	        messageText = "\nThank you for submitting ZooPhy Job Name: "+getCustomName()+".\nYour results will be sent as soon as the job is finished.";
 	        if (!getCustomName().equals(job.getID())) {
-	        	messageText = "\nThank you for submitting ZooPhy Job Name: "+getCustomName()+".\nYour results will be sent as soon as the job is finished.\nNote: The Job ID for your ZooPhy Job is: "+job.getID()+"\n\nThank You,\n\nZooPhy Lab";
+	        	messageText += "\nNote: The Job ID for your ZooPhy Job is: "+job.getID();
+	        }
+	        if (job.isUsingGLM()) {
+	        	messageText += "\nNote: GLM features were enabled for this ZooPhy Job.";
 	        }
 	        else {
-	        	messageText = "\nThank you for submitting ZooPhy Job ID: "+getCustomName()+".\nYour results will be sent as soon as the job is finished.\n\nThank You,\n\nZooPhy Lab";
+	        	messageText += "\nNote: GLM were NOT enabled for this ZooPhy Job.";
 	        }
+	        messageText += "\n\nThank You,\n\nZooPhy Lab";
 	        sendEmail(messageText, null);    
 		}
 		catch (Exception e) {

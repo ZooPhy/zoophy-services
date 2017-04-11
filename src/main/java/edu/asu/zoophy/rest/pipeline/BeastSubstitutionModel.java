@@ -4,8 +4,7 @@ package edu.asu.zoophy.rest.pipeline;
  * Allowed BEAST Substitution Models
  * @author devdemetri
  */
-public enum BEASTSubstitutionModel {
+public enum BeastSubstitutionModel {
 	HKY,
-	GTR,
-	TN93;
+	GTR;
 }
