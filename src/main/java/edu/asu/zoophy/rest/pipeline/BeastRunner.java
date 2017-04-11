@@ -677,7 +677,7 @@ public class BeastRunner {
 		public void handle(String line) {
 			boolean isFailing = true;
 			final double standard = 1.0;
-			if (line != null && line.contains("hours/million states") && reachedCheck(line.trim())) {
+			if (line != null && reachedCheck(line.trim())) {
 				rateTail.stop();
 				if (!PipelineManager.checkProcess(job.getID())) {
 					  killBeast("Process was already terminated.");
