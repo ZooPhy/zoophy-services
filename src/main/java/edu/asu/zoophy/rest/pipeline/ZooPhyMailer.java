@@ -59,7 +59,7 @@ public class ZooPhyMailer {
 	        	messageText += "\nNote: GLM features were enabled for this ZooPhy Job.";
 	        }
 	        else {
-	        	messageText += "\nNote: GLM were NOT enabled for this ZooPhy Job.";
+	        	messageText += "\nNote: GLM features were NOT enabled for this ZooPhy Job.";
 	        }
 	        messageText += "\n\nThank You,\n\nZooPhy Lab";
 	        sendEmail(messageText, null);    
