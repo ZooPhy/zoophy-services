@@ -320,7 +320,7 @@ public class ZooPhyController {
 	    		else {
 	    			log.warning("Bad accession parameter: "+accession);
 	    			throw new ParameterException(accession);
-	    		} 
+	    		}
     		}
     		accessions = new LinkedList<String>(downloadAccessions);
     		downloadAccessions.clear();
