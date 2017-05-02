@@ -32,7 +32,7 @@ public class ZooPhyDAO {
 	private static final String PULL_STATE_PREDICTORS = "SELECT \"Key\", \"Value\", \"State\", \"Year\" FROM \"Predictor\" WHERE \"State\"=?";
 	private static final String TEST_QUERY = "SELECT DISTINCT(\"Accession\") FROM \"Sequence_Details\" LIMIT 500";
 	
-	private Logger log = Logger.getLogger("ZooPhyDAO");
+	private static final Logger log = Logger.getLogger("ZooPhyDAO");
 	
 	/**
 	 * Tests connection to SQL Database

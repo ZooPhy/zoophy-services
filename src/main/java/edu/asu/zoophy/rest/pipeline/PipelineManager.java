@@ -27,7 +27,7 @@ public class PipelineManager {
 	@Autowired
 	private LuceneSearcher indexSearcher;
 	
-	private static Logger log = Logger.getLogger("PipelineManager");
+	private final static Logger log = Logger.getLogger("PipelineManager");
 	
 	/**
 	 * Map for tracking running jobs

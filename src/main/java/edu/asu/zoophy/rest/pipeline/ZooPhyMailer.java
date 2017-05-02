@@ -35,7 +35,7 @@ public class ZooPhyMailer {
 	private final Logger log;
 	
 	public ZooPhyMailer(ZooPhyJob job) throws PipelineException {
-		log = Logger.getLogger("ZooPhyMailer");
+		log = Logger.getLogger("ZooPhyMailer"+job.getID());
 		this.job = job;
 		PropertyProvider property = PropertyProvider.getInstance();
 		USERNAME = property.getProperty("email.user");

@@ -14,12 +14,11 @@ import java.util.logging.Logger;
  */
 public class PropertyProvider {
 	
-	private static Logger log;
+	private final static Logger log = Logger.getLogger("PropertyProvider");
 	private static Map<String, String> properties;
 	private static PropertyProvider provider = null;
 	
 	private PropertyProvider() throws PipelineException {
-		log = Logger.getLogger("PropertyProvider");
 		properties = new HashMap<String, String>();
 		String propertiesPath = System.getProperty("user.dir") + "/config/application.properties";
 		File propertiesFile = new File(propertiesPath);

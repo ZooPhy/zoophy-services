@@ -25,11 +25,11 @@ import edu.asu.zoophy.rest.pipeline.glm.GLMException;
 public class GeonameDisjoiner {
 
 	private final LuceneSearcher indexSearcher;
-	private static final GeoHierarchy hierarchy = GeoHierarchy.getInstance();
+	private final GeoHierarchy hierarchy = GeoHierarchy.getInstance();
 	private final int MAX_STATES;
-	private Map<String,Set<Long>> ancestors;
 	private final Map<String, Long> US_STATES;
 	private final long BAD_DISJOIN = -1L;
+	private Map<String,Set<Long>> ancestors = null;
 	private Iterator<GenBankRecord> recordIter = null;
 	
 	public GeonameDisjoiner(LuceneSearcher indexSearcher) throws PipelineException {

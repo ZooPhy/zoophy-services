@@ -28,12 +28,12 @@ public class GLMFigureGenerator {
 	private final String JOB_WORK_DIR;
 	private final String DAN_R_SCRIPT;
 	private final String DAN_BASH_SCRIPT;
-	private Set<String> filesToCleanup;
-	private Logger log;
-	private File logFile;
+	private final Logger log;
+	private final File logFile;
 	private final String baseName;
+	private Set<String> filesToCleanup = null;
 	
-	public GLMFigureGenerator(ZooPhyJob job) throws PipelineException {
+	public GLMFigureGenerator(final ZooPhyJob job) throws PipelineException {
 		PropertyProvider provider = PropertyProvider.getInstance();
 		JOB_LOG_DIR = provider.getProperty("job.logs.dir");
 		BEAST_SCRIPTS_DIR = provider.getProperty("beast.scripts.dir");
@@ -41,9 +41,10 @@ public class GLMFigureGenerator {
 		DAN_BASH_SCRIPT = System.getProperty("user.dir")+"/make_table.sh";
 		JOB_WORK_DIR = System.getProperty("user.dir")+"/ZooPhyJobs/";
 		filesToCleanup = new LinkedHashSet<String>();
-		log = Logger.getLogger("GLMFigureGenerator");
+		log = Logger.getLogger("GLMFigureGenerator"+job.getID());
 		this.job = job;
 		baseName = JOB_WORK_DIR+job.getID()+"_GLMedits_states";
+		logFile = new File(JOB_LOG_DIR+job.getID()+".log");
 	}
 	
 	/**
@@ -55,7 +56,6 @@ public class GLMFigureGenerator {
 		File figure = null;
 		FileHandler fileHandler = null;
 		try {
-			logFile = new File(JOB_LOG_DIR+job.getID()+".log");
 			fileHandler = new FileHandler(JOB_LOG_DIR+job.getID()+".log", true);
 			SimpleFormatter formatter = new SimpleFormatter();
 	        fileHandler.setFormatter(formatter);

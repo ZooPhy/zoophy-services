@@ -17,7 +17,7 @@ import edu.asu.zoophy.rest.database.ZooPhyDAO;
  */
 public class PredictorGenerator {
 	
-	private static Logger log = Logger.getLogger("PredictorGenerator");
+	private final static Logger log = Logger.getLogger("PredictorGenerator");
 	final private int START_YEAR;
 	final private int END_YEAR;
 	final private String TXT_FILE_PATH;

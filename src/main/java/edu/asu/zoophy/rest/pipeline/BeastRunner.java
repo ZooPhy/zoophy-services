@@ -68,7 +68,7 @@ public class BeastRunner {
 		FIGTREE_TEMPLATE = System.getProperty("user.dir")+"/Templates/figtreeBlock.template";
 		SPREAD3 = provider.getProperty("spread3.jar");
 		GLM_SCRIPT = provider.getProperty("glm.script");
-		log = Logger.getLogger("BeastRunner");
+		log = Logger.getLogger("BeastRunner"+job.getID());
 		this.mailer = mailer;
 		this.job = job;
 		filesToCleanup = new LinkedHashSet<String>();

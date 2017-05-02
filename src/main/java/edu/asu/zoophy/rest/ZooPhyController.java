@@ -69,7 +69,7 @@ public class ZooPhyController {
 	@Autowired
 	private PredictorTemplateGenerator templateGenerator;
 	
-	private static Logger log = Logger.getLogger("ZooPhyController");
+	private final static Logger log = Logger.getLogger("ZooPhyController");
 	
 	/**
 	 * Simple check that REST services are running

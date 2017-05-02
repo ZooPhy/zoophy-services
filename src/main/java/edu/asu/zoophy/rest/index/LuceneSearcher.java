@@ -40,7 +40,7 @@ public class LuceneSearcher {
 	
 	private Directory indexDirectory;
 	private QueryParser queryParser;
-	private Logger log = Logger.getLogger("LuceneSearcher");
+	private final static Logger log = Logger.getLogger("LuceneSearcher");
 	
 	public LuceneSearcher(@Value("${lucene.index.location}") String indexLocation) throws LuceneSearcherException {
 		try {

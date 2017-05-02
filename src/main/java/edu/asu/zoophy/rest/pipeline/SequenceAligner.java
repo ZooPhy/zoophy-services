@@ -59,7 +59,7 @@ public class SequenceAligner {
 		this.indexSearcher = indexSearcher;
 		PropertyProvider provider = PropertyProvider.getInstance();
 		JOB_LOG_DIR = provider.getProperty("job.logs.dir");
-		log = Logger.getLogger("SequenceAligner");
+		log = Logger.getLogger("SequenceAligner"+job.getID());
 		uniqueGeonames = new LinkedHashSet<String>();
 		geonameCoordinates = new HashMap<String,String>();
 		if (job.isUsingGLM() && !job.isUsingCustomPredictors()) {
