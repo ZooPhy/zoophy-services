@@ -234,36 +234,4 @@
 		</property>
 	</report>
 	
-	<!-- Define marginal likelihood estimator (PS/SS) settings                   -->
-    <marginalLikelihoodEstimator chainLength="${chain_length}" pathSteps="100" pathScheme="betaquantile" alpha="0.3" printOperatorAnalysis="true">
-	    <samplers>
-	    	<mcmc idref="mcmc"/>
-	    </samplers>
-        <pathLikelihood id="pathLikelihood">
-        	<source>
-            	<posterior idref="posterior"/>
-            </source>
-            <destination>
-                            <prior idref="prior"/>
-            </destination>
-        </pathLikelihood>
-        <log id="MLELog" logEvery="${log_every}" fileName="${filename_stem}.mle.log">
-                        <pathLikelihood idref="pathLikelihood"/>
-        </log>
-    </marginalLikelihoodEstimator>
- 
-    <!-- Path sampling estimator from collected samples                          -->
-    <pathSamplingAnalysis fileName="${filename_stem}.mle.log">
-	    <likelihoodColumn name="pathLikelihood.delta"/>
-	    <thetaColumn name="pathLikelihood.theta"/>
-    </pathSamplingAnalysis>
- 
-    <!-- Stepping-stone sampling estimator from collected samples                -->
-    <steppingStoneSamplingAnalysis fileName="${filename_stem}.mle.log">
-	    <likelihoodColumn name="pathLikelihood.delta"/>
-	    <thetaColumn name="pathLikelihood.theta"/>
-    </steppingStoneSamplingAnalysis>
-    
-    <!-- END Marginal Likelihood Estimator                                       -->
-	
 </beast>
