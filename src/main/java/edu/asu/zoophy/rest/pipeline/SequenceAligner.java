@@ -211,8 +211,13 @@ public class SequenceAligner {
 		}
 		log.info("Records loaded.");
 		if (isDisjoint) {
-		GeonameDisjoiner disjointer  = new GeonameDisjoiner(indexSearcher);
-			return disjointer.disjoinRecords(records, isUsingDefaultGLM);
+			GeonameDisjoiner disjoiner  = new GeonameDisjoiner(indexSearcher);
+			if (isUsingDefaultGLM) {
+				return disjoiner.disjoinRecordsToStates(records);
+			}
+			else {
+				return disjoiner.disjoinRecords(records);
+			}
 		}
 		else {
 			for (int i = 0; i < records.size(); i++) {

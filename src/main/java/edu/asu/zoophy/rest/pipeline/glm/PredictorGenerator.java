@@ -70,7 +70,10 @@ public class PredictorGenerator {
 			StatePredictor averagedPredictors;
 			for (String state : statePredictors.keySet()) {
 				String normalizedState;
-				if (state.contains("-")) {
+				if (state.equalsIgnoreCase("district-of-columbia")) {
+					normalizedState = "District of Columbia";
+				}
+				else if (state.contains("-")) {
 					int split = state.indexOf("-");
 					normalizedState = (Character.toUpperCase(state.charAt(0)) + state.substring(1, split) + " " + Character.toUpperCase(state.charAt(split+1)) + state.substring(split+2)).trim();
 				}

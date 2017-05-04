@@ -47,7 +47,7 @@ public class GeonameDisjoiner {
 	 * @throws GLMException 
 	 * @throws GeoHierarchyException 
 	 */
-	public List<GenBankRecord> disjoinRecords(List<GenBankRecord> recordsToCheck, boolean usingDefaultGLM) throws DisjoinerException, GLMException, GeoHierarchyException {
+	public List<GenBankRecord> disjoinRecords(List<GenBankRecord> recordsToCheck) throws DisjoinerException, GLMException, GeoHierarchyException {
 		try {
 			Map<Long,Long> disjoins = new HashMap<Long,Long>((int)(recordsToCheck.size()*.75)+1);
 			Set<Location> locations = new LinkedHashSet<Location>(50);
@@ -99,15 +99,10 @@ public class GeonameDisjoiner {
 			catch (Exception e) {
 				throw new DisjoinerException("Error initially screening record locations:\t"+e.getMessage(), "Error Filtering Locations");
 			}
-			if (usingDefaultGLM) {
-				commonType = "ADM1";
-			}
-			else {
-				for (String type : types.keySet()) {
-					if (types.get(type) > maxType) {
-						maxType = types.get(type);
-						commonType = type;
-					}
+			for (String type : types.keySet()) {
+				if (types.get(type) > maxType) {
+					maxType = types.get(type);
+					commonType = type;
 				}
 			}
 			try {
@@ -149,7 +144,6 @@ public class GeonameDisjoiner {
 			locationsToRemove = new HashSet<Location>();
 			try {
 				for (Location location : locations) {
-					boolean removed = false;
 					for (Location locationParent : locations) {
 						if (!(locationParent.getGeonameID().equals(location.getGeonameID()) || locationsToRemove.contains(locationParent))) {
 							if (isAncestor(locationParent,location)) {
@@ -157,25 +151,8 @@ public class GeonameDisjoiner {
 									disjoins.put(location.getGeonameID(), locationParent.getGeonameID());
 								}
 								locationsToRemove.add(location);
-								removed = true;
 								break;
 							}
-						}
-					}
-					if (usingDefaultGLM && !removed) {
-						location.setLocation(location.getLocation().toLowerCase());
-						try {
-							Location stateLocation = convertToState(location);
-							if (!location.getGeonameID().equals(stateLocation.getGeonameID())) {
-								locationsToRemove.add(location);
-								locations.add(stateLocation);
-								disjoins.put(location.getGeonameID(), stateLocation.getGeonameID());
-							}
-						}
-						catch (GLMException glme) {
-							locationsToRemove.add(location);
-							removed = true;
-							disjoins.put(location.getGeonameID(), BAD_DISJOIN);
 						}
 					}
 				}
@@ -242,6 +219,8 @@ public class GeonameDisjoiner {
 			throw new DisjoinerException("Uncaught Disjoiner error:"+e.getMessage(), "Error Disjoining Locations");
 		}
 	}
+	
+	
 	
 	/**
 	 * Ensures that locations are US States for GLM predictor usage
@@ -365,6 +344,59 @@ public class GeonameDisjoiner {
 		usStates.put("wyoming", 5843591L);
 		usStates.put("district of columbia", 4138106L);
 		return usStates;
+	}
+
+	/**
+	 * Specific Disjoning for Default GLM use case
+	 * @param records
+	 * @return Records with locations normalized to US States
+	 * @throws PipelineException 
+	 */
+	public List<GenBankRecord> disjoinRecordsToStates(List<GenBankRecord> recordsToCheck) throws PipelineException {
+		try {
+			ancestors = new HashMap<String,Set<Long>>((int)(recordsToCheck.size())+1, 1.0f);
+			Set<Location> locations = new LinkedHashSet<Location>(50);
+			recordIter = recordsToCheck.listIterator();
+			while (recordIter.hasNext()) {
+				GenBankRecord record = recordIter.next();
+				if (record.getGeonameLocation() == null || Normalizer.normalizeLocation(record.getGeonameLocation()).equalsIgnoreCase("unknown")) {
+					recordIter.remove();
+				}
+				else if (record.getGeonameLocation().getGeonameType() == null || hierarchy.isParent("ADM1", record.getGeonameLocation().getGeonameType())) {
+					recordIter.remove();
+				}
+				else {
+					Set<Long> recordAncestors;
+					try {
+						recordAncestors = indexSearcher.findLocationAncestors(record.getAccession());
+						if (recordAncestors == null) {
+							recordIter.remove();
+						}
+						else {
+							recordAncestors.remove(record.getGeonameLocation().getGeonameID());
+							if (recordAncestors.isEmpty()) {
+								recordIter.remove();
+							}
+							else {
+								ancestors.put(record.getAccession(), recordAncestors);
+							}
+						}
+					}
+					catch (LuceneSearcherException lse) {
+						throw new DisjoinerException("Error retrieving location ancestors: "+lse.getMessage(), "Error Disjoining Locations");
+					}
+				}
+			}
+			recordIter = null;
+		}
+		catch (PipelineException pe) {
+			throw pe;
+		}
+		catch (Exception e) {
+			throw new DisjoinerException("Error initially screening record locations:\t"+e.getMessage(), "Error Filtering Locations");
+		}
+		// TODO Normalize each to US State
+		return null;
 	}
 	
 }
