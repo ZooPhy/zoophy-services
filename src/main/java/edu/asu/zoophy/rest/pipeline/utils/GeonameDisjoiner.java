@@ -340,9 +340,6 @@ public class GeonameDisjoiner {
 							if (recordAncestors.isEmpty()) {
 								recordIter.remove();
 							}
-							else {
-								ancestors.put(record.getAccession(), recordAncestors);
-							}
 						}
 					}
 					catch (LuceneSearcherException lse) {

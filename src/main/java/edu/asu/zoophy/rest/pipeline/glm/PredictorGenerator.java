@@ -139,14 +139,13 @@ public class PredictorGenerator {
 		PrintWriter predictorWriter = null;
 		try {
 			StringBuilder txtBuilder = new StringBuilder();
-			//TODO: for now we are just using Distance (needs Lat and Long), Temperature, Precipitation, and SampleSize as predictors
 			txtBuilder.append("state" + DELIMITER);
 			txtBuilder.append("lat" + DELIMITER);
 			txtBuilder.append("long" + DELIMITER);
-//			txtBuilder.append("elevation" + DELIMITER);
+//			txtBuilder.append("elevation" + DELIMITER); not needed at this time
 			txtBuilder.append("temperature" + DELIMITER);
-//			txtBuilder.append("avg_population" + DELIMITER);
-//			txtBuilder.append("median_age");
+			txtBuilder.append("population" + DELIMITER);
+//			txtBuilder.append("median_age"); not needed at this time
 			txtBuilder.append("SampleSize");
 			txtBuilder.append("\n");
 			for (String state : statePredictors.keySet()) {
@@ -158,10 +157,10 @@ public class PredictorGenerator {
 				}
 				txtBuilder.append(predictors.getLatitude() + DELIMITER);
 				txtBuilder.append(predictors.getLongitude() + DELIMITER);
-//				txtBuilder.append(predictors.getElevation() + DELIMITER);
+//				txtBuilder.append(predictors.getElevation() + DELIMITER); not needed at this time
 				txtBuilder.append(predictors.getTemperature() + DELIMITER);
-//				txtBuilder.append(predictors.getAveragePopulation() + DELIMITER);
-//				txtBuilder.append(predictors.getAverageMedianAge());
+				txtBuilder.append(predictors.getAveragePopulation() + DELIMITER);
+//				txtBuilder.append(predictors.getAverageMedianAge()); not needed at this time
 				txtBuilder.append(predictors.getSampleSize());
 				txtBuilder.append("\n");
 			}
@@ -185,7 +184,7 @@ public class PredictorGenerator {
 	 * @return true if any required Predictor values are null, false otherwise
 	 */
 	private boolean hasNull(StatePredictor predictors) {
-		if (predictors.getLatitude() == null || predictors.getLongitude() == null || predictors.getTemperature() == null || predictors.getSampleSize() == 0) {
+		if (predictors.getLatitude() == null || predictors.getLongitude() == null || predictors.getTemperature() == null || predictors.getTemperature() == 0 || predictors.getAveragePopulation() == null || predictors.getAveragePopulation() == 0 || predictors.getSampleSize() == 0) {
 			return true;
 		}
 		return false;
