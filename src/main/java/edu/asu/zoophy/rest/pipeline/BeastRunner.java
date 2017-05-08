@@ -606,12 +606,14 @@ public class BeastRunner {
 						  if (beastColumns.length > 0) {
 							  String progressRate = beastColumns[beastColumns.length-1].trim();
 							  int estimatedHoursToGo;
+							  double hoursPerMillion = Double.parseDouble(progressRate.substring(0, progressRate.indexOf('h')));
+							  double millionsInJob = Math.ceil(job.getXMLOptions().getChainLength() / 1000000);
 							  if (finalUpdate) {
-								  estimatedHoursToGo = (int)(Double.parseDouble(progressRate.substring(0, progressRate.indexOf('h')))*5.0)+1;
+								  estimatedHoursToGo = (int) Math.ceil(hoursPerMillion*(millionsInJob*0.5));
 								  tail.stop();
 							  }
 							  else {
-								  estimatedHoursToGo = (int)(Double.parseDouble(progressRate.substring(0, progressRate.indexOf('h')))*9.9)+1;
+								  estimatedHoursToGo = (int) Math.ceil(hoursPerMillion*(millionsInJob*0.9));
 							  }
 					  		  Date currentDate = new Date();
 					  		  Calendar calendar = Calendar.getInstance();
