@@ -8,7 +8,7 @@ RESTful services for [ZooPhy](https://zodo.asu.edu/zoophy/). This consists of:
 3) Starting/Stopping ZooPhy Pipeline jobs
 
 ## Dependencies:
-* [JDK 1.7.x](http://www.oracle.com/technetwork/java/javase/overview/index.html)
+* [JDK 1.8.x](http://www.oracle.com/technetwork/java/javase/overview/index.html)
 * [Maven 3.x](https://maven.apache.org/index.html)
 * [PostgreSQL 9.x](https://www.postgresql.org/) for SQL Database
 * [Lucene 5.5.x](https://lucene.apache.org/core/5_5_0/) for Lucene Index
@@ -27,7 +27,7 @@ RESTful services for [ZooPhy](https://zodo.asu.edu/zoophy/). This consists of:
 
 2) Create an application.properties file in the config folder with your SQL and Lucene details. Refer to [application.properties.template](config/application.properties.template)
 
-3) Run the project as "Maven Build". Set the Maven build goals to "clean package"
+3) Run the [build.sh](build.sh) script
 
 4) The build should run successfully and generate a runnable jar in the target folder. This can be run via terminal, or in Spring Tool Suite click Run As "Spring Boot App"
 
