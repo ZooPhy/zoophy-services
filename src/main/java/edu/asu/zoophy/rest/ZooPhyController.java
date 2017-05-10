@@ -69,7 +69,7 @@ public class ZooPhyController {
 	@Autowired
 	private PredictorTemplateGenerator templateGenerator;
 	
-	private static Logger log = Logger.getLogger("ZooPhyController");
+	private final static Logger log = Logger.getLogger("ZooPhyController");
 	
 	/**
 	 * Simple check that REST services are running
@@ -320,7 +320,7 @@ public class ZooPhyController {
 	    		else {
 	    			log.warning("Bad accession parameter: "+accession);
 	    			throw new ParameterException(accession);
-	    		} 
+	    		}
     		}
     		accessions = new LinkedList<String>(downloadAccessions);
     		downloadAccessions.clear();

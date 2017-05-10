@@ -157,7 +157,7 @@
 	</operators>
 
 	<!-- Define MCMC                                                             -->
-	<mcmc id="mcmc" chainLength="10000000" autoOptimize="true" operatorAnalysis="${filename_stem}.ops">
+	<mcmc id="mcmc" chainLength="${chain_length}" autoOptimize="true" operatorAnalysis="${filename_stem}.ops">
 		<posterior id="posterior">
 			<prior id="prior">
 				<logNormalPrior mean="1.0" stdev="1.25" offset="0.0" meanInRealSpace="false">
@@ -185,7 +185,7 @@
 		<operators idref="operators"/>
 
 		<!-- write log to screen                                                     -->
-		<log id="screenLog" logEvery="1000">
+		<log id="screenLog" logEvery="${log_every}">
 			<column label="Posterior" dp="4" width="12">
 				<posterior idref="posterior"/>
 			</column>
@@ -204,7 +204,7 @@
 		</log>
 
 		<!-- write log to file                                                       -->
-		<log id="fileLog" logEvery="1000" fileName="${filename_stem}.log" overwrite="false">
+		<log id="fileLog" logEvery="${log_every}" fileName="${filename_stem}.log" overwrite="false">
 			<posterior idref="posterior"/>
 			<prior idref="prior"/>
 			<likelihood idref="likelihood"/>
@@ -220,7 +220,7 @@
 		</log>
 
 		<!-- write tree log to file                                                  -->
-		<logTree id="treeFileLog" logEvery="1000" nexusFormat="true" fileName="${filename_stem}.trees" sortTranslationTable="true">
+		<logTree id="treeFileLog" logEvery="${log_every}" nexusFormat="true" fileName="${filename_stem}.trees" sortTranslationTable="true">
 			<treeModel idref="treeModel"/>
 			<trait name="rate" tag="${filename_stem}.rate">
 				<strictClockBranchRates idref="${filename_stem}.branchRates"/>
@@ -233,4 +233,5 @@
 			<mcmc idref="mcmc"/>
 		</property>
 	</report>
+	
 </beast>

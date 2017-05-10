@@ -68,7 +68,7 @@ public class BeastRunner {
 		FIGTREE_TEMPLATE = System.getProperty("user.dir")+"/Templates/figtreeBlock.template";
 		SPREAD3 = provider.getProperty("spread3.jar");
 		GLM_SCRIPT = provider.getProperty("glm.script");
-		log = Logger.getLogger("BeastRunner");
+		log = Logger.getLogger("BeastRunner"+job.getID());
 		this.mailer = mailer;
 		this.job = job;
 		filesToCleanup = new LinkedHashSet<String>();
@@ -91,13 +91,7 @@ public class BeastRunner {
 	        log.addHandler(fileHandler);
 	        log.setUseParentHandlers(false);
 			log.info("Starting the BEAST process...");
-			runBeastGen(job.getID()+ALIGNED_FASTA, job.getID()+INPUT_XML, job.getXMLOptions().getSubstitutionModel());
-			if (!job.getXMLOptions().isDefault()) {
-				log.info("Running XML Parameter Modifier...");
-				File beastInputFile = new File(JOB_WORK_DIR+job.getID()+INPUT_XML);
-				XMLParameterModifier xmlModifier = new XMLParameterModifier(beastInputFile);
-				xmlModifier.setCustomXMLParameters(job.getXMLOptions());
-			}
+			runBeastGen(job.getID()+ALIGNED_FASTA, job.getID()+INPUT_XML, job.getXMLOptions());
 			log.info("Adding location trait...");
 			DiscreteTraitInserter traitInserter = new DiscreteTraitInserter(job);
 			traitInserter.addLocation();
@@ -158,19 +152,20 @@ public class BeastRunner {
 	 * Generates an input.xml file to feed into BEAST
 	 * @param fastaFile
 	 * @param beastInput
+	 * @param xmlParameters 
 	 * @param beastSubstitutionModel 
 	 * @throws BeastException
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	private void runBeastGen(String fastaFile, String beastInput, BeastSubstitutionModel substitutionModel) throws BeastException, IOException, InterruptedException {
+	private void runBeastGen(String fastaFile, String beastInput, XMLParameters xmlParameters) throws BeastException, IOException, InterruptedException {
 		String workingDir =  "../ZooPhyJobs/";
 		File beastGenDir = new File(System.getProperty("user.dir")+"/BeastGen");
 		filesToCleanup.add(JOB_WORK_DIR+fastaFile);
 		//String template = substitutionModel.toString() + ".template"; //TODO add/change templates
 		String template = "beastgen.template";
 		log.info("Running BEASTGen...");
-		ProcessBuilder builder = new ProcessBuilder("java", "-jar", "beastgen.jar", "-date_order", "4", template, workingDir+fastaFile, workingDir+beastInput).directory(beastGenDir);
+		ProcessBuilder builder = new ProcessBuilder("java", "-jar", "beastgen.jar", "-date_order", "4", "-D", "chain_length="+xmlParameters.getChainLength().toString()+",log_every="+xmlParameters.getSubSampleRate().toString()+"" ,template, workingDir+fastaFile, workingDir+beastInput).directory(beastGenDir);
 		builder.redirectOutput(Redirect.appendTo(logFile));
 		builder.redirectError(Redirect.appendTo(logFile));
 		log.info("Starting Process: "+builder.command().toString());
@@ -552,7 +547,7 @@ public class BeastRunner {
 			}
 			File rateLog = new File(rateLogPath);
 			if (rateLog.exists()) {
-				RateTailerListener rateListener = new RateTailerListener(); 
+				RateTailerListener rateListener = new RateTailerListener();
 				rateTail = new Tailer(rateLog, rateListener);
 				System.out.print("Starting rateTailer on "+rateLog.getAbsolutePath());
 				rateTail.run();
@@ -594,12 +589,11 @@ public class BeastRunner {
 	 */
 	private class BeastTailerListener extends TailerListenerAdapter {
 	  boolean reached = false;
-	  String checkPoint = "100000";
 	  boolean finalUpdate = false;
 	  
 	  public void handle(String line) {
 		  if (line != null && !(line.trim().isEmpty() || line.contains("INFO:") || line.contains("usa.ac.asu.dbi.diego.viralcontamination3"))) {
-			  if (line.contains("hours/million states") && (line.trim().startsWith(checkPoint) || reached)) {
+			  if (line.contains("hours/million states") && (reachedCheck(line.trim()) || reached)) {
 				  if (!PipelineManager.checkProcess(job.getID())) {
 					  tail.stop();
 					  killBeast("Process was already terminated.");
@@ -612,12 +606,14 @@ public class BeastRunner {
 						  if (beastColumns.length > 0) {
 							  String progressRate = beastColumns[beastColumns.length-1].trim();
 							  int estimatedHoursToGo;
+							  double hoursPerMillion = Double.parseDouble(progressRate.substring(0, progressRate.indexOf('h')));
+							  double millionsInJob = Math.ceil(job.getXMLOptions().getChainLength() / 1000000);
 							  if (finalUpdate) {
-								  estimatedHoursToGo = (int)(Double.parseDouble(progressRate.substring(0, progressRate.indexOf('h')))*5.0)+1;
+								  estimatedHoursToGo = (int) Math.ceil(hoursPerMillion*(millionsInJob*0.5));
 								  tail.stop();
 							  }
 							  else {
-								  estimatedHoursToGo = (int)(Double.parseDouble(progressRate.substring(0, progressRate.indexOf('h')))*9.9)+1;
+								  estimatedHoursToGo = (int) Math.ceil(hoursPerMillion*(millionsInJob*0.9));
 							  }
 					  		  Date currentDate = new Date();
 					  		  Calendar calendar = Calendar.getInstance();
@@ -626,7 +622,6 @@ public class BeastRunner {
 					  		  String finishTime = calendar.getTime().toString();
 					  		  sendUpdate(finishTime, finalUpdate);
 					  		  reached = false;
-					  		  checkPoint = "5000000";
 					  		  finalUpdate = true;
 					  	  }
 					  }
@@ -641,6 +636,33 @@ public class BeastRunner {
 		  }
 	  }
 	  
+	  /**
+	   * @return True if tailer checkpoint reached, False otherwise
+	   */
+	  private boolean reachedCheck(String line) {
+		  int checkpoint;
+		  if (finalUpdate) {
+			  checkpoint = job.getXMLOptions().getChainLength() / 2;
+		  }
+		  else {
+			  checkpoint = job.getXMLOptions().getChainLength() / 10;
+		  }
+		  try {
+			  String[] beastColumns = line.split("\t");
+			  int sample = Integer.parseInt(beastColumns[0].trim());
+			  if (sample >= checkpoint) {
+				  return true;
+			  }
+			  else {
+				  return false;
+			  }
+		  }
+		  catch (Exception e) {
+			  log.warning("Error checking for time checkpoint: "+e.getMessage());
+			  return false;
+		  }
+	  }
+	  
 	}
 	
 	/**
@@ -652,13 +674,12 @@ public class BeastRunner {
 		public void handle(String line) {
 			boolean isFailing = true;
 			final double standard = 1.0;
-			if (line != null && line.startsWith("15000")) {
+			if (line != null && reachedCheck(line.trim())) {
 				rateTail.stop();
 				if (!PipelineManager.checkProcess(job.getID())) {
 					  killBeast("Process was already terminated.");
 				}
 				else {
-					System.out.println("\nRateTailer read: "+line.trim());
 					try {
 						String[] row = line.trim().split("\t");
 						for (int i = 1; i < row.length; i++) {
@@ -680,6 +701,27 @@ public class BeastRunner {
 			}
 		}
 		
+		/**
+		   * @return True if tailer checkpoint reached, False otherwise
+		   */
+		  private boolean reachedCheck(String line) {
+			  int checkpoint = job.getXMLOptions().getChainLength() / 500;
+			  try {
+				  String[] beastColumns = line.split("\t");
+				  int sample = Integer.parseInt(beastColumns[0].trim());
+				  if (sample >= checkpoint) {
+					  return true;
+				  }
+				  else {
+					  return false;
+				  }
+			  }
+			  catch (Exception e) {
+				  log.warning("Error checking for initial checkpoint: "+e.getMessage());
+				  return false;
+			  }
+		  }
+		
 	}
 
 	/**
@@ -697,13 +739,7 @@ public class BeastRunner {
 	        log.addHandler(fileHandler);
 	        log.setUseParentHandlers(false);
 			log.info("Starting the BEAST test process...");
-			runBeastGen(job.getID()+ALIGNED_FASTA, job.getID()+INPUT_XML, job.getXMLOptions().getSubstitutionModel());
-			if (!job.getXMLOptions().isDefault()) {
-				log.info("Running XML Parameter Modifier...");
-				File beastInputFile = new File(JOB_WORK_DIR+job.getID()+INPUT_XML);
-				XMLParameterModifier xmlModifier = new XMLParameterModifier(beastInputFile);
-				xmlModifier.setCustomXMLParameters(job.getXMLOptions());
-			}
+			runBeastGen(job.getID()+ALIGNED_FASTA, job.getID()+INPUT_XML, job.getXMLOptions());
 			log.info("Adding location trait...");
 			DiscreteTraitInserter traitInserter = new DiscreteTraitInserter(job);
 			traitInserter.addLocation();

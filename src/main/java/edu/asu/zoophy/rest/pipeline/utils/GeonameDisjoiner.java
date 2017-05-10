@@ -25,18 +25,17 @@ import edu.asu.zoophy.rest.pipeline.glm.GLMException;
 public class GeonameDisjoiner {
 
 	private final LuceneSearcher indexSearcher;
-	private static final GeoHierarchy hierarchy = GeoHierarchy.getInstance();
+	private final GeoHierarchy hierarchy = GeoHierarchy.getInstance();
 	private final int MAX_STATES;
-	private Map<String,Set<Long>> ancestors;
-	private final Map<String, Long> US_STATES;
+	private Map<Long, String> US_STATES;
 	private final long BAD_DISJOIN = -1L;
+	private Map<String,Set<Long>> ancestors = null;
 	private Iterator<GenBankRecord> recordIter = null;
 	
 	public GeonameDisjoiner(LuceneSearcher indexSearcher) throws PipelineException {
 		this.indexSearcher = indexSearcher;
 		PropertyProvider provider = PropertyProvider.getInstance();
 		MAX_STATES = Integer.parseInt(provider.getProperty("job.max.locations"));
-		US_STATES = setupStateMap();
 	}
 	
 	/**
@@ -47,7 +46,7 @@ public class GeonameDisjoiner {
 	 * @throws GLMException 
 	 * @throws GeoHierarchyException 
 	 */
-	public List<GenBankRecord> disjoinRecords(List<GenBankRecord> recordsToCheck, boolean usingDefaultGLM) throws DisjoinerException, GLMException, GeoHierarchyException {
+	public List<GenBankRecord> disjoinRecords(List<GenBankRecord> recordsToCheck) throws DisjoinerException, GLMException, GeoHierarchyException {
 		try {
 			Map<Long,Long> disjoins = new HashMap<Long,Long>((int)(recordsToCheck.size()*.75)+1);
 			Set<Location> locations = new LinkedHashSet<Location>(50);
@@ -99,15 +98,10 @@ public class GeonameDisjoiner {
 			catch (Exception e) {
 				throw new DisjoinerException("Error initially screening record locations:\t"+e.getMessage(), "Error Filtering Locations");
 			}
-			if (usingDefaultGLM) {
-				commonType = "ADM1";
-			}
-			else {
-				for (String type : types.keySet()) {
-					if (types.get(type) > maxType) {
-						maxType = types.get(type);
-						commonType = type;
-					}
+			for (String type : types.keySet()) {
+				if (types.get(type) > maxType) {
+					maxType = types.get(type);
+					commonType = type;
 				}
 			}
 			try {
@@ -149,7 +143,6 @@ public class GeonameDisjoiner {
 			locationsToRemove = new HashSet<Location>();
 			try {
 				for (Location location : locations) {
-					boolean removed = false;
 					for (Location locationParent : locations) {
 						if (!(locationParent.getGeonameID().equals(location.getGeonameID()) || locationsToRemove.contains(locationParent))) {
 							if (isAncestor(locationParent,location)) {
@@ -157,25 +150,8 @@ public class GeonameDisjoiner {
 									disjoins.put(location.getGeonameID(), locationParent.getGeonameID());
 								}
 								locationsToRemove.add(location);
-								removed = true;
 								break;
 							}
-						}
-					}
-					if (usingDefaultGLM && !removed) {
-						location.setLocation(location.getLocation().toLowerCase());
-						try {
-							Location stateLocation = convertToState(location);
-							if (!location.getGeonameID().equals(stateLocation.getGeonameID())) {
-								locationsToRemove.add(location);
-								locations.add(stateLocation);
-								disjoins.put(location.getGeonameID(), stateLocation.getGeonameID());
-							}
-						}
-						catch (GLMException glme) {
-							locationsToRemove.add(location);
-							removed = true;
-							disjoins.put(location.getGeonameID(), BAD_DISJOIN);
 						}
 					}
 				}
@@ -242,40 +218,6 @@ public class GeonameDisjoiner {
 			throw new DisjoinerException("Uncaught Disjoiner error:"+e.getMessage(), "Error Disjoining Locations");
 		}
 	}
-	
-	/**
-	 * Ensures that locations are US States for GLM predictor usage
-	 * @param recordLocation
-	 * @return
-	 * @throws GLMException 
-	 */
-	private Location convertToState(Location recordLocation) throws GLMException {
-		try {
-			if (US_STATES.keySet().contains(recordLocation.getLocation().toLowerCase())) {
-				return recordLocation;
-			}
-			else {
-				boolean found = false;
-				for (String state : US_STATES.keySet()) {
-					if (recordLocation.getLocation().toLowerCase().contains(state)) {
-						found = true;
-						recordLocation.setLocation(state);
-						recordLocation.setGeonameID(US_STATES.get(state));
-					}
-				}
-				if (!found) {
-					throw new GLMException("Could not match Location to US State: "+recordLocation.getLocation(), "Error matching Locations to US States");
-				}
-				return recordLocation;
-			}
-		}
-		catch (GLMException glme) {
-			throw glme;
-		}
-		catch (Exception e) {
-			throw new GLMException("Error matching Location to US State: "+recordLocation.getLocation()+" : "+e.getMessage(), "Error matching Locations to US States");
-		}
-	}
 
 	/**
 	 * Checks if the suspected suspectedAncestor is actually an ancestor to the given Geoname location
@@ -311,60 +253,164 @@ public class GeonameDisjoiner {
 	/**
 	 * @return Map of US States and their Geoname IDs
 	 */
-	private static Map<String, Long> setupStateMap() { 
-		Map<String, Long> usStates = new LinkedHashMap<String, Long>(50);
-		usStates.put("alabama", 4829764L);
-		usStates.put("alaska", 5879092L);
-		usStates.put("arizona", 5551752L);
-		usStates.put("arkansas", 4099753L);
-		usStates.put("california", 5332921L);
-		usStates.put("colorado", 5417618L);
-		usStates.put("connecticut", 4831725L);
-		usStates.put("delaware", 4142224L);
-		usStates.put("florida", 4155751L);
-		usStates.put("georgia", 4197000L);
-		usStates.put("hawaii", 5855797L);
-		usStates.put("idaho", 5596512L);
-		usStates.put("illinois", 4896861L);
-		usStates.put("indiana", 4921868L);
-		usStates.put("iowa", 4862182L);
-		usStates.put("kansas", 4273857L);
-		usStates.put("kentucky", 6254925L);
-		usStates.put("louisiana", 4331987L);
-		usStates.put("maine", 4971068L);
-		usStates.put("maryland", 4361885L);
-		usStates.put("massachusetts", 6254926L);
-		usStates.put("michigan", 5001836L);
-		usStates.put("minnesota", 5037779L);
-		usStates.put("mississippi", 4436296L);
-		usStates.put("missouri", 4398678L);
-		usStates.put("montana", 5667009L);
-		usStates.put("nebraska", 5073708L);
-		usStates.put("nevada", 5509151L);
-		usStates.put("new hampshire", 5090174L);
-		usStates.put("new jersey", 5101760L);
-		usStates.put("new mexico", 5481136L);
-		usStates.put("new york", 5128638L);
-		usStates.put("north carolina", 4482348L);
-		usStates.put("north dakota", 5690763L);
-		usStates.put("ohio", 5165418L);
-		usStates.put("oklahoma", 4544379L);
-		usStates.put("oregon", 5744337L);
-		usStates.put("pennsylvania", 6254927L);
-		usStates.put("rhode island", 5224323L);
-		usStates.put("south carolina", 4597040L);
-		usStates.put("south dakota", 5769223L);
-		usStates.put("tennessee", 4662168L);
-		usStates.put("texas", 4736286L);
-		usStates.put("utah", 5549030L);
-		usStates.put("vermont", 5242283L);
-		usStates.put("virginia", 6254928L);
-		usStates.put("washington", 5815135L);
-		usStates.put("west virginia", 4826850L);
-		usStates.put("wisconsin", 5279468L);
-		usStates.put("wyoming", 5843591L);
-		usStates.put("district of columbia", 4138106L);
+	private static Map<Long, String> setupStateMap() {
+		Map<Long, String> usStates = new LinkedHashMap<Long, String>(55, 1.0f);
+		usStates.put(4829764L, "alabama");
+		usStates.put(5879092L, "alaska");
+		usStates.put(5551752L, "arizona");
+		usStates.put(4099753L, "arkansas");
+		usStates.put(5332921L, "california");
+		usStates.put(5417618L, "colorado");
+		usStates.put(4831725L, "connecticut");
+		usStates.put(4142224L, "delaware");
+		usStates.put(4155751L, "florida");
+		usStates.put(4197000L, "georgia");
+		usStates.put(5855797L, "hawaii");
+		usStates.put(5596512L, "idaho");
+		usStates.put(4896861L, "illinois");
+		usStates.put(4921868L, "indiana");
+		usStates.put(4862182L, "iowa");
+		usStates.put(4273857L, "kansas");
+		usStates.put(6254925L, "kentucky");
+		usStates.put(4331987L, "louisiana");
+		usStates.put(4971068L, "maine");
+		usStates.put(4361885L, "maryland");
+		usStates.put(6254926L, "massachusetts");
+		usStates.put(5001836L, "michigan");
+		usStates.put(5037779L, "minnesota");
+		usStates.put(4436296L, "mississippi");
+		usStates.put(4398678L, "missouri");
+		usStates.put(5667009L, "montana");
+		usStates.put(5073708L, "nebraska");
+		usStates.put(5509151L, "nevada");
+		usStates.put(5090174L, "new hampshire");
+		usStates.put(5101760L, "new jersey");
+		usStates.put(5481136L, "new mexico");
+		usStates.put(5128638L, "new york");
+		usStates.put(4482348L, "north carolina");
+		usStates.put(5690763L, "north dakota");
+		usStates.put(5165418L, "ohio");
+		usStates.put(4544379L, "oklahoma");
+		usStates.put(5744337L, "oregon");
+		usStates.put(6254927L, "pennsylvania");
+		usStates.put(5224323L, "rhode island");
+		usStates.put(4597040L, "south carolina");
+		usStates.put(5769223L, "south dakota");
+		usStates.put(4662168L, "tennessee");
+		usStates.put(4736286L, "texas");
+		usStates.put(5549030L, "utah");
+		usStates.put(5242283L, "vermont");
+		usStates.put(6254928L, "virginia");
+		usStates.put(5815135L, "washington");
+		usStates.put(4826850L, "west virginia");
+		usStates.put(5279468L, "wisconsin");
+		usStates.put(5843591L, "wyoming");
+		usStates.put(4138106L, "district of columbia");
 		return usStates;
+	}
+
+	/**
+	 * Specific Disjoning for Default GLM use case
+	 * @param records
+	 * @return Records with locations normalized to US States
+	 * @throws PipelineException 
+	 * @throws LuceneSearcherException 
+	 */
+	public List<GenBankRecord> disjoinRecordsToStates(List<GenBankRecord> recordsToCheck) throws PipelineException {
+		try {
+			US_STATES = setupStateMap();
+			recordIter = recordsToCheck.listIterator();
+			while (recordIter.hasNext()) {
+				GenBankRecord record = recordIter.next();
+				if (record.getGeonameLocation() == null || Normalizer.normalizeLocation(record.getGeonameLocation()).equalsIgnoreCase("unknown")) {
+					recordIter.remove();
+				}
+				else if (record.getGeonameLocation().getGeonameType() == null || hierarchy.isParent("ADM1", record.getGeonameLocation().getGeonameType())) {
+					recordIter.remove();
+				}
+				else {
+					Set<Long> recordAncestors;
+					try {
+						recordAncestors = indexSearcher.findLocationAncestors(record.getAccession());
+						if (recordAncestors == null) {
+							recordIter.remove();
+						}
+						else {
+							recordAncestors.remove(record.getGeonameLocation().getGeonameID());
+							if (recordAncestors.isEmpty()) {
+								recordIter.remove();
+							}
+						}
+					}
+					catch (LuceneSearcherException lse) {
+						throw new DisjoinerException("Error retrieving location ancestors: "+lse.getMessage(), "Error Disjoining Locations");
+					}
+				}
+			}
+			recordIter = null;
+		}
+		catch (PipelineException pe) {
+			throw pe;
+		}
+		catch (Exception e) {
+			throw new DisjoinerException("Error initially screening record locations:\t"+e.getMessage(), "Error Filtering Locations");
+		}
+		Set<String> states = new LinkedHashSet<String>(50);
+		recordIter = recordsToCheck.listIterator();
+		while (recordIter.hasNext()) {
+			GenBankRecord record = recordIter.next();
+			try {
+				Location recLocation = record.getGeonameLocation();
+				Long stateID = recLocation.getGeonameID();
+				String stateLocation = US_STATES.get(stateID);
+				if (stateLocation == null) {
+					Set<Long> ancestors = indexSearcher.findLocationAncestors(record.getAccession());
+					Iterator<Long> iter = ancestors.iterator();
+					while (iter.hasNext() && stateLocation == null) {
+						stateID = iter.next();
+						stateLocation = US_STATES.get(stateID);
+					}
+				}
+				if (stateLocation == null) {
+					// could not map to state
+					recordIter.remove();
+				}
+				else {
+					recLocation.setGeonameID(stateID);
+					recLocation.setGeonameType("ADM1");
+					recLocation.setLocation(stateLocation);
+					record.setGeonameLocation(recLocation);
+					states.add(stateLocation);
+				}
+			}
+			catch (Exception e) {
+				// issue record
+				recordIter.remove();
+			}
+		}
+		recordIter = null;
+		if (states.size() < 2) {
+			states.clear();
+			String userErr = "Too few distinct locations (need at least 2): " + states.size();
+			if (states.size() == 1) {
+				userErr += "\nLocation: "+states.iterator().next();
+			}
+			throw new DisjoinerException("Too few distinct locations: "+states.size(),userErr);
+		}
+		else if (states.size() > MAX_STATES) {
+			states.clear();
+			StringBuilder userErr = new StringBuilder("Too many distinct locations (limit is "+MAX_STATES+"): " + states.size());
+			userErr.append("\nLocations: ");
+			for (String state : states) {
+				userErr.append("\n\t");
+				userErr.append(state);
+			}
+			throw new DisjoinerException("Too many distinct locations: "+states.size(), userErr.toString());
+		}
+		else {
+			states.clear();
+			return recordsToCheck;
+		}
 	}
 	
 }

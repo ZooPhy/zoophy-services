@@ -35,7 +35,7 @@ public class ZooPhyMailer {
 	private final Logger log;
 	
 	public ZooPhyMailer(ZooPhyJob job) throws PipelineException {
-		log = Logger.getLogger("ZooPhyMailer");
+		log = Logger.getLogger("ZooPhyMailer"+job.getID());
 		this.job = job;
 		PropertyProvider property = PropertyProvider.getInstance();
 		USERNAME = property.getProperty("email.user");
@@ -59,7 +59,7 @@ public class ZooPhyMailer {
 	        	messageText += "\nNote: GLM features were enabled for this ZooPhy Job.";
 	        }
 	        else {
-	        	messageText += "\nNote: GLM were NOT enabled for this ZooPhy Job.";
+	        	messageText += "\nNote: GLM features were NOT enabled for this ZooPhy Job.";
 	        }
 	        messageText += "\n\nThank You,\n\nZooPhy Lab";
 	        sendEmail(messageText, null);    
@@ -87,6 +87,8 @@ public class ZooPhyMailer {
 			messageText += "\nThe SpreaD3 simulation for your job is available <a href=\"https://zodo.asu.edu/spread3/"+job.getID()+"/renderers/d3/d3renderer/index.html\">here</a>.";
 			messageText += "\nFor viewing the attached .tree file, we recommend downloading the latest version of <a href=\"http://tree.bio.ed.ac.uk/software/figtree/\">FigTree</a>.\n";
 			messageText += "\nThank You,\nZooPhy Lab";
+			// warning message
+			messageText += "\n\nPlease note that ZooPhy is not a black box and should not be treated as such.\nThe generated results require assumptions that may prove to be incorrect given the selected data. Please carefully inspect your results and interpret them in light of the most current literature.\nWe recommend that you replicate your results using the same parameters and, in addition, test alternative assumptions to ensure that your results will stand up to scientific scrutiny.\n\n";
 			sendEmail(messageText, results);
 		}
 		catch (Exception e) {

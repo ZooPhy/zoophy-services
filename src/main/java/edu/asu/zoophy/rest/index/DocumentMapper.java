@@ -21,7 +21,7 @@ import edu.asu.zoophy.rest.genbank.Sequence;
  */
 public class DocumentMapper {
 	
-	private static Logger log = Logger.getLogger("DocumentMapper");
+	private final static Logger log = Logger.getLogger("DocumentMapper");
 	
 	/**
 	 * Maps Lucene Document to GenBankRecord 

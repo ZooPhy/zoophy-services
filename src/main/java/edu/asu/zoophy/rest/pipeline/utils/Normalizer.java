@@ -17,7 +17,7 @@ import edu.asu.zoophy.rest.genbank.Location;
 public class Normalizer {
 
 	private final static DecimalFormat df4 = new DecimalFormat(".####");
-	private static Logger log = Logger.getLogger("Normalizer");
+	private final static Logger log = Logger.getLogger("Normalizer");
 	
 	/**
 	 * Normalizes location names

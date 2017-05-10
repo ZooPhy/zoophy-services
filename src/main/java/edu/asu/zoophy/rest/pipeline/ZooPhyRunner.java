@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -25,9 +26,10 @@ public class ZooPhyRunner {
 	private final Logger log;
 
 	public ZooPhyRunner(String replyEmail, String jobName, boolean useGLM, Map<String, List<Predictor>> predictors, XMLParameters xmlOptions) throws PipelineException {
-		log = Logger.getLogger("ZooPhyRunner");
+		final String id  = UUID.randomUUID().toString();
+		log = Logger.getLogger("ZooPhyRunner"+id);
 		log.info("Initializing ZooPhy Job");
-		job = new ZooPhyJob(generateID(),jobName,replyEmail, useGLM, predictors, xmlOptions);
+		job = new ZooPhyJob(id,jobName,replyEmail, useGLM, predictors, xmlOptions);
 		log.info("Initializing ZooPhyMailer... : "+job.getID());
 		mailer = new ZooPhyMailer(job);
 	}
@@ -76,24 +78,6 @@ public class ZooPhyRunner {
 			log.log(Level.SEVERE, "Unhandled Exception for job: "+job.getID()+" : "+e.getMessage());
 			log.info("Sending Failure Email... : "+job.getID());
 			mailer.sendFailureEmail("Internal Server Error");
-		}
-	}
-
-	/**
-	 * Generates a UUID to be used as a jobID
-	 * @return randomly generated UUID
-	 * @throws PipelineException 
-	 */
-	private String generateID() throws PipelineException {
-		try {
-			log.info("Generating UID...");
-			String id  = java.util.UUID.randomUUID().toString();
-			log.info("Assigned ID: "+id);
-			return id;
-		}
-		catch (Exception e) {
-			log.log(Level.SEVERE, "Error generating job ID: "+e.getMessage());
-			throw new PipelineException("Error generating job ID: "+e.getMessage(), "Failed to start ZooPhy Job!");
 		}
 	}
 

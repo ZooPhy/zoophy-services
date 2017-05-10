@@ -59,7 +59,7 @@ public class SequenceAligner {
 		this.indexSearcher = indexSearcher;
 		PropertyProvider provider = PropertyProvider.getInstance();
 		JOB_LOG_DIR = provider.getProperty("job.logs.dir");
-		log = Logger.getLogger("SequenceAligner");
+		log = Logger.getLogger("SequenceAligner"+job.getID());
 		uniqueGeonames = new LinkedHashSet<String>();
 		geonameCoordinates = new HashMap<String,String>();
 		if (job.isUsingGLM() && !job.isUsingCustomPredictors()) {
@@ -211,8 +211,13 @@ public class SequenceAligner {
 		}
 		log.info("Records loaded.");
 		if (isDisjoint) {
-		GeonameDisjoiner disjointer  = new GeonameDisjoiner(indexSearcher);
-			return disjointer.disjoinRecords(records, isUsingDefaultGLM);
+			GeonameDisjoiner disjoiner  = new GeonameDisjoiner(indexSearcher);
+			if (isUsingDefaultGLM) {
+				return disjoiner.disjoinRecordsToStates(records);
+			}
+			else {
+				return disjoiner.disjoinRecords(records);
+			}
 		}
 		else {
 			for (int i = 0; i < records.size(); i++) {
