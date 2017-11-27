@@ -15,6 +15,7 @@ public class GenBankRecord {
 	private Host host;
 	private Location geonameLocation;
 	private Publication publication;
+	private List<PossibleLocation> possibleLocations;
 	
 	public GenBankRecord() {
 		genes = new LinkedList<Gene>();
@@ -67,5 +68,14 @@ public class GenBankRecord {
 	public void setPublication(Publication publication) {
 		this.publication = publication;
 	}
+	
+	public List<PossibleLocation> getPossibleLocations() {
+		return possibleLocations;
+	}
+
+	public void setPossibleLocations(List<PossibleLocation> possibleLocations) {
+		this.possibleLocations = possibleLocations;
+	}
+
 	
 }

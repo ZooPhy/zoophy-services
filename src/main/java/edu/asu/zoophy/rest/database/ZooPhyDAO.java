@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository;
 
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.genbank.Location;
+import edu.asu.zoophy.rest.genbank.PossibleLocation;
 import edu.asu.zoophy.rest.pipeline.glm.Predictor;
 
 /**
@@ -29,9 +30,10 @@ public class ZooPhyDAO {
 	private static final String PULL_RECORD_GENES = "SELECT DISTINCT \"Accession\", \"Normalized_Gene_Name\" FROM \"Gene\" WHERE \"Accession\"=?  AND \"Normalized_Gene_Name\" IS NOT NULL";
 	private static final String PULL_RECORD_PUBLICATION = "SELECT \"Accession\", \"Pubmed_ID\", \"Pubmed_Central_ID\", \"Authors\", \"Title\", \"Journal\" FROM \"Sequence_Publication\" JOIN \"Publication\" ON \"Sequence_Publication\".\"Pub_ID\"=\"Publication\".\"Pubmed_ID\" WHERE \"Accession\"=?";
 	private static final String PULL_RECORD_LOCATION = "SELECT \"Accession\", \"Geoname_ID\", \"Location\", \"Latitude\", \"Longitude\", \"Type\", \"Country\" FROM \"Location_Geoname\" WHERE \"Accession\"=?";
+	private static final String PULL_RECORD_POSSIBLE_LOCATIONS = "SELECT \"Accession\", \"Geoname_ID\", \"Location\", \"Latitude\", \"Longitude\", \"probability\" FROM \"Possible_Location\" WHERE \"Accession\"=?";
 	private static final String PULL_STATE_PREDICTORS = "SELECT \"Key\", \"Value\", \"State\", \"Year\" FROM \"Predictor\" WHERE \"State\"=?";
 	private static final String TEST_QUERY = "SELECT DISTINCT(\"Accession\") FROM \"Sequence_Details\" LIMIT 500";
-	
+
 	private static final Logger log = Logger.getLogger("ZooPhyDAO");
 	
 	/**
@@ -70,6 +72,7 @@ public class ZooPhyDAO {
 			final String[] parameters = {accession};
 			try {
 				record = jdbc.queryForObject(PULL_RECORD_DETAILS, parameters, new GenBankRecordRowMapper());
+				record.setPossibleLocations(jdbc.query(PULL_RECORD_POSSIBLE_LOCATIONS, parameters, new LocationsRSExtractor()));
 			}
 			catch (EmptyResultDataAccessException erdae) {
 				throw new GenBankRecordNotFoundException(accession);
@@ -149,6 +152,35 @@ public class ZooPhyDAO {
 		}
 	}
 	
+	/**
+	 * Retrieve the specified record's list of possible locations from the database
+	 * @param accession
+	 * @return Location of the accession
+	 * @throws GenBankRecordNotFoundException
+	 * @throws DaoException
+	 */
+	public List<PossibleLocation> retrieveLocations(String accession) throws GenBankRecordNotFoundException, DaoException {
+		try {
+			List<PossibleLocation> possLocs = null;
+			final String[] param = {accession};
+			try {
+				possLocs = jdbc.query(PULL_RECORD_POSSIBLE_LOCATIONS, param, new LocationsRSExtractor());
+			}
+			catch (EmptyResultDataAccessException erdae) {
+				throw new GenBankRecordNotFoundException(accession);
+			}
+			return possLocs;
+		}
+		catch (Exception e) {
+			if (e.getClass() != GenBankRecordNotFoundException.class) {
+				throw new DaoException(e.getMessage());
+			}
+			else {
+				throw e;
+			}
+		}
+	}
+
 	/**
 	 * Retrieve the specified US State's GLM predictors from the database
 	 * @param state - US State to retrieve default predictors
