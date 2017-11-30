@@ -28,7 +28,7 @@ public class SecurityHelperTest {
 		assertFalse(helper.checkParameter("spammy@spam", Parameter.EMAIL));
 		assertTrue(helper.checkParameter("sparky@asu.edu", Parameter.EMAIL));
 		assertFalse(helper.checkParameter("1234567890", Parameter.JOB_ID));
-		assertTrue(helper.checkParameter("12345678-1234-1234-1234-123456789abc", Parameter.JOB_ID));
+		assertTrue(helper.checkParameter("a12345678-1234-1234-1234-123456789abc", Parameter.JOB_ID));
 		assertFalse(helper.checkParameter("T Virus <Outbreak/> 2018", Parameter.JOB_NAME));
 		assertTrue(helper.checkParameter("T Virus Outbreak 2018", Parameter.JOB_NAME));
 		assertFalse(helper.checkParameter("Accession:--DROP TABLES-- AND TaxonID:9606", Parameter.LUCENE_QUERY));
