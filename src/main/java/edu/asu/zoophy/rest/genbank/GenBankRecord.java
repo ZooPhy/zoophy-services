@@ -19,6 +19,7 @@ public class GenBankRecord {
 	
 	public GenBankRecord() {
 		genes = new LinkedList<Gene>();
+		possibleLocations = new LinkedList<PossibleLocation>();
 	}
 	
 	public String getAccession() {

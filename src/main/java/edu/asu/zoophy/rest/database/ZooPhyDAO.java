@@ -18,7 +18,7 @@ import edu.asu.zoophy.rest.pipeline.glm.Predictor;
 
 /**
  * Responsible for retrieving data from the SQL database.
- * @author devdemetri
+ * @author devdemetri, amagge
  */
 @Repository("ZoophyDAO")
 public class ZooPhyDAO {
@@ -72,7 +72,6 @@ public class ZooPhyDAO {
 			final String[] parameters = {accession};
 			try {
 				record = jdbc.queryForObject(PULL_RECORD_DETAILS, parameters, new GenBankRecordRowMapper());
-				record.setPossibleLocations(jdbc.query(PULL_RECORD_POSSIBLE_LOCATIONS, parameters, new LocationsRSExtractor()));
 			}
 			catch (EmptyResultDataAccessException erdae) {
 				throw new GenBankRecordNotFoundException(accession);
@@ -103,6 +102,7 @@ public class ZooPhyDAO {
 			try {
 				record = jdbc.queryForObject(PULL_RECORD_DETAILS, parameters, new GenBankRecordRowMapper());
 				record.setGenes(jdbc.query(PULL_RECORD_GENES, parameters, new GeneRowMapper()));
+				record.setPossibleLocations(jdbc.query(PULL_RECORD_POSSIBLE_LOCATIONS, parameters, new PossLocationsRowMapper()));
 				try {
 					record.setPublication(jdbc.queryForObject(PULL_RECORD_PUBLICATION, parameters, new PublicationRowMapper()));
 				}
@@ -164,7 +164,7 @@ public class ZooPhyDAO {
 			List<PossibleLocation> possLocs = null;
 			final String[] param = {accession};
 			try {
-				possLocs = jdbc.query(PULL_RECORD_POSSIBLE_LOCATIONS, param, new LocationsRSExtractor());
+				possLocs = jdbc.query(PULL_RECORD_POSSIBLE_LOCATIONS, param, new PossLocationsRowMapper());
 			}
 			catch (EmptyResultDataAccessException erdae) {
 				throw new GenBankRecordNotFoundException(accession);
