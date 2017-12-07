@@ -23,6 +23,7 @@ import edu.asu.zoophy.rest.database.GenBankRecordNotFoundException;
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.genbank.Location;
+import edu.asu.zoophy.rest.genbank.PossibleLocation;
 import edu.asu.zoophy.rest.index.InvalidLuceneQueryException;
 import edu.asu.zoophy.rest.index.LuceneSearcher;
 import edu.asu.zoophy.rest.index.LuceneSearcherException;
@@ -40,7 +41,7 @@ import edu.asu.zoophy.rest.security.SecurityHelper;
 
 /**
  * Responsible for mapping ZooPhy service requests
- * @author devdemetri
+ * @author devdemetri, amagge
  */
 @RestController
 public class ZooPhyController {
@@ -135,6 +136,25 @@ public class ZooPhyController {
     	}
     }
     
+    /**
+     * Returns the list of possible locations for the given Accession with their probabilities
+     * @param accession
+     * @return Location of the accession
+     * @throws DaoException 
+     * @throws GenBankRecordNotFoundException 
+     * @throws ParameterException 
+     */
+    @RequestMapping(value="/locations", method=RequestMethod.GET)
+    @ResponseStatus(value=HttpStatus.OK)
+    public List<PossibleLocation> getRecordLocations(@RequestParam(value="accession") String accession) throws GenBankRecordNotFoundException, DaoException, ParameterException {
+    	if (security.checkParameter(accession, Parameter.ACCESSION)) {
+    		List<PossibleLocation> loc = dao.retrieveLocations(accession);
+    		return loc;
+    	} else {
+    		throw new ParameterException(accession);
+    	}
+    }
+
     /**
      * Retrieve GenBankRecords for resulting Lucene query
      * @param query - Valid Lucene query string

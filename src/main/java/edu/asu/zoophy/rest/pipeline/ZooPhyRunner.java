@@ -26,7 +26,8 @@ public class ZooPhyRunner {
 	private final Logger log;
 
 	public ZooPhyRunner(String replyEmail, String jobName, boolean useGLM, Map<String, List<Predictor>> predictors, XMLParameters xmlOptions) throws PipelineException {
-		final String id  = UUID.randomUUID().toString();
+		char rand_char = (char) (Math.random()*26 + 'a');				
+		final String id  = rand_char + UUID.randomUUID().toString();	//Used as property by SpreaD3, hence start with char
 		log = Logger.getLogger("ZooPhyRunner"+id);
 		log.info("Initializing ZooPhy Job");
 		job = new ZooPhyJob(id,jobName,replyEmail, useGLM, predictors, xmlOptions);
