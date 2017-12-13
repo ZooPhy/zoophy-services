@@ -9,5 +9,9 @@ public enum Parameter {
 	LUCENE_QUERY, 
 	EMAIL,
 	JOB_NAME, 
-	JOB_ID
+	JOB_ID,
+	RECORD_ID,
+	GEONAMES_ID,
+	RAW_SEQUENCE,
+	DATE
 }

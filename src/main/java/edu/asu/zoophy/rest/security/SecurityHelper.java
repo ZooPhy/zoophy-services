@@ -19,6 +19,11 @@ public class SecurityHelper {
 	private static final String EMAIL_REGEX = "^[^@\\s]+@[^@\\s]+\\.[^@\\s]++$";
 	private static final String JOB_NAME_REGEX = "^(\\w| |-|_|#|&){3,255}+$";
 	private static final String JOB_ID_REGEX = "^\\w{9}+-\\w{4}+-\\w{4}+-\\w{4}+-\\w{12}+$";
+	private static final String FASTA_MET_RID_REGEX = "^(\\w|\\d){1,20}?$";
+	private static final String FASTA_MET_DATE_REGEX = "^\\d{4}((\\-(0?[1-9]|1[012])?\\-(0?[1-9]|[12][0-9]|3[01]))|(\\.\\d{1,4}))?$";
+	private static final String FASTA_MET_GEOID_REGEX = "^(\\d){4,10}?$";
+	private static final String FASTA_MET_RSEQ_REGEX = "^([ACGTacgt-]){1,20000}$";
+//	private static final String FASTA_MET_LOCN_REGEX = "^([a-zA-Z-]){1,30}?$";	// When Location Names are allowed
 	
 	/**
 	 * Verifies parameters via regular expression
@@ -46,6 +51,18 @@ public class SecurityHelper {
 				break;
 			case JOB_ID:
 				regex = Pattern.compile(JOB_ID_REGEX);
+				break;
+			case RECORD_ID:
+				regex = Pattern.compile(FASTA_MET_RID_REGEX);
+				break;
+			case GEONAMES_ID:
+				regex = Pattern.compile(FASTA_MET_GEOID_REGEX);
+				break;
+			case RAW_SEQUENCE:
+				regex = Pattern.compile(FASTA_MET_RSEQ_REGEX);
+				break;
+			case DATE:
+				regex = Pattern.compile(FASTA_MET_DATE_REGEX);
 				break;
 			default:
 				return false;

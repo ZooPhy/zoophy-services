@@ -10,6 +10,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Component;
 
+import edu.asu.zoophy.rest.custom.FastaRecord;
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
 import edu.asu.zoophy.rest.index.LuceneSearcher;
 
@@ -44,8 +45,20 @@ public class PipelineManager {
      */
     @Async
     public void startZooPhyPipeline(ZooPhyRunner runner, List<String> accessions) throws PipelineException {
-    	log.info("Starting ZooPhy Job: "+runner.getJobID());
+    	log.info("Starting ZooPhy Genbank Job: "+runner.getJobID());
     	runner.runZooPhy(accessions, dao, indexSearcher);
+    }
+	
+	 /**
+     * Asynchronously a the ZooPhy Custom job
+     * @param runner - ZoophyRunner containing the job details
+     * @param records - list of accessions for the job
+     * @throws PipelineException
+     */
+    @Async
+    public void startZooPhyCustomPipeline(ZooPhyRunner runner, List<FastaRecord> records) throws PipelineException {
+    	log.info("Starting ZooPhy Custom Job: "+runner.getJobID());
+    	runner.runZooPhy(records);
     }
 	
 	/**
