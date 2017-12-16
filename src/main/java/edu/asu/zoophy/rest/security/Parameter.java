@@ -11,7 +11,7 @@ public enum Parameter {
 	JOB_NAME, 
 	JOB_ID,
 	RECORD_ID,
-	GEONAMES_ID,
+	LOCATION,
 	RAW_SEQUENCE,
 	DATE
 }

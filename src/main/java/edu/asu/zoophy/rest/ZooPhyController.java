@@ -263,7 +263,7 @@ public class ZooPhyController {
         	Set<String> geonameIds = new LinkedHashSet<String>(records.size());
         	for(FlatJobRecord record : records) {
 				try {
-					if(security.checkParameter(record.getGeonameID().toString(), Parameter.GEONAMES_ID)){
+					if(security.checkParameter(record.getGeonameID().toString(), Parameter.LOCATION)){
 						geonameIds.add(record.getGeonameID().toString());
 					}
 				} catch (Exception e) {
@@ -282,8 +282,8 @@ public class ZooPhyController {
         		if  (security.checkParameter(record.getId(), Parameter.RECORD_ID) && 
         				security.checkParameter(record.getCollectionDate(), Parameter.DATE) &&
         				security.checkParameter(record.getRawSequence(), Parameter.RAW_SEQUENCE)) {
-        			if (geonamesMap.containsKey(record.getGeonameID().toString())){
-        				loc = geonamesMap.get(record.getGeonameID().toString());
+        			if (geonamesMap.containsKey(record.getGeonameID())){
+        				loc = geonamesMap.get(record.getGeonameID());
         				loc.setAccession(record.getId());
         			} else {
         				loc = new Location();
@@ -390,8 +390,8 @@ public class ZooPhyController {
 	    	zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors(), parameters.getXmlOptions());
 	    	Set<String> geonameIds = new LinkedHashSet<String>(parameters.getRecords().size());
 	    	for(FlatJobRecord record : parameters.getRecords()) {
-	    		if(security.checkParameter(record.getGeonameID().toString(), Parameter.GEONAMES_ID)){
-		    		geonameIds.add(record.getGeonameID().toString());
+	    		if(security.checkParameter(record.getGeonameID(), Parameter.LOCATION)){
+		    		geonameIds.add(record.getGeonameID());
 	    		}
 	    	}
     		Map<String, Location> geonamesMap;
@@ -407,8 +407,8 @@ public class ZooPhyController {
 	    		if  (security.checkParameter(record.getId(), Parameter.RECORD_ID) && 
 	    				security.checkParameter(record.getCollectionDate(), Parameter.DATE) &&
 	    				security.checkParameter(record.getRawSequence(), Parameter.RAW_SEQUENCE)) {
-	    			if (geonamesMap.containsKey(record.getGeonameID().toString())){
-	    				loc = geonamesMap.get(record.getGeonameID().toString());
+	    			if (geonamesMap.containsKey(record.getGeonameID())){
+	    				loc = geonamesMap.get(record.getGeonameID());
 	    				loc.setAccession(record.getId());
 	    			} else {
 	    				loc = new Location();
@@ -684,7 +684,7 @@ public class ZooPhyController {
     	    	zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors(), parameters.getXmlOptions());
     	    	Set<String> geonameIds = new LinkedHashSet<String>(parameters.getRecords().size());
     	    	for(FlatJobRecord record : parameters.getRecords()) {
-    	    		if(security.checkParameter(record.getGeonameID().toString(), Parameter.GEONAMES_ID)){
+    	    		if(security.checkParameter(record.getGeonameID().toString(), Parameter.LOCATION)){
     		    		geonameIds.add(record.getGeonameID().toString());
     	    		}
     	    	}
@@ -702,8 +702,8 @@ public class ZooPhyController {
     	    		if  (security.checkParameter(record.getId(), Parameter.RECORD_ID) && 
     	    				security.checkParameter(record.getCollectionDate(), Parameter.DATE) &&
     	    				security.checkParameter(record.getRawSequence(), Parameter.RAW_SEQUENCE)) {
-    	    			if (geonamesMap.containsKey(record.getGeonameID().toString())){
-    	    				loc = geonamesMap.get(record.getGeonameID().toString());
+    	    			if (geonamesMap.containsKey(record.getGeonameID())){
+    	    				loc = geonamesMap.get(record.getGeonameID());
     	    				loc.setAccession(record.getId());
     	    			} else {
     	    				loc = new Location();

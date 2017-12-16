@@ -9,18 +9,26 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.DocValuesType;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
@@ -28,6 +36,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
 import edu.asu.zoophy.rest.genbank.Location;
+import edu.asu.zoophy.rest.security.SecurityHelper;
 
 /**
  * Responsible for retrieving information from Lucene index for Geonames
@@ -37,14 +46,23 @@ import edu.asu.zoophy.rest.genbank.Location;
 public class LuceneGeonamesSearcher {
 	
 	private Directory indexDirectory;
-	private QueryParser queryParser;
+	private static final FieldType LONG_FIELD_TYPE_STORED_SORTED = new FieldType();
+	static {
+		LONG_FIELD_TYPE_STORED_SORTED.setTokenized(true);
+		LONG_FIELD_TYPE_STORED_SORTED.setOmitNorms(true);
+		LONG_FIELD_TYPE_STORED_SORTED.setIndexOptions(IndexOptions.DOCS);
+		LONG_FIELD_TYPE_STORED_SORTED.setNumericType(FieldType.NumericType.LONG);
+		LONG_FIELD_TYPE_STORED_SORTED.setStored(true);
+		LONG_FIELD_TYPE_STORED_SORTED.setDocValuesType(DocValuesType.NUMERIC);
+		LONG_FIELD_TYPE_STORED_SORTED.freeze();
+	}
+
 	private final static Logger log = Logger.getLogger("LuceneGeonamesSearcher");
 	
 	public LuceneGeonamesSearcher(@Value("${lucene.geonames.index.location}") String indexLocation) throws LuceneSearcherException {
 		try {
 			Path index = Paths.get(indexLocation);
 			indexDirectory = FSDirectory.open(index);
-			queryParser = new QueryParser("GeonameID", new KeywordAnalyzer());
 			log.info("Connected to Index at: "+indexLocation);
 		}
 		catch (IOException ioe) {
@@ -110,9 +128,21 @@ public class LuceneGeonamesSearcher {
 		try {
 			reader = DirectoryReader.open(indexDirectory);
 			indexSearcher = new IndexSearcher(reader);
+			SortField field = new SortField("population", SortField.Type.LONG, true);
+			Sort sort = new Sort(field);
+
 			for(String geonameId : geonameIds){
+				QueryParser queryParser;
+				Pattern geoIdRegex = Pattern.compile(SecurityHelper.FASTA_MET_GEOID_REGEX);
+				Matcher geoIdMatcher = geoIdRegex.matcher(geonameId);
+				if(geoIdMatcher.matches()){
+					queryParser = new QueryParser("GeonameID", new KeywordAnalyzer());;
+				} else {
+					queryParser = new QueryParser("Location", new StandardAnalyzer());;
+				}
 				query = queryParser.parse(geonameId);
-				documents = indexSearcher.search(query, 1);
+//				documents = indexSearcher.search(query, 1);
+				documents = indexSearcher.search(query, 1, sort);
 				for (ScoreDoc scoreDoc : documents.scoreDocs) {
 					Document document = indexSearcher.doc(scoreDoc.doc);
 					records.put(geonameId, GeonamesDocumentMapper.mapRecord(document));

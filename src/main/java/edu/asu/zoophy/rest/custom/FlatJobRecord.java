@@ -9,7 +9,7 @@ public class FlatJobRecord {
 	
 	private String id;
 	private String collectionDate; 
-	private Long geonameID;
+	private String geonameID;
 	private String rawSequence;
 
 	public FlatJobRecord() {
@@ -31,11 +31,11 @@ public class FlatJobRecord {
 		this.collectionDate = collectionDate;
 	}
 
-	public Long getGeonameID() {
+	public String getGeonameID() {
 		return geonameID;
 	}
 
-	public void setGeonameID(Long geonameID) {
+	public void setGeonameID(String geonameID) {
 		this.geonameID = geonameID;
 	}
 

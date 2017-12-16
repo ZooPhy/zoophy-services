@@ -17,10 +17,13 @@ import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import edu.asu.zoophy.rest.custom.FastaRecord;
 import edu.asu.zoophy.rest.pipeline.utils.Normalizer;
 import edu.asu.zoophy.rest.pipeline.utils.NormalizerException;
+import edu.asu.zoophy.rest.security.SecurityHelper;
 
 /**
  * Responsible for aligning sequences into FASTA format
@@ -229,8 +232,15 @@ public class CustomSequenceAligner {
 				tempBuilder.append(">");
 				tempBuilder.append(record.getAccession());
 				tempBuilder.append("_");
-//				String stringDate = getFastaDate(record.getCollectionDate());
-				String stringDate = record.getCollectionDate();
+				String humanDateFormat = SecurityHelper.FASTA_MET_DECIMAL_DATE_REGEX;
+				Pattern regex = Pattern.compile(humanDateFormat);
+				Matcher matcher = regex.matcher(record.getCollectionDate());
+				String stringDate;
+				if(matcher.matches()){
+					stringDate = record.getCollectionDate();
+				} else {
+					stringDate = getFastaDate(record.getCollectionDate());
+				}
 				int year = (int) Double.parseDouble(stringDate);
 				if (year < startYear) {
 					startYear = year;
@@ -282,7 +292,7 @@ public class CustomSequenceAligner {
 			return Normalizer.dateToDecimal(date);
 		}
 		else {
-			throw new AlignerException("Unkown Date!", null);
+			throw new AlignerException("Unknown Date!", null);
 		}
 		
 	}
