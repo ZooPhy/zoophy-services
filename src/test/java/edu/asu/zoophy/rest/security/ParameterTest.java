@@ -19,7 +19,7 @@ public class ParameterTest {
 		assertEquals(Parameter.valueOf("JOB_NAME"), Parameter.JOB_NAME);
 		assertEquals(Parameter.valueOf("LUCENE_QUERY"), Parameter.LUCENE_QUERY);
 		assertEquals(Parameter.valueOf("RECORD_ID"), Parameter.RECORD_ID);
-		assertEquals(Parameter.valueOf("GEONAMES_ID"), Parameter.LOCATION);
+		assertEquals(Parameter.valueOf("LOCATION"), Parameter.LOCATION);
 		assertEquals(Parameter.valueOf("RAW_SEQUENCE"), Parameter.RAW_SEQUENCE);
 		assertEquals(Parameter.valueOf("DATE"), Parameter.DATE);
 		assertEquals(9, Parameter.values().length);
