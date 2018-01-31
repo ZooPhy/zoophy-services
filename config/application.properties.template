@@ -10,8 +10,9 @@ spring.datasource.tomcat.min-idle=10
 spring.datasource.tomcat.test-on-borrow=true
 
 # Lucene info
-lucene.index.location=<Lucene Index Path>
+lucene.genbank.index.location=<Path to Lucene Index of Genbank>
 query.max.records=<Maximum records per Lucene query>
+lucene.geonames.index.location=<Path to Lucene Index of Geonames>
 
 # Email info
 email.user=<Email Username>

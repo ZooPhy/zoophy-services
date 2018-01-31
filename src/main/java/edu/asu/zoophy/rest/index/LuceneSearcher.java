@@ -42,7 +42,7 @@ public class LuceneSearcher {
 	private QueryParser queryParser;
 	private final static Logger log = Logger.getLogger("LuceneSearcher");
 	
-	public LuceneSearcher(@Value("${lucene.index.location}") String indexLocation) throws LuceneSearcherException {
+	public LuceneSearcher(@Value("${lucene.genbank.index.location}") String indexLocation) throws LuceneSearcherException {
 		try {
 			Path index = Paths.get(indexLocation);
 			indexDirectory = FSDirectory.open(index);

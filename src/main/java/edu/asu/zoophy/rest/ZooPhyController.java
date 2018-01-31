@@ -1,9 +1,11 @@
 package edu.asu.zoophy.rest;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -18,6 +20,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import edu.asu.zoophy.rest.custom.FastaRecord;
+import edu.asu.zoophy.rest.custom.FlatJobRecord;
 import edu.asu.zoophy.rest.database.DaoException;
 import edu.asu.zoophy.rest.database.GenBankRecordNotFoundException;
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
@@ -25,6 +29,7 @@ import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.genbank.Location;
 import edu.asu.zoophy.rest.genbank.PossibleLocation;
 import edu.asu.zoophy.rest.index.InvalidLuceneQueryException;
+import edu.asu.zoophy.rest.index.LuceneGeonamesSearcher;
 import edu.asu.zoophy.rest.index.LuceneSearcher;
 import edu.asu.zoophy.rest.index.LuceneSearcherException;
 import edu.asu.zoophy.rest.pipeline.PipelineException;
@@ -52,6 +57,9 @@ public class ZooPhyController {
 	@Autowired
 	private LuceneSearcher indexSearcher;
 	
+	@Autowired
+	private LuceneGeonamesSearcher geonamesIndexSearcher;
+
 	@Autowired
 	private SecurityHelper security;
 	
@@ -234,7 +242,76 @@ public class ZooPhyController {
     }
     
     /**
-     * Run ZooPhy Job
+     * Validate fasta contents and retrieve FASTA formatted records for display and eventual job run.
+     * @param records - fasta records to query
+     * @return list of index FastaRecords with locations for the given Fasta
+     * @throws ParameterException
+     * @throws LuceneSearcherException
+     * @throws InvalidLuceneQueryException
+     */
+    @RequestMapping(value="/upfasta", method=RequestMethod.POST, headers="Accept=application/json")
+    @ResponseStatus(value=HttpStatus.ACCEPTED)
+    public List<FastaRecord> checkFasta(@RequestBody List<FlatJobRecord> records) throws ParameterException, LuceneSearcherException, InvalidLuceneQueryException {
+    	log.info("Checking FASTA list...");
+    	List<FastaRecord> fastaRecords = new LinkedList<FastaRecord>();
+    	if (records != null && records.size() > 0) {
+			log.info("FASTA list size " + records.size());
+    		if (records.size() > QUERY_MAX_RECORDS) {
+    			log.warning("Query accession list is too long.");
+	    		throw new ParameterException("accessions list is too long");
+    		}
+        	Set<String> geonameIds = new LinkedHashSet<String>(records.size());
+        	for(FlatJobRecord record : records) {
+				try {
+					if(security.checkParameter(record.getGeonameID().toString(), Parameter.LOCATION)){
+						geonameIds.add(record.getGeonameID().toString());
+					}
+				} catch (Exception e) {
+					log.warning("Skipping violating Geoname id value " + record.getStringRep());
+				}
+        	}
+    		Map<String, Location> geonamesMap;
+    		try {
+    			geonamesMap = geonamesIndexSearcher.searchIndex(geonameIds);
+    		} catch (LuceneSearcherException e) {
+    			log.warning("Geonames Lucene exception: " + e.getMessage());
+    			throw e;
+    		}
+    		Location loc = new Location();
+        	for(FlatJobRecord record : records) {
+        		if  (security.checkParameter(record.getId(), Parameter.RECORD_ID) && 
+        				security.checkParameter(record.getCollectionDate(), Parameter.DATE) &&
+        				security.checkParameter(record.getRawSequence(), Parameter.RAW_SEQUENCE)) {
+        			if (geonamesMap.containsKey(record.getGeonameID())){
+        				loc = geonamesMap.get(record.getGeonameID());
+        				loc.setAccession(record.getId());
+        			} else {
+        				loc = new Location();
+        			}
+        			FastaRecord fastaRecord = new FastaRecord(
+        											record.getId(), 
+        											record.getCollectionDate(), 
+        											record.getRawSequence(),
+        											loc);
+        			fastaRecords.add(fastaRecord);
+        		}
+        		else {
+        			log.warning("Bad parameters for record : "+record.getId());
+        			throw new ParameterException(record.getId());
+        		}
+        	}
+
+    		log.info("Successfully searched accession list.");
+    	}
+    	else {
+    		log.warning("Accession list is empty.");
+    	}
+
+    	return fastaRecords;
+    }
+
+    /**
+     * Run ZooPhy Job on Genbank Records
      * @param parameters
      * @return jobID for started ZooPhy Job
      * @throws ParameterException
@@ -242,7 +319,58 @@ public class ZooPhyController {
      */
     @RequestMapping(value="/run", method=RequestMethod.POST, headers="Accept=application/json")
     @ResponseStatus(value=HttpStatus.ACCEPTED)
-    public String runZooPhyJob(@RequestBody JobParameters parameters) throws ParameterException, PipelineException {
+    public String runZooPhyGenbankJob(@RequestBody JobParameters parameters) throws ParameterException, PipelineException {
+    	log.info("Starting new job...");
+    	if (security.checkParameter(parameters.getReplyEmail(), Parameter.EMAIL)) {
+    		ZooPhyRunner zoophy;
+	    	if (parameters.getJobName() != null) {
+	    		if (!security.checkParameter(parameters.getJobName(), Parameter.JOB_NAME)) {
+	    			log.warning("Bad job name parameter: "+parameters.getJobName());
+	    			throw new ParameterException(parameters.getJobName());
+	    		}
+	    	}
+    		try {
+    			security.verifyXMLOptions(parameters.getXmlOptions());
+    		}
+    		catch (ParameterException pe) {
+    			log.warning("Bad XML Parameters: "+pe.getMessage());
+    			throw pe;
+    		}
+    		zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors(), parameters.getXmlOptions());
+    		Set<String> jobAccessions = new LinkedHashSet<String>(parameters.getAccessions().size());
+    		for(String accession : parameters.getAccessions()) {
+    			if  (security.checkParameter(accession, Parameter.ACCESSION)) {
+    				jobAccessions.add(accession);
+    			}
+    			else {
+    				log.warning("Bad accession parameter: "+accession);
+    				throw new ParameterException(accession);
+    			}
+    		}
+    		if (jobAccessions.size() > JOB_MAX_ACCESSIONS) {
+    			log.warning("Job accession list is too long.");
+    			throw new ParameterException("accessions list is too long");
+    		}
+    		manager.startZooPhyPipeline(zoophy, new ArrayList<String>(jobAccessions));
+    		log.info("Job successfully started: "+zoophy.getJobID());
+    		return zoophy.getJobID();
+    	}
+    	else {
+    		log.warning("Bad reply email parameter: "+parameters.getReplyEmail());
+    		throw new ParameterException(parameters.getReplyEmail());
+    	}
+    }
+    
+    /**
+     * Run ZooPhy Job
+     * @param parameters
+     * @return jobID for started ZooPhy Job
+     * @throws ParameterException
+     * @throws PipelineException
+     */
+    @RequestMapping(value="/runcustom", method=RequestMethod.POST, headers="Accept=application/json")
+    @ResponseStatus(value=HttpStatus.ACCEPTED)
+    public String runZooPhyCustomJob(@RequestBody CustomJobParameters parameters) throws ParameterException, PipelineException, LuceneSearcherException {
     	log.info("Starting new job...");
     	if (security.checkParameter(parameters.getReplyEmail(), Parameter.EMAIL)) {
     		ZooPhyRunner zoophy;
@@ -260,21 +388,48 @@ public class ZooPhyController {
     			throw pe;
     		}
 	    	zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors(), parameters.getXmlOptions());
-	    	Set<String> jobAccessions = new LinkedHashSet<String>(parameters.getAccessions().size());
-	    	for(String accession : parameters.getAccessions()) {
-	    		if  (security.checkParameter(accession, Parameter.ACCESSION)) {
-	    			jobAccessions.add(accession);
+	    	Set<String> geonameIds = new LinkedHashSet<String>(parameters.getRecords().size());
+	    	for(FlatJobRecord record : parameters.getRecords()) {
+	    		if(security.checkParameter(record.getGeonameID(), Parameter.LOCATION)){
+		    		geonameIds.add(record.getGeonameID());
+	    		}
+	    	}
+    		Map<String, Location> geonamesMap;
+			try {
+				geonamesMap = geonamesIndexSearcher.searchIndex(geonameIds);
+			} catch (LuceneSearcherException e) {
+    			log.warning("Geonames Lucene exception: " + e.getMessage());
+    			throw e;
+			}
+	    	List<FastaRecord> fastaRecords = new LinkedList<FastaRecord>();
+			Location loc = new Location();
+	    	for(FlatJobRecord record : parameters.getRecords()) {
+	    		if  (security.checkParameter(record.getId(), Parameter.RECORD_ID) && 
+	    				security.checkParameter(record.getCollectionDate(), Parameter.DATE) &&
+	    				security.checkParameter(record.getRawSequence(), Parameter.RAW_SEQUENCE)) {
+	    			if (geonamesMap.containsKey(record.getGeonameID())){
+	    				loc = geonamesMap.get(record.getGeonameID());
+	    				loc.setAccession(record.getId());
+	    			} else {
+	    				loc = new Location();
+	    			}
+	    			FastaRecord fastaRecord = new FastaRecord(
+	    											record.getId(), 
+	    											record.getCollectionDate(), 
+	    											record.getRawSequence(),
+	    											loc);
+	    			fastaRecords.add(fastaRecord);
 	    		}
 	    		else {
-	    			log.warning("Bad accession parameter: "+accession);
-	    			throw new ParameterException(accession);
+	    			log.warning("Bad parameters for record : "+record.getId());
+	    			throw new ParameterException(record.getId());
 	    		}
 	    	}
-	    	if (jobAccessions.size() > JOB_MAX_ACCESSIONS) {
-	    		log.warning("Job accession list is too long.");
+	    	if (fastaRecords.size() > JOB_MAX_ACCESSIONS) {
+	    		log.warning("FASTA record list is too long.");
 	    		throw new ParameterException("accessions list is too long");
 	    	}
-	    	manager.startZooPhyPipeline(zoophy, new ArrayList<String>(jobAccessions));
+	    	manager.startZooPhyCustomPipeline(zoophy, fastaRecords);
 	    	log.info("Job successfully started: "+zoophy.getJobID());
 	    	return zoophy.getJobID();
     	}
@@ -283,7 +438,7 @@ public class ZooPhyController {
     		throw new ParameterException(parameters.getReplyEmail());
     	}
     }
-    
+
     /**
      * Stop a running ZooPhyJob by the Job ID
      * @param jobID - ID of Job to be stopped
@@ -497,4 +652,121 @@ public class ZooPhyController {
     	}
     }
     
+    /**
+     * Validate a ZooPhy Job before starting it, to avoid common failures in the early stages.
+     * @param parameters
+     * @return Null if the job is valid, otherwise the String of Error message(s).
+     * @throws ParameterException
+     * @throws PipelineException
+     */
+    @RequestMapping(value="/validatecustom", method=RequestMethod.POST, headers="Accept=application/json")
+    @ResponseStatus(value=HttpStatus.OK)
+    public ValidationResults validateCustomJob(@RequestBody CustomJobParameters parameters) throws ParameterException, PipelineException {
+    	log.info("Validating Custom job...");
+    	ValidationResults results = new ValidationResults();
+    	try {
+    		//start 
+        	if (security.checkParameter(parameters.getReplyEmail(), Parameter.EMAIL)) {
+        		ZooPhyRunner zoophy;
+    	    	if (parameters.getJobName() != null) {
+    	    		if (!security.checkParameter(parameters.getJobName(), Parameter.JOB_NAME)) {
+    	    			log.warning("Bad job name parameter: "+parameters.getJobName());
+    	    			throw new ParameterException(parameters.getJobName());
+    	    		}
+    	    	}
+        		try {
+        			security.verifyXMLOptions(parameters.getXmlOptions());
+        		}
+        		catch (ParameterException pe) {
+        			log.warning("Bad XML Parameters: "+pe.getMessage());
+        			throw pe;
+        		}
+    	    	zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors(), parameters.getXmlOptions());
+    	    	Set<String> geonameIds = new LinkedHashSet<String>(parameters.getRecords().size());
+    	    	for(FlatJobRecord record : parameters.getRecords()) {
+    	    		if(security.checkParameter(record.getGeonameID().toString(), Parameter.LOCATION)){
+    		    		geonameIds.add(record.getGeonameID().toString());
+    	    		}
+    	    	}
+        		Map<String, Location> geonamesMap;
+    			try {
+    				geonamesMap = geonamesIndexSearcher.searchIndex(geonameIds);
+    			} catch (LuceneSearcherException e) {
+        			log.warning("Geonames Lucene exception: " + e.getMessage());
+        			throw e;
+    			}
+    	    	List<FastaRecord> fastaRecords = new LinkedList<FastaRecord>();
+    	    	Set<String> jobRecordIds = new HashSet<String>();
+    			Location loc = new Location();
+    	    	for(FlatJobRecord record : parameters.getRecords()) {
+    	    		if  (security.checkParameter(record.getId(), Parameter.RECORD_ID) && 
+    	    				security.checkParameter(record.getCollectionDate(), Parameter.DATE) &&
+    	    				security.checkParameter(record.getRawSequence(), Parameter.RAW_SEQUENCE)) {
+    	    			if (geonamesMap.containsKey(record.getGeonameID())){
+    	    				loc = geonamesMap.get(record.getGeonameID());
+    	    				loc.setAccession(record.getId());
+    	    			} else {
+    	    				loc = new Location();
+    	    			}
+    	    			FastaRecord fastaRecord = new FastaRecord(
+    	    											record.getId(), 
+    	    											record.getCollectionDate(), 
+    	    											record.getRawSequence(),
+    	    											loc);
+    	    			fastaRecords.add(fastaRecord);
+    	    			jobRecordIds.add(record.getId());
+    	    		}
+    	    		else {
+    	    			log.warning("Bad parameters for record : "+record.getId());
+    	    			throw new ParameterException(record.getId());
+    	    		}
+    	    	}
+    	    	if (fastaRecords.size() > JOB_MAX_ACCESSIONS) {
+    	    		log.warning("FASTA record list is too long.");
+    	    		throw new ParameterException("accessions list is too long");
+    	    	}
+    	    	Set<String> remainingAccessions = zoophy.testZooPhyCustom(fastaRecords);
+    	    	jobRecordIds.removeAll(remainingAccessions);
+		    	results.setAccessionsRemoved(new LinkedList<String>(jobRecordIds));
+		    	results.setAccessionsUsed(new LinkedList<String>(remainingAccessions));
+		    	return results;
+	    	}
+	    	else {
+	    		log.warning("Bad reply email parameter: "+parameters.getReplyEmail());
+	    		throw new ParameterException(parameters.getReplyEmail());
+	    	}
+    		// stop 
+    	}
+    	catch (ParameterException pe) {
+    		results.setError(pe.getMessage());
+    		return results;
+    	}
+    	catch (GLMException glme) {
+    		if (glme.getUserMessage() != null) {
+    			results.setError(glme.getMessage());
+        		return results;
+    		}
+    		else {
+    			results.setError("GLM Tools Failed");
+        		return results;
+    		}
+    	}
+    	catch (PipelineException pe) {
+    		if (pe.getUserMessage() != null) {
+    			results.setError(pe.getUserMessage());
+    			return results;
+    			
+    		}
+    		else {
+    			results.setError("ZooPhy Pipeline Failed");
+    			return results;
+    		}
+    	}
+    	catch (Exception e) {
+    		log.warning("Unknown Pipeline error occurred: "+e.getMessage());;
+    		results.setError("Unkown Error occurred");
+    		return results;
+    	}
+    }
+
 }
