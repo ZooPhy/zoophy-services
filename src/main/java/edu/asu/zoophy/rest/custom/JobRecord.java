@@ -13,7 +13,6 @@ public class JobRecord {
 	private String geonameID;
 	private String rawSequence;
 	private String resourceSource;
-	private String accessions;
 
 	public JobRecord() {
 	}
@@ -63,14 +62,5 @@ public class JobRecord {
 	public void setResourceSource(String resourceSource) {
 		this.resourceSource = resourceSource;
 	}
-
-	public String getAccessions() {
-		return accessions;
-	}
-
-	public void setAccessions(String accessions) {
-		this.accessions = accessions;
-	}
-
 
 }

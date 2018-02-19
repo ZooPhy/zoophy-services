@@ -44,9 +44,9 @@ public class PipelineManager {
      * @throws PipelineException
      */
     @Async
-    public void startNewZooPhyPipeline(ZooPhyRunner runner, List<FastaRecord> records,List<String> accessions) throws PipelineException {
-    	log.info("Starting ZooPhy Custom Job: "+runner.getJobID());
-    	runner.runNewZooPhy(accessions, dao, indexSearcher, records);
+    public void startZooPhyPipeline(ZooPhyRunner runner, List<FastaRecord> records,List<String> accessions) throws PipelineException {
+    	log.info("Starting ZooPhy Job: "+runner.getJobID());
+    	runner.runZooPhy(accessions, dao, indexSearcher, records);
     }
 	
 	/**
@@ -98,29 +98,5 @@ public class PipelineManager {
 			throw new PipelineException("ERROR! Could not kill job: "+jobID+" : "+e.getMessage(), "Could Not Kill Job!");
 		}
 	}
-	 	
-//	 /**
-//     * Asynchronously a the ZooPhy job
-//     * @param runner - ZoophyRunner containing the job details
-//     * @param accessions - list of accessions for the job
-//     * @throws PipelineException
-//     */
-//    @Async
-//    public void startZooPhyPipeline(ZooPhyRunner runner, List<String> accessions) throws PipelineException {
-//    	log.info("Starting ZooPhy Genbank Job: "+runner.getJobID());
-//    	runner.runZooPhy(accessions, dao, indexSearcher);
-//    }
-//	
-//	 /**
-//     * Asynchronously a the ZooPhy Custom job
-//     * @param runner - ZoophyRunner containing the job details
-//     * @param records - list of accessions for the job
-//     * @throws PipelineException
-//     */
-//    @Async
-//    public void startZooPhyCustomPipeline(ZooPhyRunner runner, List<FastaRecord> records) throws PipelineException {
-//    	log.info("Starting ZooPhy Custom Job: "+runner.getJobID());
-//    	runner.runZooPhy(records);
-//    }
 	
 }

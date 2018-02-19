@@ -12,7 +12,7 @@ import edu.asu.zoophy.rest.database.ZooPhyDAO;
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.index.LuceneSearcher;
 import edu.asu.zoophy.rest.index.LuceneSearcherException;
-import edu.asu.zoophy.rest.pipeline.NewSequenceAligner;
+import edu.asu.zoophy.rest.pipeline.SequenceAligner;
 import edu.asu.zoophy.rest.security.ParameterException;
 
 @Component("DownloadFormatter")
@@ -118,7 +118,7 @@ public class DownloadFormatter {
 	 */
 	private String generateFASTA(List<String> accessions) throws FormatterException {
 		try {
-			NewSequenceAligner fastaGenerator = new NewSequenceAligner(dao, indexSearcher);
+			SequenceAligner fastaGenerator = new SequenceAligner(dao, indexSearcher);
 			return fastaGenerator.generateDownloadableRawFasta(accessions);
 		}
 		catch (Exception e) {

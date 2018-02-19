@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.index.LuceneSearcher;
-import edu.asu.zoophy.rest.pipeline.NewSequenceAligner;
+import edu.asu.zoophy.rest.pipeline.SequenceAligner;
 import edu.asu.zoophy.rest.pipeline.utils.Normalizer;
 
 /**
@@ -37,7 +37,7 @@ public class PredictorTemplateGenerator {
 	public String generateTemplate(List<String> accessions) throws GLMException {
 		try {
 			List<GenBankRecord> records;
-			NewSequenceAligner aligner = new NewSequenceAligner(dao, indexSearcher);
+			SequenceAligner aligner = new SequenceAligner(dao, indexSearcher);
 			try {
 				records = aligner.loadSequences(accessions, true, false);
 			}

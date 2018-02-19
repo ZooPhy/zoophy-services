@@ -17,7 +17,10 @@ import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import edu.asu.zoophy.rest.custom.FastaRecord;
 import edu.asu.zoophy.rest.database.DaoException;
 import edu.asu.zoophy.rest.database.GenBankRecordNotFoundException;
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
@@ -28,6 +31,7 @@ import edu.asu.zoophy.rest.pipeline.glm.PredictorGenerator;
 import edu.asu.zoophy.rest.pipeline.utils.GeonameDisjoiner;
 import edu.asu.zoophy.rest.pipeline.utils.Normalizer;
 import edu.asu.zoophy.rest.pipeline.utils.NormalizerException;
+import edu.asu.zoophy.rest.security.SecurityHelper;
 
 /**
  * Responsible for aligning sequences into FASTA format
@@ -82,7 +86,7 @@ public class SequenceAligner {
 	}
 	
 	/**
-	 * Sequence Alignment Pipeline that runs:
+	 * Sequence Alignment Pipeline for genbank and Fasta records that runs:
 	 * 1) Geoname Disjoiner
 	 * 2) GLM Predictor Generator (only if job is using GLM)
 	 * 3) FASTA formatting of raw sequences
@@ -92,19 +96,31 @@ public class SequenceAligner {
 	 * @return Final List of Records to be used in the Job
 	 * @throws PipelineException
 	 */
-	public List<GenBankRecord> align(List<String> accessions, boolean isTest) throws PipelineException {
+	public List<GenBankRecord> align(List<FastaRecord> fastaRecs, List<String> accessions, boolean isTest) throws PipelineException {
 		FileHandler fileHandler = null;
+		String rawFasta= "";
 		try {
+			List<GenBankRecord> recs =new LinkedList<>();
 			logFile = new File(JOB_LOG_DIR+job.getID()+".log");
 			fileHandler = new FileHandler(JOB_LOG_DIR+job.getID()+".log", true);
+			log.info("after file handler");
 			SimpleFormatter formatter = new SimpleFormatter();  
 	        fileHandler.setFormatter(formatter);
 	        log.addHandler(fileHandler);
 	        log.setUseParentHandlers(false);
+	        log.info("before start");
 			log.info("Starting Mafft Job: "+job.getID());
-			List<GenBankRecord> recs = loadSequences(accessions, true, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
-			log.info("After screening job includes: "+recs.size()+" records.");
-			String rawFasta = fastaFormat(recs, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
+			if(accessions.size()>0) {
+				recs = loadSequences(accessions, true, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
+				log.info("After screening job includes: "+recs.size()+" records.");
+				rawFasta = fastaFormat(recs, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
+			}
+			if(fastaRecs.size()>0) {
+				//TODO run loadSequence for fasta records 
+				log.info("After screening job includes: "+recs.size()+" records.");
+				rawFasta += convertCustomRecordToFasta(fastaRecs, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
+			}
+			log.info("rawFasta:  "+rawFasta);
 			createCoordinatesFile();
 			if (job.isUsingGLM()) {
 				createGLMFile(job.isUsingGLM() && !job.isUsingCustomPredictors());
@@ -209,7 +225,7 @@ public class SequenceAligner {
 				log.log(Level.SEVERE, "ERROR! Issue Adding Record: "+accession+" : "+e.getMessage());
 			}
 		}
-		log.info("Records loaded. "+records.size());
+		log.info("Records loaded.");
 		if (isDisjoint) {
 			GeonameDisjoiner disjoiner  = new GeonameDisjoiner(indexSearcher);
 			if (isUsingDefaultGLM) {
@@ -341,6 +357,69 @@ public class SequenceAligner {
 				}
 				tempBuilder.append("\n");
 				List<String> rows = breakUp(record.getSequence().getRawSequence());
+				for (String row : rows) {
+					tempBuilder.append(row);
+					tempBuilder.append("\n");
+				}
+				tempBuilder.append("\n");
+				builder.append(tempBuilder.toString());
+			}
+			catch (Exception e) {
+				log.log(Level.SEVERE, "Error Fasta Formatting: "+e.getMessage());
+				throw new AlignerException("Error running mafft: "+e.getMessage(), null);
+			}
+		}
+		log.info("Fasta Formatting complete.");
+		return builder.toString();
+	}
+	
+	/**
+	 * Combines the Custom records' sequences into a FASTA formatted String
+	 * @param records List of full GenBankRecords
+	 * @return String FASTA formatted sequences
+	 * @throws AlignerException 
+	 * @throws Exception 
+	 */
+	private String convertCustomRecordToFasta(List<FastaRecord> records, boolean isUsingDefaultGLM) throws AlignerException {
+		log.info("Starting Fasta formatting");
+		StringBuilder builder = new StringBuilder();
+		StringBuilder tempBuilder;
+		for (FastaRecord record : records) {
+			try {
+				tempBuilder = new StringBuilder();
+				tempBuilder.append(">");
+				tempBuilder.append(record.getAccession());
+				tempBuilder.append("_");
+				String humanDateFormat = SecurityHelper.FASTA_MET_DECIMAL_DATE_REGEX;
+				Pattern regex = Pattern.compile(humanDateFormat);
+				Matcher matcher = regex.matcher(record.getCollectionDate());
+				String stringDate;
+				if(matcher.matches()){
+					stringDate = record.getCollectionDate();
+				} else {
+					stringDate = getFastaDate(record.getCollectionDate());
+				}
+				int year = (int) Double.parseDouble(stringDate);
+				if (year < startYear) {
+					startYear = year;
+				}
+				else if (year > endYear) {
+					endYear = year;
+				}
+				tempBuilder.append(stringDate);
+				tempBuilder.append("_");
+				String normalizedLocation = Normalizer.normalizeLocation(record.getGeonameLocation());
+				tempBuilder.append(normalizedLocation);
+				if (isUsingDefaultGLM) {
+					addOccurrence(normalizedLocation);
+				}
+				if (geonameCoordinates != null && geonameCoordinates.get(normalizedLocation) == null) {
+					String coordinates = normalizedLocation+"\t"+record.getGeonameLocation().getLatitude()+"\t"+record.getGeonameLocation().getLongitude();
+					geonameCoordinates.put(normalizedLocation, coordinates);
+					uniqueGeonames.add(normalizedLocation);
+				}
+				tempBuilder.append("\n");
+				List<String> rows = breakUp(record.getRawSequence());
 				for (String row : rows) {
 					tempBuilder.append(row);
 					tempBuilder.append("\n");
