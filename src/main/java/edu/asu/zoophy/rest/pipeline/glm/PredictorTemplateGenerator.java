@@ -15,7 +15,7 @@ import edu.asu.zoophy.rest.pipeline.utils.Normalizer;
 
 /**
  * Generates templates for GLM Predictor files
- * @author devdemetri
+ * @author devdemetri,kbhangal
  */
 @Component("PredictorTemplateGenerator")
 public class PredictorTemplateGenerator {
