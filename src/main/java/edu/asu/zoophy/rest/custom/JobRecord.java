@@ -4,7 +4,7 @@ package edu.asu.zoophy.rest.custom;
 /**
  * Main object for representing job records.
  * Thus implementation is for both fasta and genBank search 
- * @author kbhangal
+ * @author devdemetri, kbhangal
  */
 public class JobRecord {
 	

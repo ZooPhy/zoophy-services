@@ -35,7 +35,7 @@ import edu.asu.zoophy.rest.security.SecurityHelper;
 
 /**
  * Responsible for aligning sequences into FASTA format
- * @author devdemetri
+ * @author devdemetri, kbhangal
  */
 public class SequenceAligner {
 
@@ -96,19 +96,17 @@ public class SequenceAligner {
 	 * @return Final List of Records to be used in the Job
 	 * @throws PipelineException
 	 */
-	public List<GenBankRecord> align(List<FastaRecord> fastaRecs, List<String> accessions, boolean isTest) throws PipelineException {
+	public List<GenBankRecord> align(List<String> accessions, List<FastaRecord> fastaRecs, boolean isTest) throws PipelineException {
 		FileHandler fileHandler = null;
 		String rawFasta= "";
 		try {
 			List<GenBankRecord> recs =new LinkedList<>();
 			logFile = new File(JOB_LOG_DIR+job.getID()+".log");
 			fileHandler = new FileHandler(JOB_LOG_DIR+job.getID()+".log", true);
-			log.info("after file handler");
 			SimpleFormatter formatter = new SimpleFormatter();  
 	        fileHandler.setFormatter(formatter);
 	        log.addHandler(fileHandler);
 	        log.setUseParentHandlers(false);
-	        log.info("before start");
 			log.info("Starting Mafft Job: "+job.getID());
 			if(accessions.size()>0) {
 				recs = loadSequences(accessions, true, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
@@ -120,7 +118,6 @@ public class SequenceAligner {
 				log.info("After screening job includes: "+recs.size()+" records.");
 				rawFasta += convertCustomRecordToFasta(fastaRecs, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
 			}
-			log.info("rawFasta:  "+rawFasta);
 			createCoordinatesFile();
 			if (job.isUsingGLM()) {
 				createGLMFile(job.isUsingGLM() && !job.isUsingCustomPredictors());

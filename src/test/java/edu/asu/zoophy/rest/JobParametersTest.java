@@ -35,14 +35,21 @@ public class JobParametersTest {
 		final XMLParameters mockXMLParams = XMLParameters.getDefault();
 		JobParameters paramters = new JobParameters();
 		
+		//Fasta
 		JobRecord jobRecord = new JobRecord();
+		jobRecord.setId("ABC");
 		jobRecord.setCollectionDate("25-Mar-2006");
 		jobRecord.setGeonameID("5308655");
-		jobRecord.setId("ABC");
 		jobRecord.setRawSequence("ATGGAGAAAATAGTGCTTCTTTTTGCAATAGTCAGTCTTGTAAAAGTGATCAGATTTGCAT");
 		jobRecord.setResourceSource("2");
 		mockRecords.add(jobRecord);
-
+		
+		//GenBank
+		jobRecord = new JobRecord();
+		jobRecord.setId("CY214007");
+		jobRecord.setResourceSource("1");
+		mockRecords.add(jobRecord);
+		
 		paramters.setRecords(mockRecords);
 		paramters.setJobName("Mock Job");
 		paramters.setPredictors(mockPredictors);
@@ -51,6 +58,8 @@ public class JobParametersTest {
 		paramters.setXmlOptions(mockXMLParams);
 		assertThat(paramters).isNotNull();
 		assertThat(paramters.getRecords().get(0).getId()).isNotNull();
+		assertThat(paramters.getRecords().get(0).getRawSequence()).isNotNull();
+		assertThat(paramters.getRecords().get(1).getRawSequence()).isNull();
 		assertThat(paramters.getRecords()).isEqualTo(mockRecords);
 		assertThat(paramters.getJobName()).isNotNull();
 		assertThat(paramters.getJobName()).isEqualTo("Mock Job");

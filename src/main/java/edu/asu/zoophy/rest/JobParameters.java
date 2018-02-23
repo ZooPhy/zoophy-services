@@ -10,7 +10,7 @@ import edu.asu.zoophy.rest.pipeline.glm.Predictor;
 
 /**
  * Parameters for ZooPhy jobs
- * @author kbhangal
+ * @author devdemetri, kbhangal
  */
 public class JobParameters {
 	

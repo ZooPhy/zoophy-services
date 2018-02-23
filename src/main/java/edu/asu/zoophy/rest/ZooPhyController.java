@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import edu.asu.zoophy.rest.custom.CustomParameters;
 import edu.asu.zoophy.rest.custom.FastaRecord;
 import edu.asu.zoophy.rest.custom.JobRecord;
 import edu.asu.zoophy.rest.database.DaoException;
@@ -46,7 +47,7 @@ import edu.asu.zoophy.rest.security.SecurityHelper;
 
 /**
  * Responsible for mapping ZooPhy service requests
- * @author devdemetri, amagge
+ * @author devdemetri, amagge, kbhangal
  */
 @RestController
 public class ZooPhyController {
@@ -77,9 +78,6 @@ public class ZooPhyController {
 	
 	@Autowired
 	private PredictorTemplateGenerator templateGenerator;
-	
-	private static String sourceGENBANK ="1";
-	private static String sourceFASTA ="2";
 	
 	private final static Logger log = Logger.getLogger("ZooPhyController");
 	
@@ -349,13 +347,13 @@ public class ZooPhyController {
     		List<FastaRecord> fastaRecords = new LinkedList<FastaRecord>();
     		
     		for(JobRecord jobrecord: parameters.getRecords()) {
-    			if(jobrecord.getResourceSource().equals(sourceGENBANK)) {
+    			if(jobrecord.getResourceSource().equals(CustomParameters.sourceGENBANK)) {
     				genBankRecords.add(jobrecord);
-    			}else if(jobrecord.getResourceSource().equals(sourceFASTA)){
+    			}else if(jobrecord.getResourceSource().equals(CustomParameters.sourceFASTA)){
     				userEnteredRecords.add(jobrecord);
     			}	
     		}
-    		log.info("genBank records: "+genBankRecords.size()+" fasta records: "+userEnteredRecords.size());
+    		log.info("genBank records: "+genBankRecords.size()+", fasta records: "+userEnteredRecords.size());
     		//genBank
     		for(JobRecord jobrecord: genBankRecords) {
     			String accession = jobrecord.getId();
@@ -417,7 +415,7 @@ public class ZooPhyController {
 	    		log.warning("FASTA record list is too long.");
 	    		throw new ParameterException("accessions list is too long");
 	    	}
-    		manager.startZooPhyPipeline(zoophy, fastaRecords, new ArrayList<String>(jobAccessions));
+    		manager.startZooPhyPipeline(zoophy, new ArrayList<String>(jobAccessions), fastaRecords);
     		log.info("Job successfully started: "+zoophy.getJobID());
     		return zoophy.getJobID();
     		
@@ -591,9 +589,9 @@ public class ZooPhyController {
         	List<FastaRecord> fastaRecords = new LinkedList<FastaRecord>();
         	Set<String> jobRecordIds = new HashSet<String>();
     	    	for(JobRecord jobrecord: parameters.getRecords()) {
-        			if(jobrecord.getResourceSource().equals(sourceGENBANK)) {
+        			if(jobrecord.getResourceSource().equals(CustomParameters.sourceGENBANK)) {
         				genBankRecords.add(jobrecord);
-        			}else if(jobrecord.getResourceSource().equals(sourceFASTA)){
+        			}else if(jobrecord.getResourceSource().equals(CustomParameters.sourceFASTA)){
         				userEnteredRecords.add(jobrecord);
         			}
         				
@@ -660,7 +658,7 @@ public class ZooPhyController {
     	    		log.warning("FASTA record list is too long.");
     	    		throw new ParameterException("accessions list is too long");
     	    	}
-    	    	Set<String> remainingAccessions = zoophy.testZooPhy(new ArrayList<String>(jobAccessions), dao, indexSearcher, fastaRecords);
+    	    	Set<String> remainingAccessions = zoophy.testZooPhy(new ArrayList<String>(jobAccessions), fastaRecords, dao, indexSearcher);
     	    	jobAccessions.removeAll(remainingAccessions);
 	    	results.setAccessionsRemoved(new LinkedList<String>(jobAccessions));
 	    	results.setAccessionsUsed(new LinkedList<String>(remainingAccessions));

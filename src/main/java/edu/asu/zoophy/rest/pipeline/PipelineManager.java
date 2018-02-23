@@ -16,7 +16,7 @@ import edu.asu.zoophy.rest.index.LuceneSearcher;
 
 /**
  * Manages ZooPhy Pipeline jobs
- * @author devdemetri
+ * @author devdemetri, kbhangal
  */
 @EnableAsync
 @Component("PipelineManager")
@@ -44,9 +44,9 @@ public class PipelineManager {
      * @throws PipelineException
      */
     @Async
-    public void startZooPhyPipeline(ZooPhyRunner runner, List<FastaRecord> records,List<String> accessions) throws PipelineException {
+    public void startZooPhyPipeline(ZooPhyRunner runner,List<String> accessions, List<FastaRecord> fastaRecords) throws PipelineException {
     	log.info("Starting ZooPhy Job: "+runner.getJobID());
-    	runner.runZooPhy(accessions, dao, indexSearcher, records);
+    	runner.runZooPhy(accessions, fastaRecords, dao, indexSearcher);
     }
 	
 	/**

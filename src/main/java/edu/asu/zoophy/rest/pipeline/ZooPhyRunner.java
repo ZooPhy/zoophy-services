@@ -18,7 +18,7 @@ import edu.asu.zoophy.rest.pipeline.glm.Predictor;
 
 /**
  * Responsible for running ZooPhy jobs
- * @author devdemetri
+ * @author devdemetri, kbhangal
  */
 public class ZooPhyRunner {
 
@@ -43,16 +43,14 @@ public class ZooPhyRunner {
 	 * @param indexSearcher 
 	 * @throws PipelineException
 	 */
-	public void runZooPhy(List<String> accessions, ZooPhyDAO dao, LuceneSearcher indexSearcher, List<FastaRecord> records) throws PipelineException {
+	public void runZooPhy(List<String> accessions, List<FastaRecord> fastaRecords, ZooPhyDAO dao, LuceneSearcher indexSearcher) throws PipelineException {
 		try {
-			
-			log.info("zphyrunner in try: fastaRecs: "+records.size()+ " acc: "+accessions.size());
 			log.info("Sending Start Email... : "+job.getID());
 			mailer.sendStartEmail();
 			log.info("Initializing Sequence Aligner... : "+job.getID());
 			SequenceAligner aligner = new SequenceAligner(job, dao, indexSearcher);
 			log.info("Running Sequence Aligner... : "+job.getID());
-			aligner.align(records, accessions, false);
+			aligner.align(accessions, fastaRecords, false);
 			log.info("Initializing Beast Runner... : "+job.getID());
 			BeastRunner beast = new BeastRunner(job, mailer);
 			log.info("Starting Beast Runner... : "+job.getID());
@@ -100,12 +98,12 @@ public class ZooPhyRunner {
 	 * @param indexSearcher
 	 * @throws PipelineException
 	 */
-	public Set<String> testZooPhy(List<String> accessions, ZooPhyDAO dao, LuceneSearcher indexSearcher, List<FastaRecord> records) throws PipelineException {
+	public Set<String> testZooPhy(List<String> accessions, List<FastaRecord> fastaRecords, ZooPhyDAO dao, LuceneSearcher indexSearcher) throws PipelineException {
 		try {
 			log.info("Initializing test Sequence Aligner... : "+job.getID());
 			SequenceAligner aligner = new SequenceAligner(job, dao, indexSearcher);
 			log.info("Running test Sequence Aligner... : "+job.getID());
-			final List<GenBankRecord> finalRecs = aligner.align(records, accessions, true);
+			final List<GenBankRecord> finalRecs = aligner.align(accessions, fastaRecords, true);
 			log.info("Initializing test Beast Runner... : "+job.getID());
 			BeastRunner beast = new BeastRunner(job, null);
 			log.info("Starting test Beast Runner... : "+job.getID());
