@@ -576,28 +576,22 @@ public class ZooPhyController {
     	    	zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors(), parameters.getXmlOptions());
     	    Set<String> jobAccessions = new LinkedHashSet<String>();
     	    	Set<String> geonameIds = new LinkedHashSet<String>();
-    	    	ArrayList<JobRecord> genBankRecords = new ArrayList<>();
         	ArrayList<JobRecord> userEnteredRecords= new ArrayList<>();
         	List<FastaRecord> fastaRecords = new LinkedList<FastaRecord>();
         	Set<String> jobRecordIds = new HashSet<String>();
     	    	for(JobRecord jobrecord: parameters.getRecords()) {
         			if(jobrecord.getResourceSource() == JobConstants.SOURCE_GENBANK) {
-        				genBankRecords.add(jobrecord);
+        				String accession = jobrecord.getId();
+            			if  (security.checkParameter(accession, Parameter.ACCESSION)) {
+                			jobAccessions.add(accession);
+            			}else {
+                			log.warning("Bad accession parameter: "+accession);
+                			throw new ParameterException(accession);
+                		}
         			}else if(jobrecord.getResourceSource() == JobConstants.SOURCE_FASTA){
         				userEnteredRecords.add(jobrecord);
         			}
-        				
         		}
-    	    	//genBank
-        	for(JobRecord jobrecord: genBankRecords) {
-        		String accession = jobrecord.getId();
-    			if  (security.checkParameter(accession, Parameter.ACCESSION)) {
-        			jobAccessions.add(accession);
-    			}else {
-        			log.warning("Bad accession parameter: "+accession);
-        			throw new ParameterException(accession);
-        		}
-        	}
         	//userEntered-FASTA
     		if(userEnteredRecords.size()>0) {
 	    		for(JobRecord jobrecord: userEnteredRecords) {
