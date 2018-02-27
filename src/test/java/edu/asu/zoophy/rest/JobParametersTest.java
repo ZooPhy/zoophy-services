@@ -12,7 +12,6 @@ import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import edu.asu.zoophy.rest.custom.JobRecord;
 import edu.asu.zoophy.rest.pipeline.XMLParameters;
 import edu.asu.zoophy.rest.pipeline.glm.Predictor;
 
@@ -41,13 +40,13 @@ public class JobParametersTest {
 		jobRecord.setCollectionDate("25-Mar-2006");
 		jobRecord.setGeonameID("5308655");
 		jobRecord.setRawSequence("ATGGAGAAAATAGTGCTTCTTTTTGCAATAGTCAGTCTTGTAAAAGTGATCAGATTTGCAT");
-		jobRecord.setResourceSource("2");
+		jobRecord.setResourceSource(2);
 		mockRecords.add(jobRecord);
 		
 		//GenBank
 		jobRecord = new JobRecord();
 		jobRecord.setId("CY214007");
-		jobRecord.setResourceSource("1");
+		jobRecord.setResourceSource(1);
 		mockRecords.add(jobRecord);
 		
 		paramters.setRecords(mockRecords);

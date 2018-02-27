@@ -1,4 +1,4 @@
-package edu.asu.zoophy.rest.custom;
+package edu.asu.zoophy.rest;
 
 
 /**
@@ -12,7 +12,7 @@ public class JobRecord {
 	private String collectionDate; 
 	private String geonameID;
 	private String rawSequence;
-	private String resourceSource;
+	private int resourceSource;
 
 	public JobRecord() {
 	}
@@ -55,11 +55,11 @@ public class JobRecord {
 	
 
 
-	public String getResourceSource() {
+	public int getResourceSource() {
 		return resourceSource;
 	}
 
-	public void setResourceSource(String resourceSource) {
+	public void setResourceSource(int resourceSource) {
 		this.resourceSource = resourceSource;
 	}
 

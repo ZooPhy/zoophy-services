@@ -4,7 +4,6 @@ package edu.asu.zoophy.rest;
 import java.util.List;
 import java.util.Map;
 
-import edu.asu.zoophy.rest.custom.JobRecord;
 import edu.asu.zoophy.rest.pipeline.XMLParameters;
 import edu.asu.zoophy.rest.pipeline.glm.Predictor;
 

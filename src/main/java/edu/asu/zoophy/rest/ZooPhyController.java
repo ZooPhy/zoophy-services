@@ -20,9 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import edu.asu.zoophy.rest.custom.CustomParameters;
 import edu.asu.zoophy.rest.custom.FastaRecord;
-import edu.asu.zoophy.rest.custom.JobRecord;
 import edu.asu.zoophy.rest.database.DaoException;
 import edu.asu.zoophy.rest.database.GenBankRecordNotFoundException;
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
@@ -301,7 +299,6 @@ public class ZooPhyController {
         			throw new ParameterException(record.getId());
         		}
         	}
-
     		log.info("Successfully searched accession list.");
     	}
     	else {
@@ -310,7 +307,6 @@ public class ZooPhyController {
 
     	return fastaRecords;
     }
-
 
     /**
      * Run ZooPhy Job
@@ -340,30 +336,26 @@ public class ZooPhyController {
     			throw pe;
     		}
     		zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors(), parameters.getXmlOptions());
-    		Set<String> jobAccessions = new LinkedHashSet<String>();
+    		Set<String> genBankJobAccessions = new LinkedHashSet<String>();
     		Set<String> geonameIds = new LinkedHashSet<String>();
-    		ArrayList<JobRecord> genBankRecords = new ArrayList<>();
     		ArrayList<JobRecord> userEnteredRecords= new ArrayList<>();
     		List<FastaRecord> fastaRecords = new LinkedList<FastaRecord>();
     		
     		for(JobRecord jobrecord: parameters.getRecords()) {
-    			if(jobrecord.getResourceSource().equals(CustomParameters.sourceGENBANK)) {
-    				genBankRecords.add(jobrecord);
-    			}else if(jobrecord.getResourceSource().equals(CustomParameters.sourceFASTA)){
+    			if(jobrecord.getResourceSource()==JobConstants.SOURCE_GENBANK) {
+    				String accession = jobrecord.getId();
+    				if  (security.checkParameter(accession, Parameter.ACCESSION)) {
+    					genBankJobAccessions.add(accession);
+    				}else {
+        				log.warning("Bad accession parameter: "+accession);
+        				throw new ParameterException(accession);
+        			}
+    			}else if(jobrecord.getResourceSource()==JobConstants.SOURCE_FASTA){
     				userEnteredRecords.add(jobrecord);
     			}	
     		}
-    		log.info("genBank records: "+genBankRecords.size()+", fasta records: "+userEnteredRecords.size());
-    		//genBank
-    		for(JobRecord jobrecord: genBankRecords) {
-    			String accession = jobrecord.getId();
-				if  (security.checkParameter(accession, Parameter.ACCESSION)) {
-    				jobAccessions.add(accession);
-				}else {
-    				log.warning("Bad accession parameter: "+accession);
-    				throw new ParameterException(accession);
-    			}
-    		}
+    		log.info("genBank records: "+genBankJobAccessions.size()+", fasta records: "+userEnteredRecords.size());
+    		
     		//userEntered-FASTA
     		if(userEnteredRecords.size()>0) {
 	    		for(JobRecord jobrecord: userEnteredRecords) {
@@ -403,11 +395,11 @@ public class ZooPhyController {
 		    		}
 		    	}
     		}
-    		if (jobAccessions.size()+fastaRecords.size() > JOB_MAX_ACCESSIONS) {
+    		if (genBankJobAccessions.size()+fastaRecords.size() > JOB_MAX_ACCESSIONS) {
     			log.warning("Record list is too long.");
     			throw new ParameterException("Record list is too long");
     		}
-    		if (jobAccessions.size() > JOB_MAX_ACCESSIONS) {
+    		if (genBankJobAccessions.size() > JOB_MAX_ACCESSIONS) {
     			log.warning("Job accession list is too long.");
     			throw new ParameterException("accessions list is too long");
     		}
@@ -415,7 +407,7 @@ public class ZooPhyController {
 	    		log.warning("FASTA record list is too long.");
 	    		throw new ParameterException("accessions list is too long");
 	    	}
-    		manager.startZooPhyPipeline(zoophy, new ArrayList<String>(jobAccessions), fastaRecords);
+    		manager.startZooPhyPipeline(zoophy, new ArrayList<String>(genBankJobAccessions), fastaRecords);
     		log.info("Job successfully started: "+zoophy.getJobID());
     		return zoophy.getJobID();
     		
@@ -589,9 +581,9 @@ public class ZooPhyController {
         	List<FastaRecord> fastaRecords = new LinkedList<FastaRecord>();
         	Set<String> jobRecordIds = new HashSet<String>();
     	    	for(JobRecord jobrecord: parameters.getRecords()) {
-        			if(jobrecord.getResourceSource().equals(CustomParameters.sourceGENBANK)) {
+        			if(jobrecord.getResourceSource() == JobConstants.SOURCE_GENBANK) {
         				genBankRecords.add(jobrecord);
-        			}else if(jobrecord.getResourceSource().equals(CustomParameters.sourceFASTA)){
+        			}else if(jobrecord.getResourceSource() == JobConstants.SOURCE_FASTA){
         				userEnteredRecords.add(jobrecord);
         			}
         				
