@@ -1,18 +1,20 @@
-package edu.asu.zoophy.rest.custom;
+package edu.asu.zoophy.rest;
+
 
 /**
- * Main object for representing plain FASTA records for the file uploaded by users.
- * This is strictly a non-genbank implementation 
- * @author amagge
+ * Main object for representing job records.
+ * Thus implementation is for both fasta and genBank search 
+ * @author devdemetri, kbhangal
  */
-public class FlatJobRecord {
+public class JobRecord {
 	
 	private String id;
 	private String collectionDate; 
 	private String geonameID;
 	private String rawSequence;
+	private int resourceSource;
 
-	public FlatJobRecord() {
+	public JobRecord() {
 	}
 
 	public String getId() {
@@ -51,4 +53,14 @@ public class FlatJobRecord {
 		return id ;
 	}
 	
+
+
+	public int getResourceSource() {
+		return resourceSource;
+	}
+
+	public void setResourceSource(int resourceSource) {
+		this.resourceSource = resourceSource;
+	}
+
 }

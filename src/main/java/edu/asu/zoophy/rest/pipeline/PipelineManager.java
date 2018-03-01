@@ -16,7 +16,7 @@ import edu.asu.zoophy.rest.index.LuceneSearcher;
 
 /**
  * Manages ZooPhy Pipeline jobs
- * @author devdemetri
+ * @author devdemetri, kbhangal
  */
 @EnableAsync
 @Component("PipelineManager")
@@ -36,29 +36,17 @@ public class PipelineManager {
 	 * Value - server Process
 	 */
 	private static Map<String, Process> processes = new ConcurrentHashMap<String, Process>();
-	
-	 /**
-     * Asynchronously a the ZooPhy job
-     * @param runner - ZoophyRunner containing the job details
-     * @param accessions - list of accessions for the job
-     * @throws PipelineException
-     */
-    @Async
-    public void startZooPhyPipeline(ZooPhyRunner runner, List<String> accessions) throws PipelineException {
-    	log.info("Starting ZooPhy Genbank Job: "+runner.getJobID());
-    	runner.runZooPhy(accessions, dao, indexSearcher);
-    }
-	
-	 /**
+   
+    /**
      * Asynchronously a the ZooPhy Custom job
      * @param runner - ZoophyRunner containing the job details
      * @param records - list of accessions for the job
      * @throws PipelineException
      */
     @Async
-    public void startZooPhyCustomPipeline(ZooPhyRunner runner, List<FastaRecord> records) throws PipelineException {
-    	log.info("Starting ZooPhy Custom Job: "+runner.getJobID());
-    	runner.runZooPhy(records);
+    public void startZooPhyPipeline(ZooPhyRunner runner,List<String> accessions, List<FastaRecord> fastaRecords) throws PipelineException {
+    	log.info("Starting ZooPhy Job: "+runner.getJobID());
+    	runner.runZooPhy(accessions, fastaRecords, dao, indexSearcher);
     }
 	
 	/**
