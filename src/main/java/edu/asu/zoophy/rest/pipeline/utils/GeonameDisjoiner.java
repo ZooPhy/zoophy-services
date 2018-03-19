@@ -8,6 +8,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
 
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.genbank.Location;
@@ -31,6 +32,7 @@ public class GeonameDisjoiner {
 	private final long BAD_DISJOIN = -1L;
 	private Map<String,Set<Long>> ancestors = null;
 	private Iterator<GenBankRecord> recordIter = null;
+	private final static Logger log = Logger.getLogger("GeonameDisjoiner");
 	
 	public GeonameDisjoiner(LuceneSearcher indexSearcher) throws PipelineException {
 		this.indexSearcher = indexSearcher;
@@ -76,7 +78,7 @@ public class GeonameDisjoiner {
 									recordIter.remove();
 								}
 								else {
-									String type = record.getGeonameLocation().getGeonameType();
+									String type = record.getGeonameLocation().getGeonameType();								
 									if (types.get(type) == null) {
 										types.put(type, 0);
 									}
@@ -110,6 +112,7 @@ public class GeonameDisjoiner {
 					GenBankRecord record = recordIter.next();
 					Location recordLocation = record.getGeonameLocation();
 					boolean isDisjoint = true;
+					//selected record should be same or lower level than common level
 					if (hierarchy.isParent(commonType, record.getGeonameLocation().getGeonameType())) {
 						isDisjoint = false;
 						recordIter.remove();
@@ -332,6 +335,8 @@ public class GeonameDisjoiner {
 					Set<Long> recordAncestors;
 					try {
 						recordAncestors = indexSearcher.findLocationAncestors(record.getAccession());
+						log.info("Accession location: "+ record.getGeonameLocation().getGeonameID()+" parents: "+ recordAncestors);
+						
 						if (recordAncestors == null) {
 							recordIter.remove();
 						}

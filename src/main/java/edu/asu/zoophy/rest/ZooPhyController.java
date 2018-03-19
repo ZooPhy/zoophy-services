@@ -272,6 +272,7 @@ public class ZooPhyController {
     		Map<String, Location> geonamesMap;
     		try {
     			geonamesMap = geonamesIndexSearcher.searchIndex(geonameIds);
+    			geonamesIndexSearcher.findLocationAncestors(records.get(0).getGeonameID());
     		} catch (LuceneSearcherException e) {
     			log.warning("Geonames Lucene exception: " + e.getMessage());
     			throw e;
@@ -319,7 +320,7 @@ public class ZooPhyController {
     @RequestMapping(value="/run", method=RequestMethod.POST, headers="Accept=application/json")
     @ResponseStatus(value=HttpStatus.ACCEPTED)
     public String runZooPhyJob(@RequestBody JobParameters parameters) throws ParameterException, PipelineException, LuceneSearcherException {
-    	log.info("Starting new standard job..."+parameters);
+    	log.info("Starting ZooPhy job..."+parameters);
     	if (security.checkParameter(parameters.getReplyEmail(), Parameter.EMAIL)) {
     		ZooPhyRunner zoophy;
 	    	if (parameters.getJobName() != null) {
@@ -576,6 +577,7 @@ public class ZooPhyController {
     	    	zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors(), parameters.getXmlOptions());
     	    Set<String> jobAccessions = new LinkedHashSet<String>();
     	    	Set<String> geonameIds = new LinkedHashSet<String>();
+    	    	Set<String> combinedAccesions = new HashSet<String>();
         	ArrayList<JobRecord> userEnteredRecords= new ArrayList<>();
         	List<FastaRecord> fastaRecords = new LinkedList<FastaRecord>();
         	Set<String> jobRecordIds = new HashSet<String>();
@@ -644,10 +646,14 @@ public class ZooPhyController {
     	    		log.warning("FASTA record list is too long.");
     	    		throw new ParameterException("accessions list is too long");
     	    	}
+    	    
+    	    	combinedAccesions.addAll(jobAccessions);
+    	    combinedAccesions.addAll(jobRecordIds);
+    	    	
     	    	Set<String> remainingAccessions = zoophy.testZooPhy(new ArrayList<String>(jobAccessions), fastaRecords, dao, indexSearcher);
-    	    	jobAccessions.removeAll(remainingAccessions);
-	    	results.setAccessionsRemoved(new LinkedList<String>(jobAccessions));
-	    	results.setAccessionsUsed(new LinkedList<String>(remainingAccessions));
+    	    	combinedAccesions.removeAll(remainingAccessions);
+	    	results.setAccessionsRemoved(new LinkedList<String>(combinedAccesions));
+	    	results.setAccessionsUsed(new LinkedList<String>(remainingAccessions));   	
 	    	return results; 
 	    	}
 	    	else {

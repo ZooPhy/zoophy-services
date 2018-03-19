@@ -100,19 +100,16 @@ public class ZooPhyRunner {
 	 */
 	public Set<String> testZooPhy(List<String> accessions, List<FastaRecord> fastaRecords, ZooPhyDAO dao, LuceneSearcher indexSearcher) throws PipelineException {
 		try {
+			Set<String> usedAccessions = new HashSet<String>();
 			log.info("Initializing test Sequence Aligner... : "+job.getID());
 			SequenceAligner aligner = new SequenceAligner(job, dao, indexSearcher);
 			log.info("Running test Sequence Aligner... : "+job.getID());
-			final List<GenBankRecord> finalRecs = aligner.align(accessions, fastaRecords, true);
+			usedAccessions = aligner.align(accessions, fastaRecords, true);
 			log.info("Initializing test Beast Runner... : "+job.getID());
 			BeastRunner beast = new BeastRunner(job, null);
 			log.info("Starting test Beast Runner... : "+job.getID());
 			beast.test();
 			log.info("ZooPhy Job Test completed successfully: "+job.getID());
-			Set<String> usedAccessions = new HashSet<String>((int)(finalRecs.size()*1.1), 1.0f);
-			for (GenBankRecord rec : finalRecs) {
-				usedAccessions.add(rec.getAccession());
-			}
 			return usedAccessions;
 		}
 		catch (PipelineException pe) {

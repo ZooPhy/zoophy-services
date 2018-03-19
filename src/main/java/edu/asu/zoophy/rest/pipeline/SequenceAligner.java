@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -28,6 +29,7 @@ import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.index.LuceneSearcher;
 import edu.asu.zoophy.rest.pipeline.glm.GLMException;
 import edu.asu.zoophy.rest.pipeline.glm.PredictorGenerator;
+import edu.asu.zoophy.rest.pipeline.utils.DisjoinerException;
 import edu.asu.zoophy.rest.pipeline.utils.GeonameDisjoiner;
 import edu.asu.zoophy.rest.pipeline.utils.Normalizer;
 import edu.asu.zoophy.rest.pipeline.utils.NormalizerException;
@@ -96,9 +98,10 @@ public class SequenceAligner {
 	 * @return Final List of Records to be used in the Job
 	 * @throws PipelineException
 	 */
-	public List<GenBankRecord> align(List<String> accessions, List<FastaRecord> fastaRecs, boolean isTest) throws PipelineException {
+	public Set<String> align(List<String> accessions, List<FastaRecord> fastaRecs, boolean isTest) throws PipelineException {
 		FileHandler fileHandler = null;
 		String rawFasta= "";
+		Set<String> usedAccessions = new HashSet<String>();
 		try {
 			List<GenBankRecord> recs =new LinkedList<>();
 			logFile = new File(JOB_LOG_DIR+job.getID()+".log");
@@ -110,13 +113,20 @@ public class SequenceAligner {
 			log.info("Starting Mafft Job: "+job.getID());
 			if(accessions.size()>0) {
 				recs = loadSequences(accessions, true, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
-				log.info("After screening job includes: "+recs.size()+" records.");
+				log.info("After screening accession job includes: "+recs.size()+" records.");
 				rawFasta = fastaFormat(recs, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
+				for(GenBankRecord genbankRecord: recs) {
+					usedAccessions.add(genbankRecord.getAccession());
+				}
 			}
 			if(fastaRecs.size()>0) {
 				//TODO run loadSequence for fasta records 
-				log.info("After screening job includes: "+recs.size()+" records.");
-				rawFasta += convertCustomRecordToFasta(fastaRecs, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
+				List<FastaRecord> validFastaRecords = loadFASTASequences(fastaRecs, true, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
+				log.info("After screening fasta job includes: "+validFastaRecords.size()+" records.");
+				rawFasta += convertCustomRecordToFasta(validFastaRecords, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
+				for(FastaRecord record: validFastaRecords) {
+					usedAccessions.add(record.getAccession());
+				}
 			}
 			createCoordinatesFile();
 			if (job.isUsingGLM()) {
@@ -140,7 +150,7 @@ public class SequenceAligner {
 			}
 			log.info("Mafft process complete");
 			fileHandler.close();
-			return recs;
+			return usedAccessions;
 		}
 		catch (PipelineException pe) {
 			log.log(Level.SEVERE, "ERROR! Mafft process failed: "+pe.getMessage());
@@ -242,6 +252,102 @@ public class SequenceAligner {
 			return records;
 		}
 	}
+	
+	/**
+	 * Loads FASTA Records that contain the desired sequences. This may also include running the GeonameDisjoiner 
+	 * @param accessions - records to load
+	 * @param isDisjoint - whether to run GeonameDisjoiner on the records or not
+	 * @return list of GenBankRecords ready for MAFFT 
+	 * @throws GenBankRecordNotFoundException
+	 * @throws DaoException
+	 * @throws PipelineException
+	 */
+	public List<FastaRecord> loadFASTASequences(List<FastaRecord> fastaRecords, boolean isDisjoint, boolean isUsingDefaultGLM) throws GenBankRecordNotFoundException, DaoException, PipelineException {
+		log.info("Loading records for Mafft...");
+		Map<String,Set<String>> locations = new HashMap<>();
+		for (int i = 0; i < fastaRecords.size(); i++) {
+			FastaRecord record = fastaRecords.get(i);
+			if (record.getGeonameLocation() == null || Normalizer.normalizeLocation(record.getGeonameLocation()).equalsIgnoreCase("unknown")) {
+				fastaRecords.remove(i);
+				continue;
+			}
+			String country = record.getGeonameLocation().getCountry();
+			String city = record.getGeonameLocation().getLocation();
+			if(country==null || city==null) {
+				fastaRecords.remove(i);
+			}else {
+				if(locations.containsKey(country)) {
+					Set<String> cities = locations.get(country);
+					if(cities.contains(city)) {
+						fastaRecords.remove(i);
+					}else {
+						cities.add(city);
+						locations.put(country, cities);
+					}
+					
+				}else {
+					Set<String> cities = new HashSet<>();
+					cities.add(city);
+					locations.put(country, cities);
+				}
+			}
+		}
+		if (locations.size() < 2) {
+			for(String country : locations.keySet()) {
+				int number_of_cities = locations.get(country).size();
+				if(number_of_cities<2) {
+					String userErr = "Too few distinct locations (need at least 2)" ;
+					throw new DisjoinerException("Too few distinct locations: "+locations.size(),userErr);
+				}
+			}
+		}
+		return fastaRecords;
+	}
+	
+	/**
+	 * Loads GenBank Records that contain the desired sequences. This may also include running the GeonameDisjoiner 
+	 * @param accessions - records to load
+	 * @param isDisjoint - whether to run GeonameDisjoiner on the records or not
+	 * @return list of GenBankRecords ready for MAFFT 
+	 * @throws GenBankRecordNotFoundException
+	 * @throws DaoException
+	 * @throws PipelineException
+	 */
+	public List<GenBankRecord> newLoadSequences(List<String> accessions, boolean isDisjoint, boolean isUsingDefaultGLM) throws GenBankRecordNotFoundException, DaoException, PipelineException {
+		log.info("Loading records for Mafft...");
+		List<GenBankRecord> records = new LinkedList<GenBankRecord>();
+		for (String accession : accessions) {
+			GenBankRecord record = dao.retrieveFullRecord(accession);
+			try {
+				if (record != null && record.getSequence().getCollectionDate() != null && !getFastaDate(record.getSequence().getCollectionDate()).equalsIgnoreCase("unknown") && record.getGeonameLocation() != null) { 
+					records.add(record);
+				}
+			}
+			catch (Exception e) {
+				log.log(Level.SEVERE, "ERROR! Issue Adding Record: "+accession+" : "+e.getMessage());
+			}
+		}
+		log.info("Records loaded.");
+		if (isDisjoint) {
+			GeonameDisjoiner disjoiner  = new GeonameDisjoiner(indexSearcher);
+			if (isUsingDefaultGLM) {
+				return disjoiner.disjoinRecordsToStates(records);
+			}
+			else {
+				return disjoiner.disjoinRecords(records);
+			}
+		}
+		else {
+			for (int i = 0; i < records.size(); i++) {
+				GenBankRecord record = records.get(i);
+				if (record.getGeonameLocation() == null || Normalizer.normalizeLocation(record.getGeonameLocation()).equalsIgnoreCase("unknown")) {
+					records.remove(i);
+				}
+			}
+			return records;
+		}
+	}
+
 
 	/**
 	 * Runs MAFFT to Align Sequences

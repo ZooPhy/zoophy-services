@@ -109,6 +109,7 @@ public class GeoHierarchy {
 	}
 	
 	/**
+	 * Check the level of record in comparison with the common type
 	 * @param childType - Suspected child Geoname type
 	 * @param parentType - Suspected parent Geoname type
 	 * @return True if childType is a child of parentType, otherwise False
