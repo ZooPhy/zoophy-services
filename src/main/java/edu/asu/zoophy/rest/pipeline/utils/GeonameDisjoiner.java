@@ -32,7 +32,7 @@ public class GeonameDisjoiner {
 	private final long BAD_DISJOIN = -1L;
 	private Map<String,Set<Long>> ancestors = null;
 	private Iterator<GenBankRecord> recordIter = null;
-	private final static Logger log = Logger.getLogger("ZooPhyController");
+	private final static Logger log = Logger.getLogger("GeonameDisjoiner");
 	
 	public GeonameDisjoiner(LuceneSearcher indexSearcher) throws PipelineException {
 		this.indexSearcher = indexSearcher;
