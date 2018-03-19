@@ -23,6 +23,7 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -150,6 +151,61 @@ public class LuceneGeonamesSearcher {
 				log.info("Searching " + geonameId + " query " + query + " . Found " + documents.totalHits);
 			}
 			return records;
+		}
+		catch (Exception e) {
+			throw new LuceneSearcherException(e.getMessage());
+		}
+		finally {
+			try {
+				if (reader != null) {
+					reader.close();
+				}
+			}
+			catch (IOException ioe) {
+				log.warning("Could not close IndexReader: "+ioe.getMessage()); 
+			}
+		}
+	}
+
+
+	/**
+	 * Finds the Set of ancestors for a record's Geoname location
+	 * @param accession - Accession of record to check
+	 * @return Set of ancestors for a record's Geoname location
+	 * @throws LuceneSearcherException
+	 */
+	public Set<Long> findLocationAncestors(String geonameId) throws LuceneSearcherException {
+		Set<Long> ancestors = new HashSet<Long>();
+		IndexReader reader = null;
+		IndexSearcher indexSearcher = null;
+		Query query;
+		TopDocs documents;
+		//String querystring = "Accession:"+accession;
+		try {
+			
+			reader = DirectoryReader.open(indexDirectory);
+			indexSearcher = new IndexSearcher(reader);
+			SortField field = new SortField("population", SortField.Type.LONG, true);
+			Sort sort = new Sort(field);
+
+			QueryParser queryParser;
+			Pattern geoIdRegex = Pattern.compile(SecurityHelper.FASTA_MET_GEOID_REGEX);
+			Matcher geoIdMatcher = geoIdRegex.matcher(geonameId);
+			if(geoIdMatcher.matches()){
+				queryParser = new QueryParser("GeonameID", new KeywordAnalyzer());;
+			} else {
+				queryParser = new QueryParser("Location", new StandardAnalyzer());;
+			}
+			query = queryParser.parse(geonameId);
+//			documents = indexSearcher.search(query, 1);
+			documents = indexSearcher.search(query, 1, sort);
+			Document document = indexSearcher.doc(documents.scoreDocs[0].doc);
+			log.info("documents: "+documents.scoreDocs[0].doc);
+			for (IndexableField iField : document.getFields("GeonameID")) {
+				ancestors.add(Long.parseLong(iField.stringValue()));
+				log.info("ansestor: "+iField.stringValue());
+			}
+			return ancestors;
 		}
 		catch (Exception e) {
 			throw new LuceneSearcherException(e.getMessage());

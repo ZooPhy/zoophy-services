@@ -1,5 +1,7 @@
 package edu.asu.zoophy.rest.pipeline.utils;
 
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.log;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -76,7 +78,7 @@ public class GeonameDisjoiner {
 									recordIter.remove();
 								}
 								else {
-									String type = record.getGeonameLocation().getGeonameType();
+									String type = record.getGeonameLocation().getGeonameType();								
 									if (types.get(type) == null) {
 										types.put(type, 0);
 									}
@@ -110,6 +112,7 @@ public class GeonameDisjoiner {
 					GenBankRecord record = recordIter.next();
 					Location recordLocation = record.getGeonameLocation();
 					boolean isDisjoint = true;
+					//selected record should be same or lower level than common level
 					if (hierarchy.isParent(commonType, record.getGeonameLocation().getGeonameType())) {
 						isDisjoint = false;
 						recordIter.remove();
@@ -332,6 +335,8 @@ public class GeonameDisjoiner {
 					Set<Long> recordAncestors;
 					try {
 						recordAncestors = indexSearcher.findLocationAncestors(record.getAccession());
+						System.out.println("Accession location: "+ record.getGeonameLocation().getGeonameID()+" parents: "+ recordAncestors);
+						
 						if (recordAncestors == null) {
 							recordIter.remove();
 						}
@@ -409,6 +414,7 @@ public class GeonameDisjoiner {
 		}
 		else {
 			states.clear();
+			System.out.println("returns: " +recordsToCheck);
 			return recordsToCheck;
 		}
 	}

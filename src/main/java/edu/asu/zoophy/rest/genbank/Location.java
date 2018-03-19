@@ -11,7 +11,7 @@ public class Location {
 	private String location;
 	private Double latitude;
 	private Double longitude;
-	private String geonameType;
+	private String geonameType; //Example: ADM1
 	private String country;
 	
 	public Location() {
