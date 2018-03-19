@@ -320,7 +320,7 @@ public class ZooPhyController {
     @RequestMapping(value="/run", method=RequestMethod.POST, headers="Accept=application/json")
     @ResponseStatus(value=HttpStatus.ACCEPTED)
     public String runZooPhyJob(@RequestBody JobParameters parameters) throws ParameterException, PipelineException, LuceneSearcherException {
-    	log.info("Starting new standard job..."+parameters);
+    	log.info("Starting ZooPhy job..."+parameters);
     	if (security.checkParameter(parameters.getReplyEmail(), Parameter.EMAIL)) {
     		ZooPhyRunner zoophy;
 	    	if (parameters.getJobName() != null) {
