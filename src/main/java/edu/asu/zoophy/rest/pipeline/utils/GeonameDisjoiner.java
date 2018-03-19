@@ -1,7 +1,5 @@
 package edu.asu.zoophy.rest.pipeline.utils;
 
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.log;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -10,6 +8,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
 
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.genbank.Location;
@@ -33,6 +32,7 @@ public class GeonameDisjoiner {
 	private final long BAD_DISJOIN = -1L;
 	private Map<String,Set<Long>> ancestors = null;
 	private Iterator<GenBankRecord> recordIter = null;
+	private final static Logger log = Logger.getLogger("ZooPhyController");
 	
 	public GeonameDisjoiner(LuceneSearcher indexSearcher) throws PipelineException {
 		this.indexSearcher = indexSearcher;
@@ -335,7 +335,7 @@ public class GeonameDisjoiner {
 					Set<Long> recordAncestors;
 					try {
 						recordAncestors = indexSearcher.findLocationAncestors(record.getAccession());
-						System.out.println("Accession location: "+ record.getGeonameLocation().getGeonameID()+" parents: "+ recordAncestors);
+						log.info("Accession location: "+ record.getGeonameLocation().getGeonameID()+" parents: "+ recordAncestors);
 						
 						if (recordAncestors == null) {
 							recordIter.remove();
@@ -414,7 +414,6 @@ public class GeonameDisjoiner {
 		}
 		else {
 			states.clear();
-			System.out.println("returns: " +recordsToCheck);
 			return recordsToCheck;
 		}
 	}
