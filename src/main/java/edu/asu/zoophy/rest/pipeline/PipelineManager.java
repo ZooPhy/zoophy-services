@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 import edu.asu.zoophy.rest.custom.FastaRecord;
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
-import edu.asu.zoophy.rest.index.LuceneSearcher;
+import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
 
 /**
  * Manages ZooPhy Pipeline jobs
@@ -26,7 +26,7 @@ public class PipelineManager {
 	private ZooPhyDAO dao;
 	
 	@Autowired
-	private LuceneSearcher indexSearcher;
+	private LuceneHierarchySearcher hierarchyIndexSearcher;
 	
 	private final static Logger log = Logger.getLogger("PipelineManager");
 	
@@ -40,13 +40,14 @@ public class PipelineManager {
     /**
      * Asynchronously a the ZooPhy Custom job
      * @param runner - ZoophyRunner containing the job details
-     * @param records - list of accessions for the job
+     * @param accessions - list of accessions for the job
+     * @param fastaRecords - list of Fasta records for the job
      * @throws PipelineException
      */
     @Async
     public void startZooPhyPipeline(ZooPhyRunner runner,List<String> accessions, List<FastaRecord> fastaRecords) throws PipelineException {
     	log.info("Starting ZooPhy Job: "+runner.getJobID());
-    	runner.runZooPhy(accessions, fastaRecords, dao, indexSearcher);
+    	runner.runZooPhy(accessions, fastaRecords, dao, hierarchyIndexSearcher);
     }
 	
 	/**

@@ -121,7 +121,7 @@ public class Normalizer {
 					date += "01";
 				}
 				if (parts.length < 2) {
-					date += "Jan"; 
+					date += "Jan";
 				}
 				for (String part : parts) {
 					date += part;

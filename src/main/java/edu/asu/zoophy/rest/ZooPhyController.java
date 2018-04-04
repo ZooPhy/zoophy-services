@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import edu.asu.zoophy.rest.custom.DownloadRecords;
 import edu.asu.zoophy.rest.custom.FastaRecord;
 import edu.asu.zoophy.rest.database.DaoException;
 import edu.asu.zoophy.rest.database.GenBankRecordNotFoundException;
@@ -29,6 +30,7 @@ import edu.asu.zoophy.rest.genbank.Location;
 import edu.asu.zoophy.rest.genbank.PossibleLocation;
 import edu.asu.zoophy.rest.index.InvalidLuceneQueryException;
 import edu.asu.zoophy.rest.index.LuceneGeonamesSearcher;
+import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
 import edu.asu.zoophy.rest.index.LuceneSearcher;
 import edu.asu.zoophy.rest.index.LuceneSearcherException;
 import edu.asu.zoophy.rest.pipeline.PipelineException;
@@ -58,6 +60,9 @@ public class ZooPhyController {
 	
 	@Autowired
 	private LuceneGeonamesSearcher geonamesIndexSearcher;
+	
+	@Autowired
+	private LuceneHierarchySearcher hierarchyIndexSearcher;
 
 	@Autowired
 	private SecurityHelper security;
@@ -456,48 +461,55 @@ public class ZooPhyController {
      */
     @RequestMapping(value="/download", method=RequestMethod.POST)
     @ResponseStatus(value=HttpStatus.OK)
-    public String retrieveDownload(@RequestParam(value="format") String format, @RequestBody List<String> accessions) throws ParameterException, FormatterException {
+    public String retrieveDownload(@RequestParam(value="format") String format, @RequestBody DownloadRecords downloadRecords) throws ParameterException, FormatterException {
     	log.info("Setting up download...");
-    	if (format != null) {
-    		if (accessions == null || accessions.size() == 0) {
-    			log.warning("Empty accession list.");
-    			return null;
-    		}
-    		if (accessions.size() > QUERY_MAX_RECORDS) {
-    			log.warning("Too many accessions.");
-    			throw new ParameterException("accessions list is too long");
-    		}
-    		Set<String> downloadAccessions = new LinkedHashSet<String>(accessions.size());
-    		for (String accession : accessions) {
-    			if  (security.checkParameter(accession, Parameter.ACCESSION)) {
-    				downloadAccessions.add(accession);
+    	List<String> accessions = downloadRecords.getAccessions();
+    	List<String> columns = downloadRecords.getColumns();
+    	if(columns != null && columns.size()>0) {
+	    	if (format != null) {
+	    		if (accessions == null || accessions.size() == 0) {
+	    			log.warning("Empty accession list.");
+	    			return null;
+	    		}
+	    		if (accessions.size() > QUERY_MAX_RECORDS) {
+	    			log.warning("Too many accessions.");
+	    			throw new ParameterException("accessions list is too long");
+	    		}
+	    		Set<String> downloadAccessions = new LinkedHashSet<String>(accessions.size());
+	    		for (String accession : accessions) {
+	    			if  (security.checkParameter(accession, Parameter.ACCESSION)) {
+	    				downloadAccessions.add(accession);
+		    		}
+		    		else {
+		    			log.warning("Bad accession parameter: "+accession);
+		    			throw new ParameterException(accession);
+		    		}
+	    		}
+	    		accessions = new LinkedList<String>(downloadAccessions);
+	    		downloadAccessions.clear();
+	    		String download = null;
+	    		if (format.equalsIgnoreCase("CSV")) {
+	    			log.info("Generating CSV download...");
+	    			download = formatter.generateDownload(accessions, columns, DownloadFormat.CSV);
+	    		}
+	    		else if (format.equalsIgnoreCase("FASTA")) {
+	    			log.info("Generating FASTA download...");
+	    			download = formatter.generateDownload(accessions, columns, DownloadFormat.FASTA);
 	    		}
 	    		else {
-	    			log.warning("Bad accession parameter: "+accession);
-	    			throw new ParameterException(accession);
+	    			log.warning("Bad format parameter: "+format);
+	    			throw new ParameterException(format);
 	    		}
-    		}
-    		accessions = new LinkedList<String>(downloadAccessions);
-    		downloadAccessions.clear();
-    		String download = null;
-    		if (format.equalsIgnoreCase("CSV")) {
-    			log.info("Generating CSV download...");
-    			download = formatter.generateDownload(accessions, DownloadFormat.CSV);
-    		}
-    		else if (format.equalsIgnoreCase("FASTA")) {
-    			log.info("Generating FASTA download...");
-    			download = formatter.generateDownload(accessions, DownloadFormat.FASTA);
-    		}
-    		else {
-    			log.warning("Bad format parameter: "+format);
-    			throw new ParameterException(format);
-    		}
-    		log.info("Successfully generated download.");
-    		return download;
-    	}
-    	else {
-    		log.warning("Bad format parameter: "+format);
-    		throw new ParameterException(format);
+	    		log.info("Successfully generated download.");
+	    		return download;
+	    	}
+	    	else {
+	    		log.warning("Bad format parameter: "+format);
+	    		throw new ParameterException(format);
+	    	}
+    	}else {
+    		log.warning("Too few Columns for download");
+    		throw new ParameterException("columns");
     	}
     }
     
@@ -650,7 +662,7 @@ public class ZooPhyController {
     	    	combinedAccesions.addAll(jobAccessions);
     	    combinedAccesions.addAll(jobRecordIds);
     	    	
-    	    	Set<String> remainingAccessions = zoophy.testZooPhy(new ArrayList<String>(jobAccessions), fastaRecords, dao, indexSearcher);
+    	    	Set<String> remainingAccessions = zoophy.testZooPhy(new ArrayList<String>(jobAccessions), fastaRecords, dao, hierarchyIndexSearcher);
     	    	combinedAccesions.removeAll(remainingAccessions);
 	    	results.setAccessionsRemoved(new LinkedList<String>(combinedAccesions));
 	    	results.setAccessionsUsed(new LinkedList<String>(remainingAccessions));   	
