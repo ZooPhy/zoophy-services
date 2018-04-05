@@ -48,10 +48,10 @@ public class DownloadFormatter {
 		try {
 			switch (format) {
 				case CSV:
-					result = newGenerateCSV(accessions, columns);
+					result = generateCSV(accessions, columns);
 					break;
 				case FASTA:
-					result = fastaFormat(accessions, columns);
+					result = generateFASTA(accessions, columns);
 					break;
 				default:
 					log.log(Level.SEVERE, "Unimplemented format type: "+format.toString());
@@ -75,7 +75,7 @@ public class DownloadFormatter {
 	 * @throws LuceneSearcherException
 	 * @throws FormatterException 
 	 */
-	private String newGenerateCSV(List<String> accessions, List<String> columns) throws LuceneSearcherException, FormatterException {
+	private String generateCSV(List<String> accessions, List<String> columns) throws LuceneSearcherException, FormatterException {
 		try {
 			List<GenBankRecord> records = new LinkedList<GenBankRecord>();
 			for (String accession : accessions) {
@@ -151,7 +151,7 @@ public class DownloadFormatter {
 	 * @throws FormatterException 
 	 * @throws Exception 
 	 */
-	private String fastaFormat(List<String> accessions, List<String> columns) throws AlignerException, FormatterException {
+	private String generateFASTA(List<String> accessions, List<String> columns) throws AlignerException, FormatterException {
 		
 		try {
 			SequenceAligner fastaGenerator = new SequenceAligner(dao, hierarchyIndexSearcher);
