@@ -277,7 +277,6 @@ public class ZooPhyController {
     		Map<String, Location> geonamesMap;
     		try {
     			geonamesMap = geonamesIndexSearcher.searchIndex(geonameIds);
-    			geonamesIndexSearcher.findLocationAncestors(records.get(0).getGeonameID());
     		} catch (LuceneSearcherException e) {
     			log.warning("Geonames Lucene exception: " + e.getMessage());
     			throw e;
