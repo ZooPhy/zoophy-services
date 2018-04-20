@@ -16,7 +16,7 @@ import edu.asu.zoophy.rest.security.SecurityHelper;
 
 /**
  * Static utility methods for normalizing names, locations, dates, etc.
- * @author devdemetri
+ * @author devdemetri, kbhangal
  */
 public class Normalizer {
 

@@ -22,10 +22,13 @@ public class SecurityHelper {
 	public static final String FASTA_MET_RID_REGEX = "^(\\w|\\d){1,20}?$";
 	public static final String FASTA_MET_DECIMAL_DATE_REGEX = "(\\d{4}(\\.\\d{1,10})?)";
 	public static final String FASTA_MET_MMDDYYYY_DATE_REGEX = "(((0?[1-9]|1[012])\\-)?(((0?[1-9]|1[012])\\-)?(0?[1-9]|[12][0-9]|3[01])\\-)\\d{4})";
-	public static final String FASTA_MET_HUMAN_DATE_REGEX = "((0[1-9]|[12][0-9]|3[01])\\-((Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\-)\\d{4})";
+	public static final String FASTA_MET_HUMAN_DATE_REGEX = "(((0[1-9]|[12][0-9]|3[01])\\-)?((Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\-)?\\d{4})";
+	public static final String FASTA_DATE_REGEX = "((0[1-9]|[12][0-9]|3[01])\\-((Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\-)\\d{4})" + 
+												"|" + "(((Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\-)\\d{4})" +
+												"|" + "\\d{4}";
 	public static final String FASTA_MET_DATE_REGEX = "^(" + FASTA_MET_DECIMAL_DATE_REGEX + "|" + FASTA_MET_MMDDYYYY_DATE_REGEX + "|" + FASTA_MET_HUMAN_DATE_REGEX + ")$";
 	public static final String FASTA_MET_GEOID_REGEX = "(\\d){4,10}";
-	public static final String FASTA_MET_LOCNAME_REGEX = "([\\w-']){1,30}";
+	public static final String FASTA_MET_LOCNAME_REGEX = "([\\w-.,'’ ]){1,30}";
 	public static final String FASTA_MET_LOC_REGEX = "^(" + FASTA_MET_GEOID_REGEX + "|" + FASTA_MET_LOCNAME_REGEX + ")$";
 	public static final String FASTA_MET_RSEQ_REGEX = "^([ACGTacgt-]){1,20000}$";
 	
