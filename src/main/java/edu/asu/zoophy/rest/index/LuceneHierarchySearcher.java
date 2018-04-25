@@ -3,7 +3,9 @@ package edu.asu.zoophy.rest.index;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -19,11 +21,15 @@ import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.TotalHitCountCollector;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
+
+import edu.asu.zoophy.rest.genbank.Location;
 
 
 /**
@@ -59,7 +65,6 @@ public class LuceneHierarchySearcher {
 			indexSearcher = new IndexSearcher(reader);
 			queryParser = new QueryParser("geonameid", new KeywordAnalyzer());;
 			
-			
 			query = queryParser.parse("\""+geonameId+"\"");
 			log.info("Searching ancestor for : " + query);
 			
@@ -92,6 +97,46 @@ public class LuceneHierarchySearcher {
 			}
 		}
 	}
+	
+	/*
+	public Map<String, Location> findGeonameId(String completeLocation) throws LuceneSearcherException{
+		String location ="",parents ="",queryString="";
+		Map<String, Location> records = new HashMap<String, Location>();
+		
+		IndexReader reader = null;
+		IndexSearcher indexSearcher = null;
+		Query query;
+		QueryParser queryParser = new QueryParser("ancestorName", new KeywordAnalyzer());
+		TopDocs documents;
+		
+		String[] Locations = completeLocation.split(",",2);
+		
+		if(Locations.length>1) {
+			location = Locations[0];
+			parents = Locations[1];
+			queryString = "ancestorsName:"+parents + " AND name:"+location;
+		}else {
+			location = completeLocation;
+			queryString = "name:"+location ;
+		}
+		
+		try {
+			query = queryParser.parse(queryString);
+			reader = DirectoryReader.open(indexDirectory);
+			indexSearcher = new IndexSearcher(reader);
+			documents = indexSearcher.search(query, 1);
+			for (ScoreDoc scoreDoc : documents.scoreDocs) {
+				Document document = indexSearcher.doc(scoreDoc.doc);
+				records.put(geonameId, GeonamesDocumentMapper.mapRecord(document));
+			}
+		}
+		catch (Exception e) {
+			throw new LuceneSearcherException(e.getMessage());
+		}
+		
+		return 
+	}
+	*/
 	
 	/**
 	 * Tests connection to Lucene Index
