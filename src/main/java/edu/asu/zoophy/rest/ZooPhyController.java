@@ -166,6 +166,29 @@ public class ZooPhyController {
     		throw new ParameterException(accession);
     	}
     }
+    
+    /**
+     * Retrieve count of GenBankRecords for resulting Lucene query
+     * @param query - Valid Lucene query string
+     * @return count Number of  GenBankRecord results of given query.
+     * @throws LuceneSearcherException 
+     * @throws InvalidLuceneQueryException 
+     * @throws ParameterException 
+     */
+    @RequestMapping(value="/search/count", method=RequestMethod.GET)
+    @ResponseStatus(value=HttpStatus.OK)
+    public String countqueryLucene(@RequestParam(value="query") String query) throws LuceneSearcherException, InvalidLuceneQueryException, ParameterException {
+    	if (security.checkParameter(query, Parameter.LUCENE_QUERY)) {
+    		log.info("Searching query: "+query);
+    		String count = indexSearcher.searchCount(query);
+    		log.info("Successfully searched query: "+query);
+    		return count;
+    	}
+    	else {
+    		log.warning("Bad query parameter: "+query);
+    		throw new ParameterException(query);
+    	}
+    }
 
     /**
      * Retrieve GenBankRecords for resulting Lucene query

@@ -24,6 +24,7 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.TotalHitCountCollector;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.springframework.beans.factory.annotation.Value;
@@ -90,6 +91,30 @@ public class LuceneSearcher {
 		catch (IOException ioe) {
 			log.warning("Issue closing Lucene Index: "+ioe.getMessage());
 		}
+	}
+	
+	/**
+	 * Search Lucene Index for count of matching GenBank Records
+	 * @param querystring - valid Lucene query string
+	 * @return count of search records
+	 * @throws LuceneSearcherException 
+	 */
+	public String searchCount(String queryString) throws LuceneSearcherException {
+		IndexReader reader = null;
+		IndexSearcher indexSearcher = null;
+		Query query;
+		
+		try{
+			TotalHitCountCollector collector = new TotalHitCountCollector();
+			reader = DirectoryReader.open(indexDirectory);
+			indexSearcher = new IndexSearcher(reader);
+			query = queryParser.parse(queryString);
+			System.out.println("Searching for : " + queryString);
+			indexSearcher.search(query, collector);
+			return String.valueOf(collector.getTotalHits());
+		}catch(Exception e) {
+			throw new LuceneSearcherException(e.getMessage());
+		}	
 	}
 
 	/**
