@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -23,13 +25,13 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.TotalHitCountCollector;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
 import edu.asu.zoophy.rest.genbank.Location;
+import edu.asu.zoophy.rest.security.SecurityHelper;
 
 
 /**
@@ -53,6 +55,12 @@ public class LuceneHierarchySearcher {
 		}
 	}
 	
+	/**
+	 * Search ancestors of a location in Lucene
+	 * @param geonameIds - valid Lucene query string
+	 * @return set of ancestors
+	 * @throws LuceneSearcherException
+	 */
 	public Set<Long> findLocationAncestors(String geonameId) throws LuceneSearcherException{
 		Set<Long> ancestors = new HashSet<Long>();
 		IndexReader reader = null;
@@ -63,7 +71,7 @@ public class LuceneHierarchySearcher {
 		try {
 			reader = DirectoryReader.open(indexDirectory);
 			indexSearcher = new IndexSearcher(reader);
-			queryParser = new QueryParser("geonameid", new KeywordAnalyzer());;
+			queryParser = new QueryParser("GeonameId", new KeywordAnalyzer());;
 			
 			query = queryParser.parse("\""+geonameId+"\"");
 			log.info("Searching ancestor for : " + query);
@@ -72,8 +80,8 @@ public class LuceneHierarchySearcher {
 			
 			if (documents.scoreDocs != null && documents.scoreDocs.length == 1) {
 				Document document = indexSearcher.doc(documents.scoreDocs[0].doc);
-				for (IndexableField field : document.getFields("ancestors")) {
-					String[] strArray = field.stringValue().split(", ");
+				for (IndexableField field : document.getFields("AncestorId")) {
+					String[] strArray = field.stringValue().split(",");
 					for(int i=0; i<strArray.length;i++) {
 						ancestors.add(Long.parseLong(strArray[i]));
 					}
@@ -98,45 +106,61 @@ public class LuceneHierarchySearcher {
 		}
 	}
 	
-	/*
-	public Map<String, Location> findGeonameId(String completeLocation) throws LuceneSearcherException{
+	/**
+	 * Search possible Location using geonameID or location name
+	 * @param geonameIds - valid Lucene query string
+	 * @return map containing Location of each entry
+	 * @throws LuceneSearcherException
+	 */
+	public Map<String, Location> findGeonameLocation(Set<String> completeLocations) throws LuceneSearcherException{
 		String location ="",parents ="",queryString="";
 		Map<String, Location> records = new HashMap<String, Location>();
 		
 		IndexReader reader = null;
 		IndexSearcher indexSearcher = null;
 		Query query;
-		QueryParser queryParser = new QueryParser("ancestorName", new KeywordAnalyzer());
+		QueryParser queryParser = new QueryParser("AncestorName", new KeywordAnalyzer());
 		TopDocs documents;
 		
-		String[] Locations = completeLocation.split(",",2);
-		
-		if(Locations.length>1) {
-			location = Locations[0];
-			parents = Locations[1];
-			queryString = "ancestorsName:"+parents + " AND name:"+location;
-		}else {
-			location = completeLocation;
-			queryString = "name:"+location ;
-		}
-		
 		try {
-			query = queryParser.parse(queryString);
 			reader = DirectoryReader.open(indexDirectory);
 			indexSearcher = new IndexSearcher(reader);
-			documents = indexSearcher.search(query, 1);
-			for (ScoreDoc scoreDoc : documents.scoreDocs) {
-				Document document = indexSearcher.doc(scoreDoc.doc);
-				records.put(geonameId, GeonamesDocumentMapper.mapRecord(document));
+			
+			for(String completeLocation: completeLocations) {	
+				String temp = completeLocation;
+				Pattern geoIdRegex = Pattern.compile(SecurityHelper.FASTA_MET_GEOID_REGEX);
+				Matcher geoIdMatcher = geoIdRegex.matcher(completeLocation);
+				if(geoIdMatcher.matches()){
+					queryParser = new QueryParser("GeonameId", new KeywordAnalyzer());
+					query = queryParser.parse("\""+completeLocation+"\"");
+				} else {
+					queryParser = new QueryParser("AncestorName", new KeywordAnalyzer());
+					completeLocation = completeLocation.toLowerCase();
+					String[] Locations = completeLocation.split(",",2);
+					
+					if(Locations.length>1) {
+						location = Locations[0];
+						parents = Locations[1];
+						parents = parents.replace(",", " ");
+						queryString = "AncestorName:"+parents + " AND Name:"+location;
+					}else {
+						location = completeLocation;
+						queryString = "Name:"+location +" OR Country:"+location;
+					}
+					query = queryParser.parse(queryString);
+				}
+				documents = indexSearcher.search(query, 1);
+				for (ScoreDoc scoreDoc : documents.scoreDocs) {
+					Document document = indexSearcher.doc(scoreDoc.doc);
+					records.put(temp, GeonamesDocumentMapper.mapRecord(document));
+				}	
 			}
 		}
 		catch (Exception e) {
 			throw new LuceneSearcherException(e.getMessage());
 		}
-		
-		return 
+		return records;
 	}
-	*/
 	
 	/**
 	 * Tests connection to Lucene Index
@@ -145,11 +169,21 @@ public class LuceneHierarchySearcher {
 	@PostConstruct
 	private void testIndex() throws LuceneSearcherException {
 		log.info("testing ");
-		String testLocation = "4831725";
+		String testLocationAncestor = "4831725";
+		
+		Set<String> testFindGeonameLocation = new HashSet<String>();
+		testFindGeonameLocation.add("Phoenix, Arizona");
+		testFindGeonameLocation.add("5317058");
+		testFindGeonameLocation.add("8506558");
+		
 		try {
-			Set<Long> testList = findLocationAncestors(testLocation);
+			Set<Long> testList = findLocationAncestors(testLocationAncestor);
 			if(testList.size()!=5) {
 				throw new LuceneSearcherException("Test query should have retrieved 5 records, instead retrieved: "+testList.size());
+			}
+			Map<String, Location> testMap = findGeonameLocation(testFindGeonameLocation);
+			if(testMap.size()!=3) {
+				throw new LuceneSearcherException("Test query should have retrieved 3 records, instead retrieved: "+testMap.size());
 			}
 			log.info("Successfully Tested Lucene Connection.");
 		}catch(LuceneSearcherException lse) {

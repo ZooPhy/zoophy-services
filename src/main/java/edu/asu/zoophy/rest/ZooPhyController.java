@@ -29,7 +29,6 @@ import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.genbank.Location;
 import edu.asu.zoophy.rest.genbank.PossibleLocation;
 import edu.asu.zoophy.rest.index.InvalidLuceneQueryException;
-import edu.asu.zoophy.rest.index.LuceneGeonamesSearcher;
 import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
 import edu.asu.zoophy.rest.index.LuceneSearcher;
 import edu.asu.zoophy.rest.index.LuceneSearcherException;
@@ -57,9 +56,6 @@ public class ZooPhyController {
 	
 	@Autowired
 	private LuceneSearcher indexSearcher;
-	
-	@Autowired
-	private LuceneGeonamesSearcher geonamesIndexSearcher;
 	
 	@Autowired
 	private LuceneHierarchySearcher hierarchyIndexSearcher;
@@ -201,16 +197,18 @@ public class ZooPhyController {
     @RequestMapping(value="/search", method=RequestMethod.GET)
     @ResponseStatus(value=HttpStatus.OK)
     public List<GenBankRecord> queryLucene(@RequestParam(value="query") String query) throws LuceneSearcherException, InvalidLuceneQueryException, ParameterException {
-    	if (security.checkParameter(query, Parameter.LUCENE_QUERY)) {
-    		log.info("Searching query: "+query);
-    		List<GenBankRecord> results = indexSearcher.searchIndex(query, QUERY_MAX_RECORDS);
-    		log.info("Successfully searched query: "+query);
-    		return results;
-    	}
-    	else {
-    		log.warning("Bad query parameter: "+query);
-    		throw new ParameterException(query);
-    	}
+	    	if (security.checkParameter(query, Parameter.LUCENE_QUERY)) {
+	    		log.info("Searching query: "+query);
+	    		List<GenBankRecord> results = indexSearcher.searchIndex(query, QUERY_MAX_RECORDS);
+	    		log.info("Successfully searched query: "+query);
+	    		for(GenBankRecord g : results)
+	    			log.info("raw records: "+g.getSequence().getCollectionDate());
+	    		return results;
+	    	}
+	    	else {
+	    		log.warning("Bad query parameter: "+query);
+	    		throw new ParameterException(query);
+	    	}
     }
     
     /**
@@ -298,8 +296,9 @@ public class ZooPhyController {
 				}
         	}
     		Map<String, Location> geonamesMap;
+    		
     		try {
-    			geonamesMap = geonamesIndexSearcher.searchIndex(geonameIds);
+    			geonamesMap = hierarchyIndexSearcher.findGeonameLocation(geonameIds);
     		} catch (LuceneSearcherException e) {
     			log.warning("Geonames Lucene exception: " + e.getMessage());
     			throw e;
@@ -394,7 +393,7 @@ public class ZooPhyController {
 	    		log.info("geonameIds: "+geonameIds.size());
 	    		Map<String, Location> geonamesMap;
 				try {
-					geonamesMap = geonamesIndexSearcher.searchIndex(geonameIds);
+					geonamesMap = hierarchyIndexSearcher.findGeonameLocation(geonameIds);
 				} catch (LuceneSearcherException e) {
 	    			log.warning("Geonames Lucene exception: " + e.getMessage());
 	    			throw e;
@@ -638,7 +637,7 @@ public class ZooPhyController {
 	    		log.info("geonameIds: "+geonameIds.size());
 	    		Map<String, Location> geonamesMap;
 				try {
-					geonamesMap = geonamesIndexSearcher.searchIndex(geonameIds);
+					geonamesMap = hierarchyIndexSearcher.findGeonameLocation(geonameIds);
 				} catch (LuceneSearcherException e) {
 	    			log.warning("Geonames Lucene exception: " + e.getMessage());
 	    			throw e;
