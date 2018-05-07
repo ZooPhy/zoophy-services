@@ -8,7 +8,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Logger;
 
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.genbank.Location;
@@ -31,7 +30,6 @@ public class GeonameDisjoiner {
 	private final long BAD_DISJOIN = -1L;
 	private Map<String,Set<Long>> ancestors = null;
 	private Iterator<GenBankRecord> recordIter = null;
-	private final static Logger log = Logger.getLogger("GeonameDisjoiner");
 	
 	public GeonameDisjoiner(LuceneHierarchySearcher hierarchyIndexSearcher) throws PipelineException {
 		this.hierarchyIndexSearcher = hierarchyIndexSearcher;
@@ -67,7 +65,7 @@ public class GeonameDisjoiner {
 					else {
 						Set<Long> recordAncestors;
 						try {
-							recordAncestors = hierarchyIndexSearcher.findLocationAncestors(record.getGeonameLocation().getGeonameID().toString());//indexSearcher.findLocationAncestors(record.getAccession());
+							recordAncestors = hierarchyIndexSearcher.findLocationAncestors(record.getGeonameLocation().getGeonameID().toString());
 							if (recordAncestors == null) {
 								recordIter.remove();
 							}
@@ -333,8 +331,7 @@ public class GeonameDisjoiner {
 				else {
 					Set<Long> recordAncestors;
 					try {
-						recordAncestors = hierarchyIndexSearcher.findLocationAncestors(record.getGeonameLocation().getGeonameID().toString());// TODO <----change
-						log.info("Accession location: "+ record.getGeonameLocation().getGeonameID()+" parents: "+ recordAncestors);
+						recordAncestors = hierarchyIndexSearcher.findLocationAncestors(record.getGeonameLocation().getGeonameID().toString());
 						
 						if (recordAncestors == null) {
 							recordIter.remove();

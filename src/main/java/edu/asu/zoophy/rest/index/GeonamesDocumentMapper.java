@@ -24,7 +24,7 @@ public class GeonamesDocumentMapper {
 		Location location = new Location();
 		try {
 			location.setAccession("temp"); //set it to empty and replace later
-			for (IndexableField field : luceneDocument.getFields("GeonameID")) {
+			for (IndexableField field : luceneDocument.getFields("GeonameId")) {
 				if (field.stringValue().matches("[0-9]{1,12}+")) {
 					try {
 						location.setGeonameID(Long.parseLong(field.stringValue()));
@@ -35,7 +35,7 @@ public class GeonamesDocumentMapper {
 					}
 				}
 			}
-			location.setLocation(luceneDocument.get("Location"));
+			location.setLocation(luceneDocument.get("Name"));
 			location.setGeonameType(luceneDocument.get("LocationType"));
 			if (luceneDocument.get("Latitude") != null) {
 				location.setLatitude(Double.parseDouble(luceneDocument.get("Latitude")));

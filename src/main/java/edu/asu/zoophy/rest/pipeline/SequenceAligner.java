@@ -30,7 +30,6 @@ import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
 import edu.asu.zoophy.rest.pipeline.glm.GLMException;
 import edu.asu.zoophy.rest.pipeline.glm.PredictorGenerator;
-import edu.asu.zoophy.rest.pipeline.utils.DisjoinerException;
 import edu.asu.zoophy.rest.pipeline.utils.GeonameDisjoiner;
 import edu.asu.zoophy.rest.pipeline.utils.Normalizer;
 import edu.asu.zoophy.rest.pipeline.utils.NormalizerException;
@@ -222,6 +221,7 @@ public class SequenceAligner {
 			}
 		}
 	}
+	
 
 	/**
 	 * Loads GenBank and Fasta Records that contain the desired sequences. This may also include running the GeonameDisjoiner 
@@ -275,58 +275,6 @@ public class SequenceAligner {
 			return records;
 		}
 	}
-	
-	/**
-	 * Loads FASTA Records that contain the desired sequences. This may also include running the GeonameDisjoiner 
-	 * @param accessions - records to load
-	 * @param isDisjoint - whether to run GeonameDisjoiner on the records or not
-	 * @return list of GenBankRecords ready for MAFFT 
-	 * @throws GenBankRecordNotFoundException
-	 * @throws DaoException
-	 * @throws PipelineException
-	 */
-	public List<FastaRecord> loadFASTASequences(List<FastaRecord> fastaRecords, boolean isDisjoint, boolean isUsingDefaultGLM) throws GenBankRecordNotFoundException, DaoException, PipelineException {
-		log.info("Loading records for Mafft...");
-		Map<String,Set<String>> locations = new HashMap<>();
-		for (int i = 0; i < fastaRecords.size(); i++) {
-			FastaRecord record = fastaRecords.get(i);
-			if (record.getGeonameLocation() == null || Normalizer.normalizeLocation(record.getGeonameLocation()).equalsIgnoreCase("unknown")) {
-				fastaRecords.remove(i);
-				continue;
-			}
-			String country = record.getGeonameLocation().getCountry();
-			String city = record.getGeonameLocation().getLocation();
-			if(country==null || city==null) {
-				fastaRecords.remove(i);
-			}else {
-				if(locations.containsKey(country)) {
-					Set<String> cities = locations.get(country);
-					if(cities.contains(city)) {
-						fastaRecords.remove(i);
-					}else {
-						cities.add(city);
-						locations.put(country, cities);
-					}
-					
-				}else {
-					Set<String> cities = new HashSet<>();
-					cities.add(city);
-					locations.put(country, cities);
-				}
-			}
-		}
-		if (locations.size() < 2) {
-			for(String country : locations.keySet()) {
-				int number_of_cities = locations.get(country).size();
-				if(number_of_cities<2) {
-					String userErr = "Too few distinct locations (need at least 2)" ;
-					throw new DisjoinerException("Too few distinct locations: "+locations.size(),userErr);
-				}
-			}
-		}
-		return fastaRecords;
-	}
-
 
 	/**
 	 * Runs MAFFT to Align Sequences

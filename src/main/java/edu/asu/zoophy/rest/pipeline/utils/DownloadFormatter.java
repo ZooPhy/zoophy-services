@@ -135,8 +135,6 @@ public class DownloadFormatter {
 	 * @throws Exception 
 	 */
 	private String generateFASTA(List<String> accessions, List<String> columns) throws AlignerException, FormatterException {
-		
-		
 		try {
 			SequenceAligner fastaGenerator = new SequenceAligner(dao, hierarchyIndexSearcher);
 			List<GenBankRecord> records = fastaGenerator.loadSequences(accessions, null, false, false);
@@ -243,12 +241,12 @@ public class DownloadFormatter {
 	 * @throws Exception 
 	 */
 	private String getFastaDate(String collectionDate) throws AlignerException, NormalizerException {
-		if (collectionDate != null) {
+		if (collectionDate != null && !collectionDate.equals("10000101")) {
 			String date = Normalizer.formatDate(collectionDate);
 			return Normalizer.dateToDecimal(date);
 		}
 		else {
-			throw new AlignerException("Unkown Date!", null);
+			return "Unkown";
 		}
 		
 	}
