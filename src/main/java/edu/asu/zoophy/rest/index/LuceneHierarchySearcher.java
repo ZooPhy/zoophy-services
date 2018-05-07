@@ -24,6 +24,8 @@ import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
@@ -121,6 +123,8 @@ public class LuceneHierarchySearcher {
 		Query query;
 		QueryParser queryParser = new QueryParser("AncestorName", new KeywordAnalyzer());
 		TopDocs documents;
+		SortField field = new SortField("Population", SortField.Type.LONG, true);
+		Sort sort = new Sort(field);
 		
 		try {
 			reader = DirectoryReader.open(indexDirectory);
@@ -149,7 +153,7 @@ public class LuceneHierarchySearcher {
 					}
 					query = queryParser.parse(queryString);
 				}
-				documents = indexSearcher.search(query, 1);
+				documents = indexSearcher.search(query, 1, sort);
 				for (ScoreDoc scoreDoc : documents.scoreDocs) {
 					Document document = indexSearcher.doc(scoreDoc.doc);
 					records.put(temp, GeonamesDocumentMapper.mapRecord(document));

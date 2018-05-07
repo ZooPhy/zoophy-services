@@ -201,8 +201,6 @@ public class ZooPhyController {
 	    		log.info("Searching query: "+query);
 	    		List<GenBankRecord> results = indexSearcher.searchIndex(query, QUERY_MAX_RECORDS);
 	    		log.info("Successfully searched query: "+query);
-	    		for(GenBankRecord g : results)
-	    			log.info("raw records: "+g.getSequence().getCollectionDate());
 	    		return results;
 	    	}
 	    	else {
