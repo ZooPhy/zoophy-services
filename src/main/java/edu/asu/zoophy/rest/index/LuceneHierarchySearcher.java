@@ -16,6 +16,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
@@ -131,22 +132,20 @@ public class LuceneHierarchySearcher {
 			indexSearcher = new IndexSearcher(reader);
 			
 			for(String completeLocation: completeLocations) {	
-				String temp = completeLocation;
 				Pattern geoIdRegex = Pattern.compile(SecurityHelper.FASTA_MET_GEOID_REGEX);
 				Matcher geoIdMatcher = geoIdRegex.matcher(completeLocation);
 				if(geoIdMatcher.matches()){
 					queryParser = new QueryParser("GeonameId", new KeywordAnalyzer());
 					query = queryParser.parse("\""+completeLocation+"\"");
 				} else {
-					queryParser = new QueryParser("AncestorName", new KeywordAnalyzer());
-					completeLocation = completeLocation.toLowerCase();
+					queryParser = new QueryParser("AncestorName", new StandardAnalyzer());
 					String[] Locations = completeLocation.split(",",2);
 					
 					if(Locations.length>1) {
 						location = Locations[0];
 						parents = Locations[1];
 						parents = parents.replace(",", " ");
-						queryString = "AncestorName:"+parents + " AND Name:"+location;
+						queryString = "AncestorName:"+parents + " AND Name:\""+location+"\"";
 					}else {
 						location = completeLocation;
 						queryString = "Name:"+location +" OR Country:"+location;
@@ -156,7 +155,7 @@ public class LuceneHierarchySearcher {
 				documents = indexSearcher.search(query, 1, sort);
 				for (ScoreDoc scoreDoc : documents.scoreDocs) {
 					Document document = indexSearcher.doc(scoreDoc.doc);
-					records.put(temp, GeonamesDocumentMapper.mapRecord(document));
+					records.put(completeLocation, GeonamesDocumentMapper.mapRecord(document));
 				}	
 			}
 		}
