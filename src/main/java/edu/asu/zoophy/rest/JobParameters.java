@@ -1,5 +1,6 @@
 package edu.asu.zoophy.rest;
 
+
 import java.util.List;
 import java.util.Map;
 
@@ -8,13 +9,13 @@ import edu.asu.zoophy.rest.pipeline.glm.Predictor;
 
 /**
  * Parameters for ZooPhy jobs
- * @author devdemetri
+ * @author devdemetri, kbhangal
  */
 public class JobParameters {
 	
 	private String replyEmail;
 	private String jobName;
-	private List<String> accessions;
+	private List<JobRecord> records;
 	private boolean useGLM = false;
 	private Map<String, List<Predictor>> predictors = null;
 	private XMLParameters xmlOptions = XMLParameters.getDefault();
@@ -39,12 +40,12 @@ public class JobParameters {
 		this.jobName = jobName;
 	}
 
-	public List<String> getAccessions() {
-		return accessions;
+	public List<JobRecord> getRecords() {
+		return records;
 	}
 
-	public void setAccessions(List<String> accessions) {
-		this.accessions = accessions;
+	public void setRecords(List<JobRecord> records) {
+		this.records = records;
 	}
 
 	public boolean isUsingGLM() {
@@ -70,5 +71,5 @@ public class JobParameters {
 	public void setXmlOptions(XMLParameters xmlOptions) {
 		this.xmlOptions = xmlOptions;
 	}
-	
+
 }

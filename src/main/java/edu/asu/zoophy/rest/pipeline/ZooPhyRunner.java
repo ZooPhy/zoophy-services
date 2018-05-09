@@ -9,15 +9,15 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import edu.asu.zoophy.rest.custom.FastaRecord;
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
-import edu.asu.zoophy.rest.genbank.GenBankRecord;
-import edu.asu.zoophy.rest.index.LuceneSearcher;
+import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
 import edu.asu.zoophy.rest.pipeline.glm.GLMFigureGenerator;
 import edu.asu.zoophy.rest.pipeline.glm.Predictor;
 
 /**
  * Responsible for running ZooPhy jobs
- * @author devdemetri
+ * @author devdemetri, kbhangal
  */
 public class ZooPhyRunner {
 
@@ -34,22 +34,22 @@ public class ZooPhyRunner {
 		log.info("Initializing ZooPhyMailer... : "+job.getID());
 		mailer = new ZooPhyMailer(job);
 	}
-	
+
 	/**
 	 * Runs the ZooPhy pipeline on the given Accessions
 	 * @param accessions
 	 * @param dao 
-	 * @param indexSearcher 
+	 * @param hierarchyIndexSearcher 
 	 * @throws PipelineException
 	 */
-	public void runZooPhy(List<String> accessions, ZooPhyDAO dao, LuceneSearcher indexSearcher) throws PipelineException {
+	public void runZooPhy(List<String> accessions, List<FastaRecord> fastaRecords, ZooPhyDAO dao, LuceneHierarchySearcher hierarchyIndexSearcher) throws PipelineException {
 		try {
 			log.info("Sending Start Email... : "+job.getID());
 			mailer.sendStartEmail();
 			log.info("Initializing Sequence Aligner... : "+job.getID());
-			SequenceAligner aligner = new SequenceAligner(job, dao, indexSearcher);
+			SequenceAligner aligner = new SequenceAligner(job, dao, hierarchyIndexSearcher);
 			log.info("Running Sequence Aligner... : "+job.getID());
-			aligner.align(accessions, false);
+			aligner.align(accessions, fastaRecords, false);
 			log.info("Initializing Beast Runner... : "+job.getID());
 			BeastRunner beast = new BeastRunner(job, mailer);
 			log.info("Starting Beast Runner... : "+job.getID());
@@ -82,35 +82,33 @@ public class ZooPhyRunner {
 		}
 	}
 
+
 	/**
 	 * @return generated ID for the ZooPhy job being run
 	 */
 	public String getJobID() {
 		return job.getID();
 	}
-
+	
 	/**
 	 * Runs early stages of the pipeline to test ZooPhy job viability
 	 * @param accessions
 	 * @param dao
-	 * @param indexSearcher
+	 * @param hierarchyIndexSearcher
 	 * @throws PipelineException
 	 */
-	public Set<String> testZooPhy(List<String> accessions, ZooPhyDAO dao, LuceneSearcher indexSearcher) throws PipelineException {
+	public Set<String> testZooPhy(List<String> accessions, List<FastaRecord> fastaRecords, ZooPhyDAO dao, LuceneHierarchySearcher hierarchyIndexSearcher) throws PipelineException {
 		try {
+			Set<String> usedAccessions = new HashSet<String>();
 			log.info("Initializing test Sequence Aligner... : "+job.getID());
-			SequenceAligner aligner = new SequenceAligner(job, dao, indexSearcher);
+			SequenceAligner aligner = new SequenceAligner(job, dao, hierarchyIndexSearcher);
 			log.info("Running test Sequence Aligner... : "+job.getID());
-			final List<GenBankRecord> finalRecs = aligner.align(accessions, true);
+			usedAccessions = aligner.align(accessions, fastaRecords, true);
 			log.info("Initializing test Beast Runner... : "+job.getID());
 			BeastRunner beast = new BeastRunner(job, null);
 			log.info("Starting test Beast Runner... : "+job.getID());
 			beast.test();
 			log.info("ZooPhy Job Test completed successfully: "+job.getID());
-			Set<String> usedAccessions = new HashSet<String>((int)(finalRecs.size()*1.1), 1.0f);
-			for (GenBankRecord rec : finalRecs) {
-				usedAccessions.add(rec.getAccession());
-			}
 			return usedAccessions;
 		}
 		catch (PipelineException pe) {
@@ -122,5 +120,4 @@ public class ZooPhyRunner {
 			throw new PipelineException("Unhandled Exception: "+e.getMessage(), null);
 		}	
 	}
-
 }

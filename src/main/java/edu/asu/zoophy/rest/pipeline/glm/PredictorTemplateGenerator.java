@@ -9,13 +9,13 @@ import org.springframework.stereotype.Component;
 
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
-import edu.asu.zoophy.rest.index.LuceneSearcher;
+import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
 import edu.asu.zoophy.rest.pipeline.SequenceAligner;
 import edu.asu.zoophy.rest.pipeline.utils.Normalizer;
 
 /**
  * Generates templates for GLM Predictor files
- * @author devdemetri
+ * @author devdemetri, kbhangal
  */
 @Component("PredictorTemplateGenerator")
 public class PredictorTemplateGenerator {
@@ -24,7 +24,7 @@ public class PredictorTemplateGenerator {
 	private ZooPhyDAO dao;
 	
 	@Autowired
-	private LuceneSearcher indexSearcher;
+	private LuceneHierarchySearcher hierarchyIndexSearcher;
 	
 	private final static String DELIMITER = "\t";
 	
@@ -37,9 +37,9 @@ public class PredictorTemplateGenerator {
 	public String generateTemplate(List<String> accessions) throws GLMException {
 		try {
 			List<GenBankRecord> records;
-			SequenceAligner aligner = new SequenceAligner(dao, indexSearcher);
+			SequenceAligner aligner = new SequenceAligner(dao, hierarchyIndexSearcher);
 			try {
-				records = aligner.loadSequences(accessions, true, false);
+				records = aligner.loadSequences(accessions, null, true, false);
 			}
 			catch (Exception e) {
 				throw new GLMException("Error loading records for Predictor Template: "+e.getMessage(), "Error loading records for Predictor Template.");

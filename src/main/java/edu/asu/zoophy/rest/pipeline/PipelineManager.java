@@ -10,12 +10,13 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Component;
 
+import edu.asu.zoophy.rest.custom.FastaRecord;
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
-import edu.asu.zoophy.rest.index.LuceneSearcher;
+import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
 
 /**
  * Manages ZooPhy Pipeline jobs
- * @author devdemetri
+ * @author devdemetri, kbhangal
  */
 @EnableAsync
 @Component("PipelineManager")
@@ -25,7 +26,7 @@ public class PipelineManager {
 	private ZooPhyDAO dao;
 	
 	@Autowired
-	private LuceneSearcher indexSearcher;
+	private LuceneHierarchySearcher hierarchyIndexSearcher;
 	
 	private final static Logger log = Logger.getLogger("PipelineManager");
 	
@@ -35,17 +36,18 @@ public class PipelineManager {
 	 * Value - server Process
 	 */
 	private static Map<String, Process> processes = new ConcurrentHashMap<String, Process>();
-	
-	 /**
-     * Asynchronously a the ZooPhy job
+   
+    /**
+     * Asynchronously a the ZooPhy Custom job
      * @param runner - ZoophyRunner containing the job details
      * @param accessions - list of accessions for the job
+     * @param fastaRecords - list of Fasta records for the job
      * @throws PipelineException
      */
     @Async
-    public void startZooPhyPipeline(ZooPhyRunner runner, List<String> accessions) throws PipelineException {
+    public void startZooPhyPipeline(ZooPhyRunner runner,List<String> accessions, List<FastaRecord> fastaRecords) throws PipelineException {
     	log.info("Starting ZooPhy Job: "+runner.getJobID());
-    	runner.runZooPhy(accessions, dao, indexSearcher);
+    	runner.runZooPhy(accessions, fastaRecords, dao, hierarchyIndexSearcher);
     }
 	
 	/**

@@ -6,19 +6,23 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import edu.asu.zoophy.rest.genbank.Gene;
 import edu.asu.zoophy.rest.genbank.Location;
+import edu.asu.zoophy.rest.pipeline.AlignerException;
+import edu.asu.zoophy.rest.security.SecurityHelper;
 
 /**
  * Static utility methods for normalizing names, locations, dates, etc.
- * @author devdemetri
+ * @author devdemetri, kbhangal
  */
 public class Normalizer {
 
 	private final static DecimalFormat df4 = new DecimalFormat(".####");
 	private final static Logger log = Logger.getLogger("Normalizer");
-	
+
 	/**
 	 * Normalizes location names
 	 * @param location - Location to normalize
@@ -57,7 +61,7 @@ public class Normalizer {
 	}
 	
 	/**
-	 * Converts a Text Date into a Decimal Date ex.
+	 * Converts a Text Date (DDmmmYYYY) into a Decimal Date ex.
 	 * @param date - date to be converted to decimal format
 	 * @return date in decimal format
 	 * @throws NormalizerException 
@@ -100,20 +104,41 @@ public class Normalizer {
 		}
 	}
 	
+	/**
+	 * Converts a Text Date into (DDmmmYYYY)
+	 * @param date - date to be converted to decimal format
+	 * @return date in decimal format
+	 * @throws NormalizerException 
+	 */
 	public static String formatDate(String collectionDate) throws NormalizerException {
 		try {
-			String[] parts = collectionDate.split("-");
-			String date = "";
-			if (parts.length < 3) {
-				date += "01";
+			if(collectionDate!=null && !collectionDate.equalsIgnoreCase("Unknown")) {
+				String date = "";
+				Pattern humanDateRegex = Pattern.compile(SecurityHelper.FASTA_MET_HUMAN_DATE_REGEX);
+				Matcher humanDateMatcher = humanDateRegex.matcher(collectionDate);
+				if(humanDateMatcher.matches()){
+					String[] parts = collectionDate.split("-");
+					if (parts.length < 3) {
+						date += "01";
+					}
+					if (parts.length < 2) {
+						date += "Jan";
+					}
+					for (String part : parts) {
+						date += part;
+					}
+				} else {
+					Pattern normDateRegex = Pattern.compile(SecurityHelper.FASTA_MET_MMDDYYYY_DATE_REGEX);
+					Matcher normDateMatcher = normDateRegex.matcher(collectionDate);
+					if(normDateMatcher.matches()){
+						//TODO
+					} else { 
+						throw new AlignerException("Unknown Date Fromat!", null);
+					}
+				}
+				return date;
 			}
-			if (parts.length < 2) {
-				date += "Jan"; 
-			}
-			for (String part : parts) {
-				date += part;
-			}
-			return date;
+			return collectionDate;
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "ERROR! could not format date: "+collectionDate+" : "+e.getMessage());

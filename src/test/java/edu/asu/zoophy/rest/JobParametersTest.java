@@ -21,10 +21,7 @@ public class JobParametersTest {
 
 	@Test
 	public void testParameters() {
-		final List<String> mockAccessions = new LinkedList<String>();
-		mockAccessions.add("ABC");
-		mockAccessions.add("DEF");
-		mockAccessions.add("GHI");
+		final List<JobRecord> mockRecords = new LinkedList<JobRecord>();
 		final Map<String, List<Predictor>> mockPredictors = new LinkedHashMap<String, List<Predictor>>();
 		Predictor mockPredictor = new Predictor();
 		mockPredictor.setName("temp");
@@ -36,15 +33,33 @@ public class JobParametersTest {
 		mockPredictors.put("AZ", tempList);
 		final XMLParameters mockXMLParams = XMLParameters.getDefault();
 		JobParameters paramters = new JobParameters();
-		paramters.setAccessions(mockAccessions);
+		
+		//Fasta
+		JobRecord jobRecord = new JobRecord();
+		jobRecord.setId("ABC");
+		jobRecord.setCollectionDate("25-Mar-2006");
+		jobRecord.setGeonameID("5308655");
+		jobRecord.setRawSequence("ATGGAGAAAATAGTGCTTCTTTTTGCAATAGTCAGTCTTGTAAAAGTGATCAGATTTGCAT");
+		jobRecord.setResourceSource(2);
+		mockRecords.add(jobRecord);
+		
+		//GenBank
+		jobRecord = new JobRecord();
+		jobRecord.setId("CY214007");
+		jobRecord.setResourceSource(1);
+		mockRecords.add(jobRecord);
+		
+		paramters.setRecords(mockRecords);
 		paramters.setJobName("Mock Job");
 		paramters.setPredictors(mockPredictors);
 		paramters.setReplyEmail("zoophy@asu.edu");
 		paramters.setUseGLM(true);
 		paramters.setXmlOptions(mockXMLParams);
 		assertThat(paramters).isNotNull();
-		assertThat(paramters.getAccessions()).isNotNull();
-		assertThat(paramters.getAccessions()).isEqualTo(mockAccessions);
+		assertThat(paramters.getRecords().get(0).getId()).isNotNull();
+		assertThat(paramters.getRecords().get(0).getRawSequence()).isNotNull();
+		assertThat(paramters.getRecords().get(1).getRawSequence()).isNull();
+		assertThat(paramters.getRecords()).isEqualTo(mockRecords);
 		assertThat(paramters.getJobName()).isNotNull();
 		assertThat(paramters.getJobName()).isEqualTo("Mock Job");
 		assertThat(paramters.getPredictors()).isNotNull();

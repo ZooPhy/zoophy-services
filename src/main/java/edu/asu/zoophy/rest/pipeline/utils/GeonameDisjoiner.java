@@ -11,20 +11,19 @@ import java.util.Set;
 
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.genbank.Location;
-import edu.asu.zoophy.rest.index.LuceneSearcher;
+import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
 import edu.asu.zoophy.rest.index.LuceneSearcherException;
 import edu.asu.zoophy.rest.pipeline.PipelineException;
 import edu.asu.zoophy.rest.pipeline.PropertyProvider;
 import edu.asu.zoophy.rest.pipeline.glm.GLMException;
 
-
 /**
  * Responsible for making sure ZooPhy job locations are disjoint
- * @author devdemetri
+ * @author devdemetri, kbhangal
  */
 public class GeonameDisjoiner {
 
-	private final LuceneSearcher indexSearcher;
+	private final LuceneHierarchySearcher hierarchyIndexSearcher;
 	private final GeoHierarchy hierarchy = GeoHierarchy.getInstance();
 	private final int MAX_STATES;
 	private Map<Long, String> US_STATES;
@@ -32,8 +31,8 @@ public class GeonameDisjoiner {
 	private Map<String,Set<Long>> ancestors = null;
 	private Iterator<GenBankRecord> recordIter = null;
 	
-	public GeonameDisjoiner(LuceneSearcher indexSearcher) throws PipelineException {
-		this.indexSearcher = indexSearcher;
+	public GeonameDisjoiner(LuceneHierarchySearcher hierarchyIndexSearcher) throws PipelineException {
+		this.hierarchyIndexSearcher = hierarchyIndexSearcher;
 		PropertyProvider provider = PropertyProvider.getInstance();
 		MAX_STATES = Integer.parseInt(provider.getProperty("job.max.locations"));
 	}
@@ -66,7 +65,7 @@ public class GeonameDisjoiner {
 					else {
 						Set<Long> recordAncestors;
 						try {
-							recordAncestors = indexSearcher.findLocationAncestors(record.getAccession());
+							recordAncestors = hierarchyIndexSearcher.findLocationAncestors(record.getGeonameLocation().getGeonameID().toString());
 							if (recordAncestors == null) {
 								recordIter.remove();
 							}
@@ -76,7 +75,7 @@ public class GeonameDisjoiner {
 									recordIter.remove();
 								}
 								else {
-									String type = record.getGeonameLocation().getGeonameType();
+									String type = record.getGeonameLocation().getGeonameType();								
 									if (types.get(type) == null) {
 										types.put(type, 0);
 									}
@@ -110,6 +109,7 @@ public class GeonameDisjoiner {
 					GenBankRecord record = recordIter.next();
 					Location recordLocation = record.getGeonameLocation();
 					boolean isDisjoint = true;
+					//selected record should be same or lower level than common level
 					if (hierarchy.isParent(commonType, record.getGeonameLocation().getGeonameType())) {
 						isDisjoint = false;
 						recordIter.remove();
@@ -308,7 +308,7 @@ public class GeonameDisjoiner {
 		usStates.put(4138106L, "district of columbia");
 		return usStates;
 	}
-
+	
 	/**
 	 * Specific Disjoning for Default GLM use case
 	 * @param records
@@ -331,7 +331,8 @@ public class GeonameDisjoiner {
 				else {
 					Set<Long> recordAncestors;
 					try {
-						recordAncestors = indexSearcher.findLocationAncestors(record.getAccession());
+						recordAncestors = hierarchyIndexSearcher.findLocationAncestors(record.getGeonameLocation().getGeonameID().toString());
+						
 						if (recordAncestors == null) {
 							recordIter.remove();
 						}
@@ -355,6 +356,7 @@ public class GeonameDisjoiner {
 		catch (Exception e) {
 			throw new DisjoinerException("Error initially screening record locations:\t"+e.getMessage(), "Error Filtering Locations");
 		}
+		//Is any of the records location is a us state. Is not if any of its ancestor a us state. If NO remove else add into state set to count it.
 		Set<String> states = new LinkedHashSet<String>(50);
 		recordIter = recordsToCheck.listIterator();
 		while (recordIter.hasNext()) {
@@ -364,7 +366,7 @@ public class GeonameDisjoiner {
 				Long stateID = recLocation.getGeonameID();
 				String stateLocation = US_STATES.get(stateID);
 				if (stateLocation == null) {
-					Set<Long> ancestors = indexSearcher.findLocationAncestors(record.getAccession());
+					Set<Long> ancestors = hierarchyIndexSearcher.findLocationAncestors(record.getGeonameLocation().getGeonameID().toString());
 					Iterator<Long> iter = ancestors.iterator();
 					while (iter.hasNext() && stateLocation == null) {
 						stateID = iter.next();
@@ -388,9 +390,9 @@ public class GeonameDisjoiner {
 				recordIter.remove();
 			}
 		}
+	
 		recordIter = null;
 		if (states.size() < 2) {
-			states.clear();
 			String userErr = "Too few distinct locations (need at least 2): " + states.size();
 			if (states.size() == 1) {
 				userErr += "\nLocation: "+states.iterator().next();
@@ -398,7 +400,6 @@ public class GeonameDisjoiner {
 			throw new DisjoinerException("Too few distinct locations: "+states.size(),userErr);
 		}
 		else if (states.size() > MAX_STATES) {
-			states.clear();
 			StringBuilder userErr = new StringBuilder("Too many distinct locations (limit is "+MAX_STATES+"): " + states.size());
 			userErr.append("\nLocations: ");
 			for (String state : states) {
@@ -408,7 +409,6 @@ public class GeonameDisjoiner {
 			throw new DisjoinerException("Too many distinct locations: "+states.size(), userErr.toString());
 		}
 		else {
-			states.clear();
 			return recordsToCheck;
 		}
 	}
