@@ -159,13 +159,24 @@ public class BeastRunner {
 	 * @throws InterruptedException
 	 */
 	private void runBeastGen(String fastaFile, String beastInput, XMLParameters xmlParameters) throws BeastException, IOException, InterruptedException {
-		String workingDir =  "../ZooPhyJobs/";
+		log.info("Finding BEASTGen template with parameters:" + xmlParameters.toString());
+		String workingDir = System.getProperty("user.dir")+"/ZooPhyJobs/";
 		File beastGenDir = new File(System.getProperty("user.dir")+"/BeastGen");
 		filesToCleanup.add(JOB_WORK_DIR+fastaFile);
-		//String template = substitutionModel.toString() + ".template"; //TODO add/change templates
-		String template = "beastgen.template";
-		log.info("Running BEASTGen...");
-		ProcessBuilder builder = new ProcessBuilder("java", "-jar", "beastgen.jar", "-date_order", "4", "-D", "chain_length="+xmlParameters.getChainLength().toString()+",log_every="+xmlParameters.getSubSampleRate().toString()+"" ,template, workingDir+fastaFile, workingDir+beastInput).directory(beastGenDir);
+		//TODO: add/change templates programmatically by importing beastgen.jar's objects
+		String template_name = "beastgen_SUBMODEL_CLOCKMODEL_PRIOR.template";
+		String subModel = xmlParameters.getSubstitutionModel().toString();
+		if(xmlParameters.isGamma()){
+			subModel += "+G";
+		}
+		if(xmlParameters.isInvariantSites()){
+			subModel += "+I";
+		}
+		template_name = template_name.replace("SUBMODEL", subModel);
+		template_name = template_name.replace("CLOCKMODEL", xmlParameters.getClockModel().toString());
+		template_name = template_name.replace("PRIOR", xmlParameters.getTreePrior().toString());
+		log.info("Running BEASTGen Template:" + template_name);
+		ProcessBuilder builder = new ProcessBuilder("java", "-jar", "beastgen.jar", "-date_order", "4", "-D", "chain_length="+xmlParameters.getChainLength().toString()+",log_every="+xmlParameters.getSubSampleRate().toString()+"" ,template_name, workingDir+fastaFile, workingDir+beastInput).directory(beastGenDir);
 		builder.redirectOutput(Redirect.appendTo(logFile));
 		builder.redirectError(Redirect.appendTo(logFile));
 		log.info("Starting Process: "+builder.command().toString());

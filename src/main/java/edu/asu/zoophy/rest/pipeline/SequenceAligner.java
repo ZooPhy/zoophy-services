@@ -30,6 +30,7 @@ import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
 import edu.asu.zoophy.rest.pipeline.glm.GLMException;
 import edu.asu.zoophy.rest.pipeline.glm.PredictorGenerator;
+import edu.asu.zoophy.rest.pipeline.utils.DisjoinerException;
 import edu.asu.zoophy.rest.pipeline.utils.GeonameDisjoiner;
 import edu.asu.zoophy.rest.pipeline.utils.Normalizer;
 import edu.asu.zoophy.rest.pipeline.utils.NormalizerException;
@@ -239,8 +240,12 @@ public class SequenceAligner {
 		for (String accession : accessions) {
 			GenBankRecord record = dao.retrieveFullRecord(accession);
 			try {
-				if (record != null && record.getSequence().getCollectionDate() != null && !getFastaDate(record.getSequence().getCollectionDate()).equalsIgnoreCase("unknown") && record.getGeonameLocation() != null) { 
-					records.add(record);
+				if(record.getSequence().getCollectionDate() != null  && !getFastaDate(record.getSequence().getCollectionDate()).equalsIgnoreCase("unknown")) {
+					if (record != null && record.getGeonameLocation() != null) { 
+						records.add(record);
+					}
+				} else {
+					log.log(Level.SEVERE, "ERROR! Record: "+accession+" removed. No Collection date found!");
 				}
 			}
 			catch (Exception e) {
@@ -256,6 +261,10 @@ public class SequenceAligner {
 			}
 		}
 		log.info("Records loaded.");
+		if (records.size() < 2) {
+			String userErr = "Too few valid records with necessary information (e.g. Date, Location) (need at least 2): " + records.size();
+			throw new DisjoinerException("Too few valid records: "+records.size(),userErr);
+		}
 		if (isDisjoint) {
 			GeonameDisjoiner disjoiner  = new GeonameDisjoiner(hierarchyIndexSearcher);
 			if (isUsingDefaultGLM) {

@@ -74,7 +74,6 @@ public class DiscreteTraitInserter {
 	 */
 	private void addTrait(String traitName, BeastSubstitutionModel substitutionModel) throws TraitException {
 		try {
-			//TODO: take sub model into account to work for GTR as well as current HKY
 			String baseName = job.getID()+"-aligned";
 			//add trait to taxa list
 			int numTaxa = 0;
@@ -163,10 +162,14 @@ public class DiscreteTraitInserter {
 			rareStatistic.appendChild(strictRates);
 			Comment clockComment = document.createComment(" The strict clock (Uniform rates across branches) ");
 			//insert clock and rare statistic in correct place
-			Node hkyModel = document.getElementsByTagName("HKYModel").item(0).getPreviousSibling().getPreviousSibling();
-			beastNode.insertBefore(clockComment, hkyModel);
-			beastNode.insertBefore(clockBranchRates, hkyModel);
-			beastNode.insertBefore(rareStatistic, hkyModel);
+			String subModelTagName = "HKYModel";
+			if(substitutionModel == BeastSubstitutionModel.GTR) {
+				subModelTagName = "gtrModel";
+			}//Add more models here when supported
+			Node subModelBlock = document.getElementsByTagName(subModelTagName).item(0).getPreviousSibling().getPreviousSibling();
+			beastNode.insertBefore(clockComment, subModelBlock);
+			beastNode.insertBefore(clockBranchRates, subModelBlock);
+			beastNode.insertBefore(rareStatistic, subModelBlock);
 			//start discrete trait models
 			Queue<Node> modelsElements = new LinkedList<Node>();
 			Element generalSubstitutionModel = document.createElement("generalSubstitutionModel");
