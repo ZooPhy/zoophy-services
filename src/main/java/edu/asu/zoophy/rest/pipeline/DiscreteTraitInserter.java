@@ -347,9 +347,9 @@ public class DiscreteTraitInserter {
 			Element ctmcTreeModel = document.createElement("treeModel");
 			ctmcTreeModel.setAttribute("idref", "treeModel");
 			ctmcScalePrior.appendChild(ctmcTreeModel);
-			Node oneOnXPrior = document.getElementsByTagName("oneOnXPrior").item(0);
-			Node oneOnXPriorPrior = oneOnXPrior.getParentNode();
-			oneOnXPriorPrior.insertBefore(ctmcScalePrior, oneOnXPrior);
+			Node existingCtmcScalePriorSibling = document.getElementsByTagName("ctmcScalePrior").item(0).getNextSibling().getNextSibling();
+			Node existingCtmcScalePriorParent = existingCtmcScalePriorSibling.getParentNode();
+			existingCtmcScalePriorParent.insertBefore(ctmcScalePrior, existingCtmcScalePriorSibling);
 			//poisson//
 			Element poissonPrior = document.createElement("poissonPrior");
 			int poissonOffset = kValue-1;
@@ -358,8 +358,8 @@ public class DiscreteTraitInserter {
 			Element poissStatistic = document.createElement("statistic");
 			poissStatistic.setAttribute("idref", traitName+".nonZeroRates");
 			poissonPrior.appendChild(poissStatistic);
-			Node coalescentPrior = oneOnXPrior.getNextSibling().getNextSibling();
-			oneOnXPriorPrior.insertBefore(poissonPrior, coalescentPrior);
+			Node coalescentPrior = existingCtmcScalePriorSibling.getNextSibling().getNextSibling();
+			existingCtmcScalePriorParent.insertBefore(poissonPrior, coalescentPrior);
 			//uniform//
 			Element uniformPrior = document.createElement("uniformPrior");
 			uniformPrior.setAttribute("lower", "0.0");
@@ -367,7 +367,7 @@ public class DiscreteTraitInserter {
 			Element uniformParam = document.createElement("parameter");
 			uniformParam.setAttribute("idref", traitName+".frequencies");
 			uniformPrior.appendChild(uniformParam);
-			oneOnXPriorPrior.insertBefore(uniformPrior, coalescentPrior);
+			existingCtmcScalePriorParent.insertBefore(uniformPrior, coalescentPrior);
 			//cached//
 			Element cachedPrior = document.createElement("cachedPrior");
 			Element cachedParameter = document.createElement("parameter");
@@ -380,22 +380,22 @@ public class DiscreteTraitInserter {
 			gammaPrior.appendChild(gammaParameter);
 			cachedPrior.appendChild(gammaPrior);
 			cachedPrior.appendChild(cachedParameter);
-			oneOnXPriorPrior.insertBefore(cachedPrior, coalescentPrior);
+			existingCtmcScalePriorParent.insertBefore(cachedPrior, coalescentPrior);
 			//uniform2//
 			Node uniformPrior2 = uniformPrior.cloneNode(false);
 			Element uniformPrior2Parameter = (Element) uniformParam.cloneNode(false);
 			uniformPrior2Parameter.setAttribute("idref", traitName+".root.frequencies");
 			uniformPrior2.appendChild(uniformPrior2Parameter);
-			oneOnXPriorPrior.insertBefore(uniformPrior2, coalescentPrior);
+			existingCtmcScalePriorParent.insertBefore(uniformPrior2, coalescentPrior);
 			//scbr//
 			Element strictClockBranchRatesPrior = document.createElement("strictClockBranchRates");
 			strictClockBranchRatesPrior.setAttribute("idref", traitName+".branchRates");
-			oneOnXPriorPrior.appendChild(strictClockBranchRatesPrior);
-			oneOnXPriorPrior.appendChild(startComment.cloneNode(true));
-			oneOnXPriorPrior.appendChild(siteGeneralSubstitutionModel.cloneNode(false));
-			oneOnXPriorPrior.appendChild(endComment.cloneNode(true));
+			existingCtmcScalePriorParent.appendChild(strictClockBranchRatesPrior);
+			existingCtmcScalePriorParent.appendChild(startComment.cloneNode(true));
+			existingCtmcScalePriorParent.appendChild(siteGeneralSubstitutionModel.cloneNode(false));
+			existingCtmcScalePriorParent.appendChild(endComment.cloneNode(true));
 			//likelihood//
-			Node likelihood = oneOnXPriorPrior.getNextSibling().getNextSibling();
+			Node likelihood = existingCtmcScalePriorParent.getNextSibling().getNextSibling();
 			likelihood.appendChild(startComment.cloneNode(true));
 			Element ancestralTreeClone = (Element) ancestralTree.cloneNode(false);
 			ancestralTreeClone.removeAttribute("id");
