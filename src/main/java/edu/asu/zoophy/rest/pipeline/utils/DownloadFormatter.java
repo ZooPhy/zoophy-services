@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
+import edu.asu.zoophy.rest.genbank.Location;
 import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
 import edu.asu.zoophy.rest.index.LuceneSearcher;
 import edu.asu.zoophy.rest.index.LuceneSearcherException;
@@ -92,13 +93,9 @@ public class DownloadFormatter {
 	 */
 	private String generateCSV(List<String> accessions, List<String> columns) throws LuceneSearcherException, FormatterException {
 		try {
-			List<GenBankRecord> records = new LinkedList<GenBankRecord>();
-			for (String accession : accessions) {
-				GenBankRecord record = indexSearcher.getRecord(accession);
-				if (record != null) {
-					records.add(record);
-				}
-			}
+			SequenceAligner fastaGenerator = new SequenceAligner(dao, hierarchyIndexSearcher);
+			List<GenBankRecord> records = fastaGenerator.loadSequences(accessions, null, false, false);
+			
 			//Headers
 			StringJoiner stringJoiner = new StringJoiner(",");
 			StringBuilder csv = new StringBuilder();
@@ -109,9 +106,15 @@ public class DownloadFormatter {
 			csv.append("\n");
 			
 			for (GenBankRecord record : records) {
+				Location location = null;
 				stringJoiner = new StringJoiner(",");
 				for(String column: columns) {
-					stringJoiner.add(columnValue(record, column, DownloadFormat.CSV));	
+					if((column.equals(DownloadColumn.COUNTRY) || column.equals(DownloadColumn.STATE)
+							|| column.equals(DownloadColumn.GEONAMEID) || column.equals(DownloadColumn.LOCATION_HIERARCHY))
+							&& location == null) {
+						location = hierarchyIndexSearcher.findGeonameLocation(record.getGeonameLocation().getLocation());
+					}
+					stringJoiner.add(columnValue(record, column, location, DownloadFormat.CSV));	
 				}
 				csv.append(stringJoiner);
 				csv.append("\n");
@@ -147,11 +150,17 @@ public class DownloadFormatter {
 			StringJoiner stringJoiner;
 	
 			for (GenBankRecord record : records) {
+				Location location = null;
 				stringJoiner = new StringJoiner("|");
 				tempBuilder = new StringBuilder();
 				tempBuilder.append(">");
 				for(String column: columns) {
-					stringJoiner.add(columnValue(record, column, DownloadFormat.FASTA));	
+					if((column.equals(DownloadColumn.COUNTRY) || column.equals(DownloadColumn.STATE)
+							|| column.equals(DownloadColumn.GEONAMEID) || 
+							column.equals(DownloadColumn.LOCATION_HIERARCHY)) && location == null) {
+						location = hierarchyIndexSearcher.findGeonameLocation(record.getGeonameLocation().getLocation());
+					}
+					stringJoiner.add(columnValue(record, column, location, DownloadFormat.FASTA));	
 				}
 				
 				tempBuilder.append(stringJoiner);
@@ -184,7 +193,7 @@ public class DownloadFormatter {
 	 * @throws FormatterException 
 	 * @throws NormalizerException 
 	 */
-	private String columnValue(GenBankRecord record, String column, DownloadFormat format) throws NormalizerException, FormatterException, AlignerException {
+	private String columnValue(GenBankRecord record, String column, Location location, DownloadFormat format) throws NormalizerException, FormatterException, AlignerException {
 		switch(column) {
 		case DownloadColumn.ID:
 			return  Normalizer.csvify(record.getAccession());
@@ -209,21 +218,29 @@ public class DownloadFormatter {
 			else {
 				return Normalizer.csvify("unknown");
 			}
+		case DownloadColumn.GEONAMEID:
+			if(location!=null) {
+				return Normalizer.csvify(location.getGeonameID().toString());
+			}else {
+				return "Unknown";
+			}
 		case DownloadColumn.COUNTRY:
-			if(format.equals(DownloadFormat.CSV)) {
-				if (record.getGeonameLocation() != null && record.getGeonameLocation().getCountry() != null) {
-					return Normalizer.csvify(record.getGeonameLocation().getLocation()+"_"+record.getGeonameLocation().getCountry());
-				}
-				else {
-					return Normalizer.csvify("unknown");
-				}
-			}else if(format.equals(DownloadFormat.FASTA)) {
-				if (record.getGeonameLocation() != null && record.getGeonameLocation().getCountry() != null) {	
-					return Normalizer.normalizeLocation(record.getGeonameLocation()) + "-" + Normalizer.csvify(record.getGeonameLocation().getCountry());		
-				}
-				else {
-					return Normalizer.csvify("unknown");
-				}
+			if(location!=null) {
+				return Normalizer.csvify(location.getCountry());
+			}else {
+				return "Unknown";
+			}
+		case DownloadColumn.STATE:
+			if(location!=null) {
+				return Normalizer.csvify(location.getState());
+			}else {
+				return "Unknown";
+			}
+		case DownloadColumn.LOCATION_HIERARCHY:
+			if(location!=null) {
+				return Normalizer.csvify(location.getHierarchy());
+			}else {
+				return "Unknown";
 			}
 		case DownloadColumn.LENGTH:
 			return Normalizer.csvify(String.valueOf(record.getSequence().getSegmentLength()));

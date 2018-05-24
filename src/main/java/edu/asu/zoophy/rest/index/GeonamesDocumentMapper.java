@@ -44,6 +44,8 @@ public class GeonamesDocumentMapper {
 				location.setLongitude(Double.parseDouble(luceneDocument.get("Longitude")));
 			}
 			location.setCountry(luceneDocument.get("Country"));
+			location.setState(luceneDocument.get("State"));
+			location.setHierarchy(luceneDocument.get("AncestorName"));
 			return location;
 		}
 		catch (Exception e) {
