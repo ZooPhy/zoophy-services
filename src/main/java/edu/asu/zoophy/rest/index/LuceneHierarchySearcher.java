@@ -3,8 +3,10 @@ package edu.asu.zoophy.rest.index;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -15,8 +17,10 @@ import java.util.regex.Pattern;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
@@ -45,6 +49,9 @@ import edu.asu.zoophy.rest.security.SecurityHelper;
 public class LuceneHierarchySearcher {
 	private Directory indexDirectory;
 	private final static Logger log = Logger.getLogger("LuceneHierarchySearcher");
+	List<String> stops = Arrays.asList("a", "and", "are", "but", "by",
+			"for", "if","into", "not", "such","that", "the", "their", 
+			"then", "there", "these","they", "this", "was", "will", "with"); 
 	
 	public LuceneHierarchySearcher(@Value("${lucene.geonames.hierarchy.index.location}") String indexLocation) throws LuceneSearcherException  {	
 		try {
@@ -138,7 +145,9 @@ public class LuceneHierarchySearcher {
 					queryParser = new QueryParser("GeonameId", new KeywordAnalyzer());
 					query = queryParser.parse("\""+completeLocation+"\"");
 				} else {
-					queryParser = new QueryParser("AncestorName", new StandardAnalyzer());
+					CharArraySet stopWordsOverride = new CharArraySet(stops, true);
+					Analyzer analyzer = new StandardAnalyzer(stopWordsOverride);
+					queryParser = new QueryParser("AncestorName", analyzer);
 					String[] Locations = completeLocation.split(",",2);
 					
 					if(Locations.length>1) {
@@ -193,7 +202,9 @@ public class LuceneHierarchySearcher {
 				queryParser = new QueryParser("GeonameId", new KeywordAnalyzer());
 				query = queryParser.parse("\""+completeLocation+"\"");
 			} else {
-				queryParser = new QueryParser("AncestorName", new StandardAnalyzer());
+				CharArraySet stopWordsOverride = new CharArraySet(stops, true);
+				Analyzer analyzer = new StandardAnalyzer(stopWordsOverride);
+				queryParser = new QueryParser("AncestorName", analyzer);
 				String[] Locations = completeLocation.split(",",2);
 				
 				if(Locations.length>1) {
