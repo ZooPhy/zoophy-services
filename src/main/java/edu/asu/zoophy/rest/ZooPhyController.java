@@ -296,7 +296,7 @@ public class ZooPhyController {
     		Map<String, Location> geonamesMap;
     		
     		try {
-    			geonamesMap = hierarchyIndexSearcher.findGeonameLocation(geonameIds);
+    			geonamesMap = hierarchyIndexSearcher.findGeonameLocations(geonameIds);
     		} catch (LuceneSearcherException e) {
     			log.warning("Geonames Lucene exception: " + e.getMessage());
     			throw e;
@@ -391,7 +391,7 @@ public class ZooPhyController {
 	    		log.info("geonameIds: "+geonameIds.size());
 	    		Map<String, Location> geonamesMap;
 				try {
-					geonamesMap = hierarchyIndexSearcher.findGeonameLocation(geonameIds);
+					geonamesMap = hierarchyIndexSearcher.findGeonameLocations(geonameIds);
 				} catch (LuceneSearcherException e) {
 	    			log.warning("Geonames Lucene exception: " + e.getMessage());
 	    			throw e;
@@ -635,7 +635,7 @@ public class ZooPhyController {
 	    		log.info("geonameIds: "+geonameIds.size());
 	    		Map<String, Location> geonamesMap;
 				try {
-					geonamesMap = hierarchyIndexSearcher.findGeonameLocation(geonameIds);
+					geonamesMap = hierarchyIndexSearcher.findGeonameLocations(geonameIds);
 				} catch (LuceneSearcherException e) {
 	    			log.warning("Geonames Lucene exception: " + e.getMessage());
 	    			throw e;

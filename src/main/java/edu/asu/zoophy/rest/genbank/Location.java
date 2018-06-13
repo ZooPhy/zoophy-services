@@ -13,6 +13,8 @@ public class Location {
 	private Double longitude;
 	private String geonameType; //Example: ADM1
 	private String country;
+	private String state;
+	private String hierarchy;
 	
 	public Location() {
 		
@@ -72,6 +74,22 @@ public class Location {
 
 	public void setCountry(String country) {
 		this.country = country;
+	}
+
+	public String getState() {
+		return state;
+	}
+
+	public void setState(String state) {
+		this.state = state;
+	}
+
+	public String getHierarchy() {
+		return hierarchy;
+	}
+
+	public void setHierarchy(String hierarchy) {
+		this.hierarchy = hierarchy;
 	}
 	
 }

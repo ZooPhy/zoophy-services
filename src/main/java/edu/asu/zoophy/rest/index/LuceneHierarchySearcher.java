@@ -3,8 +3,10 @@ package edu.asu.zoophy.rest.index;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -15,8 +17,10 @@ import java.util.regex.Pattern;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
@@ -45,6 +49,9 @@ import edu.asu.zoophy.rest.security.SecurityHelper;
 public class LuceneHierarchySearcher {
 	private Directory indexDirectory;
 	private final static Logger log = Logger.getLogger("LuceneHierarchySearcher");
+	List<String> stops = Arrays.asList("a", "and", "are", "but", "by",
+			"for", "if","into", "not", "such","that", "the", "their", 
+			"then", "there", "these","they", "this", "was", "will", "with"); 
 	
 	public LuceneHierarchySearcher(@Value("${lucene.geonames.hierarchy.index.location}") String indexLocation) throws LuceneSearcherException  {	
 		try {
@@ -110,12 +117,12 @@ public class LuceneHierarchySearcher {
 	}
 	
 	/**
-	 * Search possible Location using geonameID or location name
+	 * Search possible Locations using geonameID or location name
 	 * @param geonameIds - valid Lucene query string
 	 * @return map containing Location of each entry
 	 * @throws LuceneSearcherException
 	 */
-	public Map<String, Location> findGeonameLocation(Set<String> completeLocations) throws LuceneSearcherException{
+	public Map<String, Location> findGeonameLocations(Set<String> completeLocations) throws LuceneSearcherException{
 		String location ="",parents ="",queryString="";
 		Map<String, Location> records = new HashMap<String, Location>();
 		
@@ -138,7 +145,9 @@ public class LuceneHierarchySearcher {
 					queryParser = new QueryParser("GeonameId", new KeywordAnalyzer());
 					query = queryParser.parse("\""+completeLocation+"\"");
 				} else {
-					queryParser = new QueryParser("AncestorName", new StandardAnalyzer());
+					CharArraySet stopWordsOverride = new CharArraySet(stops, true);
+					Analyzer analyzer = new StandardAnalyzer(stopWordsOverride);
+					queryParser = new QueryParser("AncestorName", analyzer);
 					String[] Locations = completeLocation.split(",",2);
 					
 					if(Locations.length>1) {
@@ -166,6 +175,62 @@ public class LuceneHierarchySearcher {
 	}
 	
 	/**
+	 * Search possible Location for single geonameID or location name
+	 * @param geonameIds - valid Lucene query string
+	 * @return map containing Location of each entry
+	 * @throws LuceneSearcherException
+	 */
+	public Location findGeonameLocation(String completeLocation) throws LuceneSearcherException{
+		String location ="",parents ="",queryString="";
+		Location locationObj = null;
+		
+		IndexReader reader = null;
+		IndexSearcher indexSearcher = null;
+		Query query;
+		QueryParser queryParser = new QueryParser("AncestorName", new KeywordAnalyzer());
+		TopDocs documents;
+		SortField field = new SortField("Population", SortField.Type.LONG, true);
+		Sort sort = new Sort(field);
+		
+		try {
+			reader = DirectoryReader.open(indexDirectory);
+			indexSearcher = new IndexSearcher(reader);
+			
+			Pattern geoIdRegex = Pattern.compile(SecurityHelper.FASTA_MET_GEOID_REGEX);
+			Matcher geoIdMatcher = geoIdRegex.matcher(completeLocation);
+			if(geoIdMatcher.matches()){
+				queryParser = new QueryParser("GeonameId", new KeywordAnalyzer());
+				query = queryParser.parse("\""+completeLocation+"\"");
+			} else {
+				CharArraySet stopWordsOverride = new CharArraySet(stops, true);
+				Analyzer analyzer = new StandardAnalyzer(stopWordsOverride);
+				queryParser = new QueryParser("AncestorName", analyzer);
+				String[] Locations = completeLocation.split(",",2);
+				
+				if(Locations.length>1) {
+					location = Locations[0];
+					parents = Locations[1];
+					parents = parents.replace(",", " ");
+					queryString = "AncestorName:"+parents + " AND Name:\""+location+"\"";
+				}else {
+					location = completeLocation;
+					queryString = "Name:"+location +" OR Country:"+location;
+				}
+				query = queryParser.parse(queryString);
+			}
+			documents = indexSearcher.search(query, 1, sort);
+			for (ScoreDoc scoreDoc : documents.scoreDocs) {
+				Document document = indexSearcher.doc(scoreDoc.doc);
+				locationObj = GeonamesDocumentMapper.mapRecord(document);
+			}	
+		}
+		catch (Exception e) {
+			throw new LuceneSearcherException(e.getMessage());
+		}
+		return locationObj;
+	}
+	
+	/**
 	 * Tests connection to Lucene Index
 	 * @throws LuceneSearcherException
 	 */
@@ -181,10 +246,10 @@ public class LuceneHierarchySearcher {
 		
 		try {
 			Set<Long> testList = findLocationAncestors(testLocationAncestor);
-			if(testList.size()!=5) {
+			if(testList.size()!=3) {
 				throw new LuceneSearcherException("Test query should have retrieved 5 records, instead retrieved: "+testList.size());
 			}
-			Map<String, Location> testMap = findGeonameLocation(testFindGeonameLocation);
+			Map<String, Location> testMap = findGeonameLocations(testFindGeonameLocation);
 			if(testMap.size()!=3) {
 				throw new LuceneSearcherException("Test query should have retrieved 3 records, instead retrieved: "+testMap.size());
 			}
