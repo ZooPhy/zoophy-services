@@ -210,16 +210,21 @@ public class Normalizer {
 	 */
 	public static String normalizeDate(String date) {
 		if (date != null && !date.equals("10000101")) {
-			if (date.length() == 8) {
-				String month = getMonthName(date.substring(4,6));
-				return  date.substring(6) + "-" + month + "-" + date.substring(0,4);
-			}
-			else if (date.length() == 6) {
-				String month = getMonthName(date.substring(4));
-				return month + "-" + date.substring(0,4);
-			}
-			else if (date.length() == 4) {
-				return date;
+			Pattern humanDateRegex = Pattern.compile(SecurityHelper.FASTA_MET_HUMAN_DATE_REGEX);
+			Matcher humanDateMatcher = humanDateRegex.matcher(date);
+			
+			if(!humanDateMatcher.matches()){
+				if (date.length() == 8) {
+					String month = getMonthName(date.substring(4,6));
+					return  date.substring(6) + "-" + month + "-" + date.substring(0,4);
+				}
+				else if (date.length() == 6) {
+					String month = getMonthName(date.substring(4));
+					return month + "-" + date.substring(0,4);
+				}
+				else if (date.length() == 4) {
+					return date;
+				}
 			}
 			return date;
 		}
