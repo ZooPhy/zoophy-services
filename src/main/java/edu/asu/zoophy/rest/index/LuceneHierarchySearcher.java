@@ -222,7 +222,8 @@ public class LuceneHierarchySearcher {
 			for (ScoreDoc scoreDoc : documents.scoreDocs) {
 				Document document = indexSearcher.doc(scoreDoc.doc);
 				locationObj = GeonamesDocumentMapper.mapRecord(document);
-			}	
+			}
+			reader.close();
 		}
 		catch (Exception e) {
 			throw new LuceneSearcherException(e.getMessage());
