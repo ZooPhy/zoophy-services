@@ -9,14 +9,14 @@ import java.util.logging.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import edu.asu.zoophy.rest.database.DaoException;
+import edu.asu.zoophy.rest.database.GenBankRecordNotFoundException;
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.genbank.Location;
 import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
-import edu.asu.zoophy.rest.index.LuceneSearcher;
 import edu.asu.zoophy.rest.index.LuceneSearcherException;
 import edu.asu.zoophy.rest.pipeline.AlignerException;
-import edu.asu.zoophy.rest.pipeline.SequenceAligner;
 import edu.asu.zoophy.rest.security.ParameterException;
 
 
@@ -29,9 +29,6 @@ public class DownloadFormatter {
 	
 	@Autowired
 	private ZooPhyDAO dao;
-	
-	@Autowired
-	private LuceneSearcher indexSearcher;
 	
 	@Autowired
 	private LuceneHierarchySearcher hierarchyIndexSearcher;
@@ -93,8 +90,7 @@ public class DownloadFormatter {
 	 */
 	private String generateCSV(List<String> accessions, List<String> columns) throws LuceneSearcherException, FormatterException {
 		try {
-			SequenceAligner fastaGenerator = new SequenceAligner(dao, hierarchyIndexSearcher);
-			List<GenBankRecord> records = fastaGenerator.loadSequences(accessions, null, false, false);
+			List<GenBankRecord> records = loadRecords(accessions);
 			
 			//Headers
 			StringJoiner stringJoiner = new StringJoiner(",");
@@ -128,6 +124,15 @@ public class DownloadFormatter {
 		}
 	}
 	
+	private List<GenBankRecord> loadRecords(List<String> accessions) throws GenBankRecordNotFoundException, DaoException{
+		List<GenBankRecord> records = new LinkedList<GenBankRecord>();
+		for (String accession : accessions) {
+			GenBankRecord record = dao.retrieveFullRecord(accession);
+			records.add(record);
+		}
+		return records;
+	}
+	
 	/**
 	 * Combines the records' sequences into a FASTA formatted String
 	 * @param accessions
@@ -139,8 +144,7 @@ public class DownloadFormatter {
 	 */
 	private String generateFASTA(List<String> accessions, List<String> columns) throws AlignerException, FormatterException {
 		try {
-			SequenceAligner fastaGenerator = new SequenceAligner(dao, hierarchyIndexSearcher);
-			List<GenBankRecord> records = fastaGenerator.loadSequences(accessions, null, false, false);
+			List<GenBankRecord> records = loadRecords(accessions);
 			
 			columns.remove(DownloadColumn.RAW_SEQUENCE);
 		
