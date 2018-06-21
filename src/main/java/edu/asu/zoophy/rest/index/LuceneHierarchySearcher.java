@@ -100,6 +100,7 @@ public class LuceneHierarchySearcher {
 			}else {
 				log.info(" No results");
 			}
+			reader.close();
 			return ancestors;
 			
 		} catch (Exception e) {
@@ -167,6 +168,7 @@ public class LuceneHierarchySearcher {
 					records.put(completeLocation, GeonamesDocumentMapper.mapRecord(document));
 				}	
 			}
+			reader.close();
 		}
 		catch (Exception e) {
 			throw new LuceneSearcherException(e.getMessage());

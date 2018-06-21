@@ -482,38 +482,44 @@ public class ZooPhyController {
     @ResponseStatus(value=HttpStatus.OK)
     public String retrieveDownload(@RequestParam(value="format") String format, @RequestBody DownloadRecords downloadRecords) throws ParameterException, FormatterException {
     	log.info("Setting up download...");
-    	List<String> accessions = downloadRecords.getAccessions();
+    	List<JobRecord> records  = downloadRecords.getAccessions();
+//    	List<String> accessions = new ArrayList<>();//= downloadRecords.getAccessions();
+//    	for(JobRecord record : records) {
+//    		accessions.add(record.getId());
+//    	}
+    	
+    	
     	List<String> columns = downloadRecords.getColumns();
     	if(columns != null && columns.size()>0) {
 	    	if (format != null) {
-	    		if (accessions == null || accessions.size() == 0) {
+	    		if (records == null || records.size() == 0) {
 	    			log.warning("Empty accession list.");
 	    			return null;
 	    		}
-	    		if (accessions.size() > QUERY_MAX_RECORDS) {
+	    		if (records.size() > QUERY_MAX_RECORDS) {
 	    			log.warning("Too many accessions.");
 	    			throw new ParameterException("accessions list is too long");
 	    		}
-	    		Set<String> downloadAccessions = new LinkedHashSet<String>(accessions.size());
-	    		for (String accession : accessions) {
-	    			if  (security.checkParameter(accession, Parameter.ACCESSION)) {
-	    				downloadAccessions.add(accession);
+	    		Set<JobRecord> downloadAccessions = new LinkedHashSet<JobRecord>(records.size());
+	    		for (JobRecord record : records) {
+	    			if  ((security.checkParameter(record.getId(), Parameter.ACCESSION) && record.getResourceSource() == JobConstants.SOURCE_GENBANK) || record.getResourceSource() == JobConstants.SOURCE_FASTA) {
+	    				downloadAccessions.add(record);
 		    		}
 		    		else {
-		    			log.warning("Bad accession parameter: "+accession);
-		    			throw new ParameterException(accession);
+		    			log.warning("Bad accession parameter: "+record.getId());
+		    			throw new ParameterException(record.getId());
 		    		}
 	    		}
-	    		accessions = new LinkedList<String>(downloadAccessions);
+	    		records = new LinkedList<JobRecord>(downloadAccessions);
 	    		downloadAccessions.clear();
 	    		String download = null;
 	    		if (format.equalsIgnoreCase("CSV")) {
 	    			log.info("Generating CSV download...");
-	    			download = formatter.generateDownload(accessions, columns, DownloadFormat.CSV);
+	    			download = formatter.generateDownload(records, columns, DownloadFormat.CSV);
 	    		}
 	    		else if (format.equalsIgnoreCase("FASTA")) {
 	    			log.info("Generating FASTA download...");
-	    			download = formatter.generateDownload(accessions, columns, DownloadFormat.FASTA);
+	    			download = formatter.generateDownload(records, columns, DownloadFormat.FASTA);
 	    		}
 	    		else {
 	    			log.warning("Bad format parameter: "+format);
