@@ -198,9 +198,7 @@ public class DownloadFormatter {
 				}else {
 					builder.append("Unknown"); 
 				}
-				
 			}
-	
 			log.info("Fasta Formatting complete.");
 			return builder.toString();
 		}
@@ -325,7 +323,6 @@ public class DownloadFormatter {
 		else {
 			return "Unkown";
 		}
-		
 	}
 	
 	/**

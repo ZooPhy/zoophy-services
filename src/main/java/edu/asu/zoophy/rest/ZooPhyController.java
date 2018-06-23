@@ -482,12 +482,7 @@ public class ZooPhyController {
     @ResponseStatus(value=HttpStatus.OK)
     public String retrieveDownload(@RequestParam(value="format") String format, @RequestBody DownloadRecords downloadRecords) throws ParameterException, FormatterException {
     	log.info("Setting up download...");
-    	List<JobRecord> records  = downloadRecords.getAccessions();
-//    	List<String> accessions = new ArrayList<>();//= downloadRecords.getAccessions();
-//    	for(JobRecord record : records) {
-//    		accessions.add(record.getId());
-//    	}
-    	
+    	List<JobRecord> records  = downloadRecords.getAccessions();  	
     	
     	List<String> columns = downloadRecords.getColumns();
     	if(columns != null && columns.size()>0) {
