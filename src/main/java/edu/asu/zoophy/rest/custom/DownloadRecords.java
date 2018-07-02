@@ -2,19 +2,21 @@ package edu.asu.zoophy.rest.custom;
 
 import java.util.List;
 
+import edu.asu.zoophy.rest.JobRecord;
+
 /**
  * Object for records and columns that need to be downloaded 
  * @author kbhangal
  */
 public class DownloadRecords {
 	
-	private List<String> accessions;
+	private List<JobRecord> accessions;
 	private List<String> columns;
 	
-	public List<String> getAccessions() {
+	public List<JobRecord> getAccessions() {
 		return accessions;
 	}
-	public void setAccessions(List<String> accessions) {
+	public void setAccessions(List<JobRecord> accessions) {
 		this.accessions = accessions;
 	}
 	public List<String> getColumns() {
