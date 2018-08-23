@@ -65,11 +65,12 @@ The current services may be used via HTTPS requests. They return data in JSON fo
 
 ### Lucene query for specific list of Accessions
 * Type: POST
-* Path: /search/accession
+* Path: /search/accessions
+* Example Request URL: https://zodo.asu.edu/zoophy/api/search/accessions
 * Required POST Body Data: JSON list of valid accession Strings
 * Example POST body: 
 ```
-['GQ258462','CY055940','CY055932','CY055788','CY055780','CY055740','CY055661','HQ712184','HM624085']
+["GQ258462","CY055940","CY055932","CY055788","CY055780","CY055740","CY055661","HQ712184","HM624085"]
 ```
 
 * Note: This service is a work around for searching long specific lists of accessions, rather than using absurdly long GET request URLs. Unfortunately, the current limit is 1000 accessions. This will be refactored in a future PR.
@@ -85,6 +86,7 @@ The current services may be used via HTTPS requests. They return data in JSON fo
  * useGLM - Boolean (default is false)
  * predictors - Map of \<String, List of [Predictors](src/main/java/edu/asu/zoophy/rest/pipeline/glm/Predictor.java)> (optional)
    * Note: This is only if custom GLM Predictors need to be used. Otherwise, if usedGLM is set to true, defualt predictors will be used that can only be applied to US States. If locations outside of the US, or more precise locations, are needed then custom predictors must contain at least lat, long, and SampleSize. All predictor values must be positive (< 0) numbers, except for lat/long. Predictor year is not needed, and will not be used for custom predictors. The predictor states must also exactly match the accession states as proccessed in our pipeline, for this reason it is critical to use the [Template Generator service](#generate-glm-predictor-template-download) to generate locations, coordinates, and sample sizes. This feature is currently experimental. 
+* Example Request URL: https://zodo.asu.edu/zoophy/api/run
 * Example POST Body:
 ```
 {
@@ -142,7 +144,13 @@ The current services may be used via HTTPS requests. They return data in JSON fo
         },
         "xmlOptions":
             { 
-                "chainLength":10000000,"subSampleRate":1000,"substitutionModel":"HKY"
+                "substitutionModel":"HKY",
+    				"gamma":false,
+    				"invariantSites":false,
+    				"clockModel" :"Strict",
+    				"treePrior":"Constant",
+    				"chainLength":10000000,
+    				"subSampleRate":1000
             }
 }
 ```
@@ -174,7 +182,22 @@ The current services may be used via HTTPS requests. They return data in JSON fo
 * Example POST body: 
 ```
 {
-	"accessions":	["KM654893","KM654884","KM654883","KM654882"],
+	"accessions":	[{
+    "id": "CY214007", "collectionDate": null, "geonameID": null, 
+    "rawSequence": null, "resourceSource": 1
+},
+{
+    "id": "CY060544", "collectionDate": null, "geonameID": null,
+    "rawSequence": null, "resourceSource": 1
+},
+{
+    "id": "CY060688","collectionDate": null, "geonameID": null,
+    "rawSequence": null, "resourceSource": 1
+},
+{
+    "id": "JN632581","collectionDate": null, "geonameID": null,
+    "rawSequence": null, "resourceSource": 1
+}],
 	"columns":	["Genes","Date","Country"]
 }
 ```
@@ -188,7 +211,7 @@ The current services may be used via HTTPS requests. They return data in JSON fo
 * Required POST Body Data: JSON list of valid accession Strings (Limit 1000)
 * Example POST body: 
 ```
-['GQ258462','CY055940','CY055932','CY055788','CY055780','CY055740','CY055661','HQ712184','HM624085']
+["GQ258462","CY055940","CY055932","CY055788","CY055780","CY055740","CY055661","HQ712184","HM624085"]
 ```
 
 * Note: This service will not return an actual File, just a JSON String ready to be written into a file. 
