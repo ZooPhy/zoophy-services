@@ -66,7 +66,7 @@ public class DocumentMapper {
 					}
 				}
 			}
-			location.setLocation(luceneDocument.get("Location"));
+			location.setLocation(SimplifyCountry(luceneDocument.get("Location")));
 			location.setGeonameType(luceneDocument.get("LocationType"));
 			if (luceneDocument.get("Latitude") != null) {
 				location.setLatitude(Double.parseDouble(luceneDocument.get("Latitude")));
@@ -129,6 +129,71 @@ public class DocumentMapper {
 		catch (Exception e) {
 			throw new LuceneSearcherException("Failed to map document to record: "+e.getCause() + " : " + e.getMessage());
 		}
+	}
+	
+	private static String SimplifyCountry(String country_name) {
+		if (country_name != null) {
+			if (country_name.contains("Great Britain")) {
+				country_name = "United Kingdom";
+			}
+			else if (country_name.equalsIgnoreCase("Russian Federation")) {
+				country_name = "Russia";
+			}
+			else if (country_name.equalsIgnoreCase("Repubblica Italiana")) {
+				country_name = "Italy";
+			}
+			else if (country_name.equalsIgnoreCase("Polynésie Française")) {
+				country_name = "French Polynesia";
+			}
+			else if (country_name.equalsIgnoreCase("Lao People’s Democratic Republic")) {
+				country_name = "Laos";
+			}
+			else if (country_name.equalsIgnoreCase("Argentine Republic")){
+				country_name = "Argentina";
+			}
+			else if (country_name.equalsIgnoreCase("Portuguese Republic")){
+				country_name = "Portugal";
+			}
+			else {
+				if (country_name.contains("Republic of ")) {
+					country_name = country_name.substring(country_name.indexOf("Republic of ")+12);
+					if (country_name.contains("the ")) {
+						country_name = country_name.substring(country_name.indexOf("the ")+4);
+					}
+				}
+				else if (country_name.contains("Kingdom of ")) {
+					country_name = country_name.substring(country_name.indexOf("Kingdom of ")+11);
+					if (country_name.contains("the ")) {
+						country_name = country_name.substring(country_name.indexOf("the ")+4);
+					}
+				}
+				else if (country_name.contains("Union of ")) {
+					country_name = country_name.substring(country_name.indexOf("Union of ")+9);
+					if (country_name.contains("the ")) {
+						country_name = country_name.substring(country_name.indexOf("the ")+4);
+					}
+				}
+				else if (country_name.contains("State of ")) {
+					country_name = country_name.substring(country_name.indexOf("State of ")+9);
+					if (country_name.contains("the ")) {
+						country_name = country_name.substring(country_name.indexOf("the ")+4);
+					}
+				}
+				else if (country_name.contains("Commonwealth of ")) {
+					country_name = country_name.substring(country_name.indexOf("Commonwealth of ")+16);
+					if (country_name.contains("the ")) {
+						country_name = country_name.substring(country_name.indexOf("the ")+4);
+					}
+				}
+				else if (country_name.endsWith("Special Administrative Region")) {
+					country_name = country_name.substring(0,country_name.indexOf("Special Administrative Region")-1);
+				}
+			}
+		}
+		else {
+			country_name = "Unknown";
+		}
+		return country_name;
 	}
 	
 }

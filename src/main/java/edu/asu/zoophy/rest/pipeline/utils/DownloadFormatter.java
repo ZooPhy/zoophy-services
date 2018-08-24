@@ -1,5 +1,7 @@
 package edu.asu.zoophy.rest.pipeline.utils;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.StringJoiner;
@@ -9,13 +11,17 @@ import java.util.logging.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import edu.asu.zoophy.rest.JobConstants;
+import edu.asu.zoophy.rest.JobRecord;
+import edu.asu.zoophy.rest.database.DaoException;
+import edu.asu.zoophy.rest.database.GenBankRecordNotFoundException;
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
+import edu.asu.zoophy.rest.genbank.Location;
+import edu.asu.zoophy.rest.genbank.Sequence;
 import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
-import edu.asu.zoophy.rest.index.LuceneSearcher;
 import edu.asu.zoophy.rest.index.LuceneSearcherException;
 import edu.asu.zoophy.rest.pipeline.AlignerException;
-import edu.asu.zoophy.rest.pipeline.SequenceAligner;
 import edu.asu.zoophy.rest.security.ParameterException;
 
 
@@ -28,9 +34,6 @@ public class DownloadFormatter {
 	
 	@Autowired
 	private ZooPhyDAO dao;
-	
-	@Autowired
-	private LuceneSearcher indexSearcher;
 	
 	@Autowired
 	private LuceneHierarchySearcher hierarchyIndexSearcher;
@@ -46,8 +49,30 @@ public class DownloadFormatter {
 	 * @throws ParameterException
 	 * @throws FormatterException
 	 */
-	public String generateDownload(List<String> accessions, List<String> columns, DownloadFormat format) throws ParameterException, FormatterException {
+	public String generateDownload(List<JobRecord> records, List<String> columns, DownloadFormat format) throws ParameterException, FormatterException {
 		String result = null;
+		List<String > accessions = new ArrayList<>();
+		List<GenBankRecord> fastaRecords = new ArrayList<>();
+		
+		for(JobRecord record : records) {
+			if(record.getResourceSource()==JobConstants.SOURCE_GENBANK)
+				accessions.add(record.getId());
+			else {
+				GenBankRecord genBankRecord = new GenBankRecord();
+				Sequence sequence = new Sequence();
+				sequence.setRawSequence(record.getRawSequence());
+				sequence.setCollectionDate(record.getCollectionDate());
+				Location location = new Location();
+				location.setLocation(record.getGeonameID());
+				
+				genBankRecord.setAccession(record.getId());
+				genBankRecord.setSequence(sequence);
+				genBankRecord.setGeonameLocation(location);
+
+				fastaRecords.add(genBankRecord);
+			}
+		}
+		
 		columns.add(0,DownloadColumn.ID);
 		if(columns.size()==0) {
 			columns.add(DownloadColumn.GENES);
@@ -62,10 +87,10 @@ public class DownloadFormatter {
 		try {
 			switch (format) {
 				case CSV:
-					result = generateCSV(accessions, columns);
+					result = generateCSV(accessions, fastaRecords, columns);
 					break;
 				case FASTA:
-					result = generateFASTA(accessions, columns);
+					result = generateFASTA(accessions, fastaRecords, columns);
 					break;
 				default:
 					log.log(Level.SEVERE, "Unimplemented format type: "+format.toString());
@@ -90,15 +115,11 @@ public class DownloadFormatter {
 	 * @throws LuceneSearcherException
 	 * @throws FormatterException 
 	 */
-	private String generateCSV(List<String> accessions, List<String> columns) throws LuceneSearcherException, FormatterException {
+	private String generateCSV(List<String> accessions, List<GenBankRecord> fastaRecords, List<String> columns) throws LuceneSearcherException, FormatterException {
 		try {
-			List<GenBankRecord> records = new LinkedList<GenBankRecord>();
-			for (String accession : accessions) {
-				GenBankRecord record = indexSearcher.getRecord(accession);
-				if (record != null) {
-					records.add(record);
-				}
-			}
+			List<GenBankRecord> records = loadRecords(accessions);
+			records.addAll(fastaRecords);
+			
 			//Headers
 			StringJoiner stringJoiner = new StringJoiner(",");
 			StringBuilder csv = new StringBuilder();
@@ -107,16 +128,27 @@ public class DownloadFormatter {
 			}
 			csv.append(stringJoiner);
 			csv.append("\n");
-			
+			HashMap<String,Location> locMap = new HashMap<String,Location>();
 			for (GenBankRecord record : records) {
+				Location location = null;
 				stringJoiner = new StringJoiner(",");
 				for(String column: columns) {
-					stringJoiner.add(columnValue(record, column, DownloadFormat.CSV));	
+					if((column.equals(DownloadColumn.COUNTRY) || column.equals(DownloadColumn.STATE)
+							|| column.equals(DownloadColumn.GEONAMEID) || column.equals(DownloadColumn.LOCATION_HIERARCHY))
+							&& location == null) {
+						String locStr = record.getGeonameLocation().getLocation();
+						if (locMap.containsKey(locStr)){
+							location = locMap.get(locStr);
+						} else {
+							location = hierarchyIndexSearcher.findGeonameLocation(locStr);
+							locMap.put(locStr, location);
+						}
+					}
+					stringJoiner.add(columnValue(record, column, location, DownloadFormat.CSV));	
 				}
 				csv.append(stringJoiner);
 				csv.append("\n");
 			}
-			
 			return csv.toString();
 		}
 		catch (Exception e) {
@@ -134,10 +166,10 @@ public class DownloadFormatter {
 	 * @throws FormatterException 
 	 * @throws Exception 
 	 */
-	private String generateFASTA(List<String> accessions, List<String> columns) throws AlignerException, FormatterException {
+	private String generateFASTA(List<String> accessions, List<GenBankRecord> fastaRecords, List<String> columns) throws AlignerException, FormatterException {
 		try {
-			SequenceAligner fastaGenerator = new SequenceAligner(dao, hierarchyIndexSearcher);
-			List<GenBankRecord> records = fastaGenerator.loadSequences(accessions, null, false, false);
+			List<GenBankRecord> records = loadRecords(accessions);
+			records.addAll(fastaRecords);
 			
 			columns.remove(DownloadColumn.RAW_SEQUENCE);
 		
@@ -147,24 +179,33 @@ public class DownloadFormatter {
 			StringJoiner stringJoiner;
 	
 			for (GenBankRecord record : records) {
+				Location location = null;
 				stringJoiner = new StringJoiner("|");
 				tempBuilder = new StringBuilder();
 				tempBuilder.append(">");
 				for(String column: columns) {
-					stringJoiner.add(columnValue(record, column, DownloadFormat.FASTA));	
+					if((column.equals(DownloadColumn.COUNTRY) || column.equals(DownloadColumn.STATE)
+							|| column.equals(DownloadColumn.GEONAMEID) || 
+							column.equals(DownloadColumn.LOCATION_HIERARCHY)) && location == null) {
+						location = hierarchyIndexSearcher.findGeonameLocation(record.getGeonameLocation().getLocation());
+					}
+					stringJoiner.add(columnValue(record, column, location, DownloadFormat.FASTA));	
 				}
 				
 				tempBuilder.append(stringJoiner);
 				tempBuilder.append("\n");
-				List<String> rows = breakUp(record.getSequence().getRawSequence());
-				for (String row : rows) {
-					tempBuilder.append(row);
+				if(record.getSequence()!=null && record.getSequence().getRawSequence()!=null) {
+					List<String> rows = breakUp(record.getSequence().getRawSequence());
+					for (String row : rows) {
+						tempBuilder.append(row);
+						tempBuilder.append("\n");
+					}
 					tempBuilder.append("\n");
+					builder.append(tempBuilder); 
+				}else {
+					builder.append("Unknown"); 
 				}
-				tempBuilder.append("\n");
-				builder.append(tempBuilder);
 			}
-	
 			log.info("Fasta Formatting complete.");
 			return builder.toString();
 		}
@@ -172,6 +213,15 @@ public class DownloadFormatter {
 			log.log(Level.SEVERE, "Error generating CSV: "+e.getMessage());
 			throw new FormatterException("Error Generating CSV!");
 		}
+	}
+	
+	private List<GenBankRecord> loadRecords(List<String> accessions) throws GenBankRecordNotFoundException, DaoException{
+		List<GenBankRecord> records = new LinkedList<GenBankRecord>();
+		for (String accession : accessions) {
+			GenBankRecord record = dao.retrieveFullRecord(accession);
+			records.add(record);
+		}
+		return records;
 	}
 	
 	/**
@@ -184,24 +234,44 @@ public class DownloadFormatter {
 	 * @throws FormatterException 
 	 * @throws NormalizerException 
 	 */
-	private String columnValue(GenBankRecord record, String column, DownloadFormat format) throws NormalizerException, FormatterException, AlignerException {
+	private String columnValue(GenBankRecord record, String column, Location location, DownloadFormat format) throws NormalizerException, FormatterException, AlignerException {
 		switch(column) {
 		case DownloadColumn.ID:
-			return  Normalizer.csvify(record.getAccession());
+			if(record.getAccession()!=null)
+				return  Normalizer.csvify(record.getAccession());
+			else
+				return "Unknown";
 		case DownloadColumn.GENES:
-			return Normalizer.csvify(Normalizer.geneListToCSVString(record.getGenes()));
+			if(record.getGenes()!=null)
+				return Normalizer.csvify(Normalizer.geneListToCSVString(record.getGenes()));
+			else
+				return "Unknown";
 		case DownloadColumn.VIRUS_ID:
-			return Normalizer.csvify(record.getSequence().getTaxID().toString());
+			if(record.getSequence()!=null && record.getSequence().getTaxID()!=null)
+				return Normalizer.csvify(record.getSequence().getTaxID().toString());
+			else
+				return "Unknown";
 		case DownloadColumn.VIRUS:
-			return Normalizer.csvify(Normalizer.simplifyOrganism(record.getSequence().getOrganism()));
+			if(record.getSequence()!=null && record.getSequence().getOrganism()!=null)
+				return Normalizer.csvify(Normalizer.simplifyOrganism(record.getSequence().getOrganism()));
+			else
+				return "Unknown";
 		case DownloadColumn.DATE:
-			if(format.equals(DownloadFormat.CSV)) {
-				return Normalizer.csvify(Normalizer.formatDate(Normalizer.normalizeDate(record.getSequence().getCollectionDate())));
-			}else if(format.equals(DownloadFormat.FASTA)) {
-				return getFastaDate(record.getSequence().getCollectionDate());
+			if(record.getSequence()!=null && record.getSequence().getCollectionDate()!=null) {
+				if(format.equals(DownloadFormat.CSV)) {
+					return Normalizer.csvify(Normalizer.formatDate(Normalizer.normalizeDate(record.getSequence().getCollectionDate())));
+				}else if(format.equals(DownloadFormat.FASTA)) {
+					return getFastaDate(record.getSequence().getCollectionDate());
+				}
+			}else {
+				return "Unknown";
 			}
 		case DownloadColumn.HOST_ID:
-			return Normalizer.csvify(record.getHost().getTaxon().toString());
+			if(record.getHost()!=null && record.getHost().getTaxon()!=null) {
+				return Normalizer.csvify(record.getHost().getTaxon().toString());
+			}else {
+				return "Unknown";
+			}
 		case DownloadColumn.HOST:
 			if (record.getHost() != null && record.getHost().getName() != null) {
 				return Normalizer.csvify(record.getHost().getName());
@@ -209,24 +279,36 @@ public class DownloadFormatter {
 			else {
 				return Normalizer.csvify("unknown");
 			}
+		case DownloadColumn.GEONAMEID:
+			if(location!=null) {
+				return Normalizer.csvify(location.getGeonameID().toString());
+			}else {
+				return "Unknown";
+			}
 		case DownloadColumn.COUNTRY:
-			if(format.equals(DownloadFormat.CSV)) {
-				if (record.getGeonameLocation() != null && record.getGeonameLocation().getCountry() != null) {
-					return Normalizer.csvify(record.getGeonameLocation().getLocation()+"_"+record.getGeonameLocation().getCountry());
-				}
-				else {
-					return Normalizer.csvify("unknown");
-				}
-			}else if(format.equals(DownloadFormat.FASTA)) {
-				if (record.getGeonameLocation() != null && record.getGeonameLocation().getCountry() != null) {	
-					return Normalizer.normalizeLocation(record.getGeonameLocation()) + "-" + Normalizer.csvify(record.getGeonameLocation().getCountry());		
-				}
-				else {
-					return Normalizer.csvify("unknown");
-				}
+			if(location!=null) {
+				return Normalizer.csvify(location.getCountry());
+			}else {
+				return "Unknown";
+			}
+		case DownloadColumn.STATE:
+			if(location!=null) {
+				return Normalizer.csvify(location.getState());
+			}else {
+				return "Unknown";
+			}
+		case DownloadColumn.LOCATION_HIERARCHY:
+			if(location!=null) {
+				return Normalizer.csvify(location.getHierarchy());
+			}else {
+				return "Unknown";
 			}
 		case DownloadColumn.LENGTH:
-			return Normalizer.csvify(String.valueOf(record.getSequence().getSegmentLength()));
+			if(record.getSequence()!=null && record.getSequence().getSegmentLength()!=null) {
+				return Normalizer.csvify(String.valueOf(record.getSequence().getSegmentLength()));
+			}else {
+				return "Unknown";
+			}
 		default: 
 			throw new FormatterException("Error Generating CSV!");
 		}
@@ -248,7 +330,6 @@ public class DownloadFormatter {
 		else {
 			return "Unkown";
 		}
-		
 	}
 	
 	/**
