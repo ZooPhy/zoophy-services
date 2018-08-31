@@ -1,6 +1,7 @@
 package edu.asu.zoophy.rest.pipeline.utils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.StringJoiner;
@@ -127,7 +128,7 @@ public class DownloadFormatter {
 			}
 			csv.append(stringJoiner);
 			csv.append("\n");
-			
+			HashMap<String,Location> locMap = new HashMap<String,Location>();
 			for (GenBankRecord record : records) {
 				Location location = null;
 				stringJoiner = new StringJoiner(",");
@@ -135,7 +136,13 @@ public class DownloadFormatter {
 					if((column.equals(DownloadColumn.COUNTRY) || column.equals(DownloadColumn.STATE)
 							|| column.equals(DownloadColumn.GEONAMEID) || column.equals(DownloadColumn.LOCATION_HIERARCHY))
 							&& location == null) {
-						location = hierarchyIndexSearcher.findGeonameLocation(record.getGeonameLocation().getLocation());
+						String locStr = record.getGeonameLocation().getLocation();
+						if (locMap.containsKey(locStr)){
+							location = locMap.get(locStr);
+						} else {
+							location = hierarchyIndexSearcher.findGeonameLocation(locStr);
+							locMap.put(locStr, location);
+						}
 					}
 					stringJoiner.add(columnValue(record, column, location, DownloadFormat.CSV));	
 				}

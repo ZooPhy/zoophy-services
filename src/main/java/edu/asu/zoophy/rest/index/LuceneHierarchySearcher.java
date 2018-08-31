@@ -49,11 +49,17 @@ import edu.asu.zoophy.rest.security.SecurityHelper;
 public class LuceneHierarchySearcher {
 	private Directory indexDirectory;
 	private final static Logger log = Logger.getLogger("LuceneHierarchySearcher");
+	private final static String NAME_FIELD = "Name";
+	private final static String COUNTRY_FIELD = "Country";
+	private final static String POP_FIELD = "Population";
+	private final static String GID_FIELD = "GeonameId";
+	private final static String ANCNAMES_FIELD = "AncestorsNames";
+	private final static String ANCIDS_FIELD = "AncestorsIds";
 	List<String> stops = Arrays.asList("a", "and", "are", "but", "by",
 			"for", "if","into", "not", "such","that", "the", "their", 
 			"then", "there", "these","they", "this", "was", "will", "with"); 
 	
-	public LuceneHierarchySearcher(@Value("${lucene.geonames.hierarchy.index.location}") String indexLocation) throws LuceneSearcherException  {	
+	public LuceneHierarchySearcher(@Value("${lucene.geonames.index.location}") String indexLocation) throws LuceneSearcherException  {	
 		try {
 			Path index = Paths.get(indexLocation);
 			indexDirectory = FSDirectory.open(index);
@@ -81,7 +87,7 @@ public class LuceneHierarchySearcher {
 		try {
 			reader = DirectoryReader.open(indexDirectory);
 			indexSearcher = new IndexSearcher(reader);
-			queryParser = new QueryParser("GeonameId", new KeywordAnalyzer());;
+			queryParser = new QueryParser(GID_FIELD, new KeywordAnalyzer());;
 			
 			query = queryParser.parse("\""+geonameId+"\"");
 			log.info("Searching ancestor for : " + query);
@@ -90,10 +96,10 @@ public class LuceneHierarchySearcher {
 			
 			if (documents.scoreDocs != null && documents.scoreDocs.length == 1) {
 				Document document = indexSearcher.doc(documents.scoreDocs[0].doc);
-				for (IndexableField field : document.getFields("AncestorId")) {
+				for (IndexableField field : document.getFields(ANCIDS_FIELD)) {
 					String[] strArray = field.stringValue().split(",");
 					for(int i=0; i<strArray.length;i++) {
-						ancestors.add(Long.parseLong(strArray[i]));
+						ancestors.add(Long.parseLong(strArray[i].trim()));
 					}
 					log.info("Results : " + ancestors.size());
 				}
@@ -130,9 +136,9 @@ public class LuceneHierarchySearcher {
 		IndexReader reader = null;
 		IndexSearcher indexSearcher = null;
 		Query query;
-		QueryParser queryParser = new QueryParser("AncestorName", new KeywordAnalyzer());
+		QueryParser queryParser = new QueryParser(ANCNAMES_FIELD, new KeywordAnalyzer());
 		TopDocs documents;
-		SortField field = new SortField("Population", SortField.Type.LONG, true);
+		SortField field = new SortField(POP_FIELD, SortField.Type.LONG, true);
 		Sort sort = new Sort(field);
 		
 		try {
@@ -143,22 +149,22 @@ public class LuceneHierarchySearcher {
 				Pattern geoIdRegex = Pattern.compile(SecurityHelper.FASTA_MET_GEOID_REGEX);
 				Matcher geoIdMatcher = geoIdRegex.matcher(completeLocation);
 				if(geoIdMatcher.matches()){
-					queryParser = new QueryParser("GeonameId", new KeywordAnalyzer());
+					queryParser = new QueryParser(GID_FIELD, new KeywordAnalyzer());
 					query = queryParser.parse("\""+completeLocation+"\"");
 				} else {
 					CharArraySet stopWordsOverride = new CharArraySet(stops, true);
 					Analyzer analyzer = new StandardAnalyzer(stopWordsOverride);
-					queryParser = new QueryParser("AncestorName", analyzer);
+					queryParser = new QueryParser(ANCNAMES_FIELD, analyzer);
 					String[] Locations = completeLocation.split(",",2);
 					
 					if(Locations.length>1) {
 						location = Locations[0];
 						parents = Locations[1];
 						parents = parents.replace(",", " ");
-						queryString = "AncestorName:"+parents + " AND Name:\""+location+"\"";
+						queryString = ANCNAMES_FIELD+":"+parents+" AND "+NAME_FIELD+":\""+location+"\"";
 					}else {
 						location = completeLocation;
-						queryString = "Name:"+location +" OR Country:"+location;
+						queryString = NAME_FIELD+":"+location +" OR "+COUNTRY_FIELD+":"+location;
 					}
 					query = queryParser.parse(queryString);
 				}
@@ -189,9 +195,9 @@ public class LuceneHierarchySearcher {
 		IndexReader reader = null;
 		IndexSearcher indexSearcher = null;
 		Query query;
-		QueryParser queryParser = new QueryParser("AncestorName", new KeywordAnalyzer());
+		QueryParser queryParser = new QueryParser(ANCNAMES_FIELD, new KeywordAnalyzer());
 		TopDocs documents;
-		SortField field = new SortField("Population", SortField.Type.LONG, true);
+		SortField field = new SortField(POP_FIELD, SortField.Type.LONG, true);
 		Sort sort = new Sort(field);
 		
 		try {
@@ -201,22 +207,22 @@ public class LuceneHierarchySearcher {
 			Pattern geoIdRegex = Pattern.compile(SecurityHelper.FASTA_MET_GEOID_REGEX);
 			Matcher geoIdMatcher = geoIdRegex.matcher(completeLocation);
 			if(geoIdMatcher.matches()){
-				queryParser = new QueryParser("GeonameId", new KeywordAnalyzer());
+				queryParser = new QueryParser(GID_FIELD, new KeywordAnalyzer());
 				query = queryParser.parse("\""+completeLocation+"\"");
 			} else {
 				CharArraySet stopWordsOverride = new CharArraySet(stops, true);
 				Analyzer analyzer = new StandardAnalyzer(stopWordsOverride);
-				queryParser = new QueryParser("AncestorName", analyzer);
+				queryParser = new QueryParser(ANCNAMES_FIELD, analyzer);
 				String[] Locations = completeLocation.split(",",2);
 				
 				if(Locations.length>1) {
 					location = Locations[0];
 					parents = Locations[1];
 					parents = parents.replace(",", " ");
-					queryString = "AncestorName:"+parents + " AND Name:\""+location+"\"";
-				}else {
+					queryString = ANCNAMES_FIELD+":"+parents+" AND "+NAME_FIELD+":\""+location+"\"";
+				} else {
 					location = completeLocation;
-					queryString = "Name:"+location +" OR Country:"+location;
+					queryString = NAME_FIELD+":"+location +" OR "+COUNTRY_FIELD+":"+location;
 				}
 				query = queryParser.parse(queryString);
 			}
