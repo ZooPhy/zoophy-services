@@ -49,7 +49,7 @@ public class GeonameDisjoiner {
 		try {
 			Map<Long,Long> disjoins = new HashMap<Long,Long>((int)(recordsToCheck.size()*.75)+1);
 			Set<Location> locations = new LinkedHashSet<Location>(50);
-			Map<String,Integer> types = new LinkedHashMap<String,Integer>();
+			Map<String,Set<Long>> types = new LinkedHashMap<String,Set<Long>>();
 			Set<Location> locationsToRemove;
 			Map<Long,String> idToLocation = new HashMap<Long,String>(50);
 			ancestors = new HashMap<String,Set<Long>>((int)(recordsToCheck.size())+1, 1.0f);
@@ -73,13 +73,15 @@ public class GeonameDisjoiner {
 								recordAncestors.remove(record.getGeonameLocation().getGeonameID());
 								if (recordAncestors.isEmpty()) {
 									recordIter.remove();
-								}
-								else {
+								} else {
 									String type = record.getGeonameLocation().getGeonameType();								
 									if (types.get(type) == null) {
-										types.put(type, 0);
+										Set<Long> geonameIds = new HashSet<Long>();
+										types.put(type, geonameIds);
 									}
-									types.put(type, (types.get(type)+1));
+									Set<Long> geonameIds = types.get(type);
+									geonameIds.add(record.getGeonameLocation().getGeonameID());
+									types.put(type, geonameIds);
 									ancestors.put(record.getAccession(), recordAncestors);
 								}
 							}
@@ -98,8 +100,8 @@ public class GeonameDisjoiner {
 				throw new DisjoinerException("Error initially screening record locations:\t"+e.getMessage(), "Error Filtering Locations");
 			}
 			for (String type : types.keySet()) {
-				if (types.get(type) > maxType) {
-					maxType = types.get(type);
+				if (types.get(type).size() > maxType) {
+					maxType = types.get(type).size();
 					commonType = type;
 				}
 			}
