@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 
 import edu.asu.zoophy.rest.custom.FastaRecord;
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
+import edu.asu.zoophy.rest.genbank.ValidAccessions;
 import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
 import edu.asu.zoophy.rest.pipeline.glm.GLMFigureGenerator;
 import edu.asu.zoophy.rest.pipeline.glm.Predictor;
@@ -44,14 +45,15 @@ public class ZooPhyRunner {
 	 */
 	public void runZooPhy(List<String> accessions, List<FastaRecord> fastaRecords, ZooPhyDAO dao, LuceneHierarchySearcher hierarchyIndexSearcher) throws PipelineException {
 		try {
+			ValidAccessions validatedRecords;
 			log.info("Sending Start Email... : "+job.getID());
 			mailer.sendStartEmail();
 			log.info("Initializing Sequence Aligner... : "+job.getID());
 			SequenceAligner aligner = new SequenceAligner(job, dao, hierarchyIndexSearcher);
 			log.info("Running Sequence Aligner... : "+job.getID());
-			aligner.align(accessions, fastaRecords, false);
+			validatedRecords = aligner.align(accessions, fastaRecords, false);
 			log.info("Initializing Beast Runner... : "+job.getID());
-			BeastRunner beast = new BeastRunner(job, mailer);
+			BeastRunner beast = new BeastRunner(job, mailer, validatedRecords.getDistinctLocations());
 			log.info("Starting Beast Runner... : "+job.getID());
 			File treeFile = beast.run();
 			File[] results = new File[2];
@@ -99,17 +101,18 @@ public class ZooPhyRunner {
 	 */
 	public Set<String> testZooPhy(List<String> accessions, List<FastaRecord> fastaRecords, ZooPhyDAO dao, LuceneHierarchySearcher hierarchyIndexSearcher) throws PipelineException {
 		try {
-			Set<String> usedAccessions = new HashSet<String>();
+			ValidAccessions validatedRecords;
+			//Set<String> usedAccessions = new HashSet<String>();
 			log.info("Initializing test Sequence Aligner... : "+job.getID());
 			SequenceAligner aligner = new SequenceAligner(job, dao, hierarchyIndexSearcher);
 			log.info("Running test Sequence Aligner... : "+job.getID());
-			usedAccessions = aligner.align(accessions, fastaRecords, true);
+			validatedRecords = aligner.align(accessions, fastaRecords, true);
 			log.info("Initializing test Beast Runner... : "+job.getID());
-			BeastRunner beast = new BeastRunner(job, null);
+			BeastRunner beast = new BeastRunner(job, null, validatedRecords.getDistinctLocations());
 			log.info("Starting test Beast Runner... : "+job.getID());
 			beast.test();
 			log.info("ZooPhy Job Test completed successfully: "+job.getID());
-			return usedAccessions;
+			return validatedRecords.getAccessions();
 		}
 		catch (PipelineException pe) {
 			log.log(Level.SEVERE, "PipelineException for test job: "+job.getID()+" : "+pe.getMessage());

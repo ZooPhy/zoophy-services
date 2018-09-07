@@ -58,8 +58,9 @@ public class BeastRunner {
 	private Process beastProcess;
 	private boolean wasKilled = false;
 	private boolean isTest = false;
+	private final String distinctLocations;
 	
-	public BeastRunner(ZooPhyJob job, ZooPhyMailer mailer) throws PipelineException {
+	public BeastRunner(ZooPhyJob job, ZooPhyMailer mailer, String distinctLocations) throws PipelineException {
 		PropertyProvider provider = PropertyProvider.getInstance();
 		JOB_LOG_DIR = provider.getProperty("job.logs.dir");
 		BEAST_SCRIPTS_DIR = provider.getProperty("beast.scripts.dir");
@@ -71,6 +72,7 @@ public class BeastRunner {
 		log = Logger.getLogger("BeastRunner"+job.getID());
 		this.mailer = mailer;
 		this.job = job;
+		this.distinctLocations = distinctLocations;
 		filesToCleanup = new LinkedHashSet<String>();
 		JOB_WORK_DIR = System.getProperty("user.dir")+"/ZooPhyJobs/";
 	}
@@ -93,7 +95,7 @@ public class BeastRunner {
 			log.info("Starting the BEAST process...");
 			runBeastGen(job.getID()+ALIGNED_FASTA, job.getID()+INPUT_XML, job.getXMLOptions());
 			log.info("Adding location trait...");
-			DiscreteTraitInserter traitInserter = new DiscreteTraitInserter(job);
+			DiscreteTraitInserter traitInserter = new DiscreteTraitInserter(job, distinctLocations);
 			traitInserter.addLocation();
 			log.info("Location trait added.");
 			if (job.isUsingGLM()) {
@@ -752,7 +754,7 @@ public class BeastRunner {
 			log.info("Starting the BEAST test process...");
 			runBeastGen(job.getID()+ALIGNED_FASTA, job.getID()+INPUT_XML, job.getXMLOptions());
 			log.info("Adding location trait...");
-			DiscreteTraitInserter traitInserter = new DiscreteTraitInserter(job);
+			DiscreteTraitInserter traitInserter = new DiscreteTraitInserter(job, distinctLocations);
 			traitInserter.addLocation();
 			log.info("Location trait added.");
 			if (job.isUsingGLM()) {

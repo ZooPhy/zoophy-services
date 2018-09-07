@@ -33,10 +33,13 @@ public class DiscreteTraitInserter {
 	private Document document;
 	private Node beastNode;
 	private final String LOG_EVERY;
+	private final BeastTreePrior TREE_PRIOR;
+	private final String distinctLocations;
 
-	public DiscreteTraitInserter(ZooPhyJob job) throws TraitException {
+	public DiscreteTraitInserter(ZooPhyJob job, String distinctLocations) throws TraitException {
 		try {
 			this.job = job;
+			this.distinctLocations = distinctLocations;
 			DOCUMENT_PATH = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+".xml";
 			locations = new HashSet<String>();
 			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -44,6 +47,7 @@ public class DiscreteTraitInserter {
 			document = docBuilder.parse(DOCUMENT_PATH);
 			beastNode = document.getElementsByTagName("beast").item(0);
 			LOG_EVERY = String.valueOf(job.getXMLOptions().getSubSampleRate());
+			TREE_PRIOR = job.getXMLOptions().getTreePrior();
 		}
 		catch (Exception e) {
 			throw new TraitException("Error initializing DiscreteTraitInserter: "+e.getMessage(), null);
@@ -137,6 +141,23 @@ public class DiscreteTraitInserter {
 			Comment traitNameComment = document.createComment(" Data pattern for discrete trait, '"+traitName+"' ");
 			beastNode.insertBefore(traitNameComment, attributePatterns);
 			beastNode.insertBefore(endComment, constantSize);
+			//add pop size
+			if(TREE_PRIOR == BeastTreePrior.Skyline && Integer.valueOf(distinctLocations) < 10) {
+				Node populationSizesNode = document.getElementsByTagName("parameter").item(4);
+				Node popSize = populationSizesNode.getAttributes().getNamedItem("dimension");
+				popSize.setTextContent(distinctLocations);
+				
+				Node groupSizesNode = document.getElementsByTagName("parameter").item(5);
+				Node groupSize = groupSizesNode.getAttributes().getNamedItem("dimension");
+				groupSize.setTextContent(distinctLocations);
+				
+				// todo: should be done this way but gives an error
+/*				Node groupSizesNode = document.getElementsByTagName("groupSizes").item(0);
+				Node groupSizesParameter = groupSizesNode.getChildNodes().item(0);
+				Node groupSize = groupSizesParameter.getAttributes().getNamedItem("dimension");
+				groupSize.setTextContent("5");
+*/				
+			}
 			//add trait clock
 			Element clockBranchRates = document.createElement("strictClockBranchRates");
 			clockBranchRates.setAttribute("id", traitName+".branchRates");

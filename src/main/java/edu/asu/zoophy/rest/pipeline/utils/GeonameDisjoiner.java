@@ -8,9 +8,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
 
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.genbank.Location;
+import edu.asu.zoophy.rest.genbank.ValidRecords;
 import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
 import edu.asu.zoophy.rest.index.LuceneSearcherException;
 import edu.asu.zoophy.rest.pipeline.PipelineException;
@@ -30,11 +32,13 @@ public class GeonameDisjoiner {
 	private final long BAD_DISJOIN = -1L;
 	private Map<String,Set<Long>> ancestors = null;
 	private Iterator<GenBankRecord> recordIter = null;
+	private final Logger log;
 	
 	public GeonameDisjoiner(LuceneHierarchySearcher hierarchyIndexSearcher) throws PipelineException {
 		this.hierarchyIndexSearcher = hierarchyIndexSearcher;
 		PropertyProvider provider = PropertyProvider.getInstance();
 		MAX_STATES = Integer.parseInt(provider.getProperty("job.max.locations"));
+		log = Logger.getLogger("GeonameDisjoiner");
 	}
 	
 	/**
@@ -45,7 +49,8 @@ public class GeonameDisjoiner {
 	 * @throws GLMException 
 	 * @throws GeoHierarchyException 
 	 */
-	public List<GenBankRecord> disjoinRecords(List<GenBankRecord> recordsToCheck) throws DisjoinerException, GLMException, GeoHierarchyException {
+	public ValidRecords disjoinRecords(List<GenBankRecord> recordsToCheck) throws DisjoinerException, GLMException, GeoHierarchyException {
+		ValidRecords validRecords = new ValidRecords();
 		try {
 			Map<Long,Long> disjoins = new HashMap<Long,Long>((int)(recordsToCheck.size()*.75)+1);
 			Set<Location> locations = new LinkedHashSet<Location>(50);
@@ -164,6 +169,7 @@ public class GeonameDisjoiner {
 				throw new DisjoinerException("Error removing overlapping locations:\t"+e.getMessage(), "Error Disjoining Locations");
 			}
 			locationsToRemove.clear();
+			log.info("Distinct locations: "+locations.size());
 			if (locations.size() < 2) {
 				String userErr = "Too few distinct locations (need at least 2): " + locations.size();
 				if (locations.size() == 1) {
@@ -209,7 +215,9 @@ public class GeonameDisjoiner {
 				throw new DisjoinerException("Error updating record locations to disjoint locations:\t"+e.getMessage(), "Error Disjoining Locations");
 			}
 			idToLocation.clear();
-			return recordsToCheck;
+			validRecords.setDistinctLocations(String.valueOf(locations.size()));
+			validRecords.setRecordList(recordsToCheck);
+			return validRecords;
 			}
 			catch (PipelineException pe) {
 				throw pe;
@@ -316,7 +324,8 @@ public class GeonameDisjoiner {
 	 * @throws PipelineException 
 	 * @throws LuceneSearcherException 
 	 */
-	public List<GenBankRecord> disjoinRecordsToStates(List<GenBankRecord> recordsToCheck) throws PipelineException {
+	public ValidRecords disjoinRecordsToStates(List<GenBankRecord> recordsToCheck) throws PipelineException {
+		ValidRecords validRecords = new ValidRecords();
 		try {
 			US_STATES = setupStateMap();
 			recordIter = recordsToCheck.listIterator();
@@ -390,7 +399,7 @@ public class GeonameDisjoiner {
 				recordIter.remove();
 			}
 		}
-	
+		
 		recordIter = null;
 		if (states.size() < 2) {
 			String userErr = "Too few distinct locations (need at least 2): " + states.size();
@@ -409,7 +418,9 @@ public class GeonameDisjoiner {
 			throw new DisjoinerException("Too many distinct locations: "+states.size(), userErr.toString());
 		}
 		else {
-			return recordsToCheck;
+			validRecords.setDistinctLocations(String.valueOf(states.size()));
+			validRecords.setRecordList(recordsToCheck);
+			return validRecords;
 		}
 	}
 	
