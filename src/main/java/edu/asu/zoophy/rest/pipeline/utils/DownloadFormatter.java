@@ -134,14 +134,13 @@ public class DownloadFormatter {
 				stringJoiner = new StringJoiner(",");
 				for(String column: columns) {
 					if((column.equals(DownloadColumn.COUNTRY) || column.equals(DownloadColumn.STATE)
-							|| column.equals(DownloadColumn.GEONAMEID) || column.equals(DownloadColumn.LOCATION_HIERARCHY))
-							&& location == null) {
-						String locStr = record.getGeonameLocation().getLocation();
-						if (locMap.containsKey(locStr)){
-							location = locMap.get(locStr);
+							|| column.equals(DownloadColumn.LOCATION_HIERARCHY)) && location == null) {
+						String geonameID = record.getGeonameLocation().getGeonameID().toString();
+						if (locMap.containsKey(geonameID)){
+							location = locMap.get(geonameID);
 						} else {
-							location = hierarchyIndexSearcher.findGeonameLocation(locStr);
-							locMap.put(locStr, location);
+							location = hierarchyIndexSearcher.findGeonameLocation(geonameID);
+							locMap.put(geonameID, location);
 						}
 					}
 					stringJoiner.add(columnValue(record, column, location, DownloadFormat.CSV));	
@@ -178,6 +177,7 @@ public class DownloadFormatter {
 			StringBuilder tempBuilder;
 			StringJoiner stringJoiner;
 	
+			HashMap<String,Location> locMap = new HashMap<String,Location>();
 			for (GenBankRecord record : records) {
 				Location location = null;
 				stringJoiner = new StringJoiner("|");
@@ -185,9 +185,14 @@ public class DownloadFormatter {
 				tempBuilder.append(">");
 				for(String column: columns) {
 					if((column.equals(DownloadColumn.COUNTRY) || column.equals(DownloadColumn.STATE)
-							|| column.equals(DownloadColumn.GEONAMEID) || 
-							column.equals(DownloadColumn.LOCATION_HIERARCHY)) && location == null) {
-						location = hierarchyIndexSearcher.findGeonameLocation(record.getGeonameLocation().getLocation());
+							|| column.equals(DownloadColumn.LOCATION_HIERARCHY)) && location == null) {
+						String geonameID = record.getGeonameLocation().getGeonameID().toString();
+						if (locMap.containsKey(geonameID)){
+							location = locMap.get(geonameID);
+						} else {
+							location = hierarchyIndexSearcher.findGeonameLocation(geonameID);
+							locMap.put(geonameID, location);
+						}
 					}
 					stringJoiner.add(columnValue(record, column, location, DownloadFormat.FASTA));	
 				}
@@ -281,19 +286,19 @@ public class DownloadFormatter {
 			}
 		case DownloadColumn.GEONAMEID:
 			if(location!=null) {
-				return Normalizer.csvify(location.getGeonameID().toString());
+				return Normalizer.csvify(record.getGeonameLocation().getGeonameID().toString());
 			}else {
 				return "Unknown";
 			}
 		case DownloadColumn.COUNTRY:
 			if(location!=null) {
-				return Normalizer.csvify(location.getCountry());
+				return Normalizer.csvify(location.getCountry()); // todo: For genbank records, can get country from db
 			}else {
 				return "Unknown";
 			}
 		case DownloadColumn.STATE:
 			if(location!=null) {
-				return Normalizer.csvify(location.getState());
+				return Normalizer.csvify(location.getState());		//todo: get state from db, when added
 			}else {
 				return "Unknown";
 			}
