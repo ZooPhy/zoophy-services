@@ -63,7 +63,7 @@ public class DownloadFormatter {
 				sequence.setRawSequence(record.getRawSequence());
 				sequence.setCollectionDate(record.getCollectionDate());
 				Location location = new Location();
-				location.setLocation(record.getGeonameID());
+				location.setGeonameID(Long.valueOf(record.getGeonameID()));
 				
 				genBankRecord.setAccession(record.getId());
 				genBankRecord.setSequence(sequence);
@@ -118,7 +118,6 @@ public class DownloadFormatter {
 	private String generateCSV(List<String> accessions, List<GenBankRecord> fastaRecords, List<String> columns) throws LuceneSearcherException, FormatterException {
 		try {
 			List<GenBankRecord> records = loadRecords(accessions);
-			records.addAll(fastaRecords);
 			
 			//Headers
 			StringJoiner stringJoiner = new StringJoiner(",");
@@ -129,26 +128,48 @@ public class DownloadFormatter {
 			csv.append(stringJoiner);
 			csv.append("\n");
 			HashMap<String,Location> locMap = new HashMap<String,Location>();
+			
+			//GenBank records
 			for (GenBankRecord record : records) {
 				Location location = null;
 				stringJoiner = new StringJoiner(",");
 				for(String column: columns) {
-					if((column.equals(DownloadColumn.COUNTRY) || column.equals(DownloadColumn.STATE)
-							|| column.equals(DownloadColumn.GEONAMEID) || column.equals(DownloadColumn.LOCATION_HIERARCHY))
-							&& location == null) {
-						String locStr = record.getGeonameLocation().getLocation();
-						if (locMap.containsKey(locStr)){
-							location = locMap.get(locStr);
+					if(column.equals(DownloadColumn.STATE) && location == null) {
+						String geonameID = record.getGeonameLocation().getGeonameID().toString();
+						if (locMap.containsKey(geonameID)){
+							location = locMap.get(geonameID);
 						} else {
-							location = hierarchyIndexSearcher.findGeonameLocation(locStr);
-							locMap.put(locStr, location);
+							location = hierarchyIndexSearcher.findGeonameLocation(geonameID);
+							locMap.put(geonameID, location);
 						}
 					}
-					stringJoiner.add(columnValue(record, column, location, DownloadFormat.CSV));	
+					stringJoiner.add(columnValue(record, column, location, DownloadFormat.CSV, JobConstants.SOURCE_GENBANK));	
 				}
 				csv.append(stringJoiner);
 				csv.append("\n");
 			}
+			
+			//User uploaded FASTA records
+			for (GenBankRecord record : fastaRecords) {
+				Location location = null;
+				stringJoiner = new StringJoiner(",");
+				for(String column: columns) {
+					if((column.equals(DownloadColumn.COUNTRY) || column.equals(DownloadColumn.STATE))
+							&& location == null) {
+						String geonameID = record.getGeonameLocation().getGeonameID().toString();
+						if (locMap.containsKey(geonameID)){
+							location = locMap.get(geonameID);
+						} else {
+							location = hierarchyIndexSearcher.findGeonameLocation(geonameID);
+							locMap.put(geonameID, location);
+						}
+					}
+					stringJoiner.add(columnValue(record, column, location, DownloadFormat.CSV, JobConstants.SOURCE_FASTA));	
+				}
+				csv.append(stringJoiner);
+				csv.append("\n");
+			}
+			
 			return csv.toString();
 		}
 		catch (Exception e) {
@@ -169,43 +190,65 @@ public class DownloadFormatter {
 	private String generateFASTA(List<String> accessions, List<GenBankRecord> fastaRecords, List<String> columns) throws AlignerException, FormatterException {
 		try {
 			List<GenBankRecord> records = loadRecords(accessions);
-			records.addAll(fastaRecords);
-			
 			columns.remove(DownloadColumn.RAW_SEQUENCE);
 		
 			log.info("Starting Fasta formatting");
 			StringBuilder builder = new StringBuilder();
 			StringBuilder tempBuilder;
 			StringJoiner stringJoiner;
-	
+			HashMap<String,Location> locMap = new HashMap<String,Location>();
+			
+			//GenBank Records
 			for (GenBankRecord record : records) {
 				Location location = null;
 				stringJoiner = new StringJoiner("|");
 				tempBuilder = new StringBuilder();
 				tempBuilder.append(">");
 				for(String column: columns) {
-					if((column.equals(DownloadColumn.COUNTRY) || column.equals(DownloadColumn.STATE)
-							|| column.equals(DownloadColumn.GEONAMEID) || 
-							column.equals(DownloadColumn.LOCATION_HIERARCHY)) && location == null) {
-						location = hierarchyIndexSearcher.findGeonameLocation(record.getGeonameLocation().getLocation());
+					if(column.equals(DownloadColumn.STATE) && location == null) {
+						String geonameID = record.getGeonameLocation().getGeonameID().toString();
+						if (locMap.containsKey(geonameID)){
+							location = locMap.get(geonameID);
+						} else {
+							location = hierarchyIndexSearcher.findGeonameLocation(geonameID);
+							locMap.put(geonameID, location);
+						}
 					}
-					stringJoiner.add(columnValue(record, column, location, DownloadFormat.FASTA));	
+					stringJoiner.add(columnValue(record, column, location, DownloadFormat.FASTA, JobConstants.SOURCE_GENBANK));	
 				}
 				
 				tempBuilder.append(stringJoiner);
 				tempBuilder.append("\n");
-				if(record.getSequence()!=null && record.getSequence().getRawSequence()!=null) {
-					List<String> rows = breakUp(record.getSequence().getRawSequence());
-					for (String row : rows) {
-						tempBuilder.append(row);
-						tempBuilder.append("\n");
-					}
-					tempBuilder.append("\n");
-					builder.append(tempBuilder); 
-				}else {
-					builder.append("Unknown"); 
-				}
+				tempBuilder.append(rawSequenceGenerator(record));
+				builder.append(tempBuilder);
 			}
+			
+			//User uploaded FASTA records
+			for (GenBankRecord record : fastaRecords) {
+				Location location = null;
+				stringJoiner = new StringJoiner("|");
+				tempBuilder = new StringBuilder();
+				tempBuilder.append(">");
+				for(String column: columns) {
+					if((column.equals(DownloadColumn.COUNTRY) || column.equals(DownloadColumn.STATE))
+							&& location == null) {
+						String geonameID = record.getGeonameLocation().getGeonameID().toString();
+						if (locMap.containsKey(geonameID)){
+							location = locMap.get(geonameID);
+						} else {
+							location = hierarchyIndexSearcher.findGeonameLocation(geonameID);
+							locMap.put(geonameID, location);
+						}
+					}
+					stringJoiner.add(columnValue(record, column, location, DownloadFormat.FASTA, JobConstants.SOURCE_FASTA));	
+				}
+				
+				tempBuilder.append(stringJoiner);
+				tempBuilder.append("\n");
+				tempBuilder.append(rawSequenceGenerator(record));
+				builder.append(tempBuilder);
+			}
+			
 			log.info("Fasta Formatting complete.");
 			return builder.toString();
 		}
@@ -213,15 +256,6 @@ public class DownloadFormatter {
 			log.log(Level.SEVERE, "Error generating CSV: "+e.getMessage());
 			throw new FormatterException("Error Generating CSV!");
 		}
-	}
-	
-	private List<GenBankRecord> loadRecords(List<String> accessions) throws GenBankRecordNotFoundException, DaoException{
-		List<GenBankRecord> records = new LinkedList<GenBankRecord>();
-		for (String accession : accessions) {
-			GenBankRecord record = dao.retrieveFullRecord(accession);
-			records.add(record);
-		}
-		return records;
 	}
 	
 	/**
@@ -234,7 +268,7 @@ public class DownloadFormatter {
 	 * @throws FormatterException 
 	 * @throws NormalizerException 
 	 */
-	private String columnValue(GenBankRecord record, String column, Location location, DownloadFormat format) throws NormalizerException, FormatterException, AlignerException {
+	private String columnValue(GenBankRecord record, String column, Location location, DownloadFormat format, int RecordType) throws NormalizerException, FormatterException, AlignerException {
 		switch(column) {
 		case DownloadColumn.ID:
 			if(record.getAccession()!=null)
@@ -280,26 +314,33 @@ public class DownloadFormatter {
 				return Normalizer.csvify("unknown");
 			}
 		case DownloadColumn.GEONAMEID:
-			if(location!=null) {
-				return Normalizer.csvify(location.getGeonameID().toString());
+			if(record.getGeonameLocation()!=null && record.getGeonameLocation().getGeonameID()!= null) {
+				return Normalizer.csvify(record.getGeonameLocation().getGeonameID().toString());
 			}else {
 				return "Unknown";
 			}
 		case DownloadColumn.COUNTRY:
-			if(location!=null) {
-				return Normalizer.csvify(location.getCountry());
-			}else {
-				return "Unknown";
+			if(RecordType == JobConstants.SOURCE_GENBANK) {
+				if (record.getGeonameLocation() != null && record.getGeonameLocation().getCountry() != null) {
+					return Normalizer.csvify(record.getGeonameLocation().getCountry());
+				}
+				if (record.getHost() != null && record.getHost().getName() != null) {
+					return Normalizer.csvify(record.getHost().getName());
+				}
+				else {
+					return "Unknown";
+				}
+			}
+			else if(RecordType == JobConstants.SOURCE_FASTA) {
+				if(location!=null) {
+					return Normalizer.csvify(location.getCountry());
+				}else {
+					return "Unknown";
+				}
 			}
 		case DownloadColumn.STATE:
 			if(location!=null) {
-				return Normalizer.csvify(location.getState());
-			}else {
-				return "Unknown";
-			}
-		case DownloadColumn.LOCATION_HIERARCHY:
-			if(location!=null) {
-				return Normalizer.csvify(location.getHierarchy());
+				return Normalizer.csvify(location.getState());		//todo: get state from db, when added
 			}else {
 				return "Unknown";
 			}
@@ -312,6 +353,30 @@ public class DownloadFormatter {
 		default: 
 			throw new FormatterException("Error Generating CSV!");
 		}
+	}
+	
+	private List<GenBankRecord> loadRecords(List<String> accessions) throws GenBankRecordNotFoundException, DaoException{
+		List<GenBankRecord> records = new LinkedList<GenBankRecord>();
+		for (String accession : accessions) {
+			GenBankRecord record = dao.retrieveFullRecord(accession);
+			records.add(record);
+		}
+		return records;
+	}
+	
+	private StringBuilder rawSequenceGenerator(GenBankRecord record) throws AlignerException {
+		StringBuilder builder = new StringBuilder();
+		if(record.getSequence()!=null && record.getSequence().getRawSequence()!=null) {
+			List<String> rows = breakUp(record.getSequence().getRawSequence());
+			for (String row : rows) {
+				builder.append(row);
+				builder.append("\n");
+			}
+			builder.append("\n");
+		}else {
+			builder.append("Unknown"); 
+		}
+		return builder;
 	}
 	
 	/**

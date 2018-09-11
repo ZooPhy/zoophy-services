@@ -27,6 +27,8 @@ import edu.asu.zoophy.rest.database.DaoException;
 import edu.asu.zoophy.rest.database.GenBankRecordNotFoundException;
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
+import edu.asu.zoophy.rest.genbank.ValidAccessions;
+import edu.asu.zoophy.rest.genbank.ValidRecords;
 import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
 import edu.asu.zoophy.rest.pipeline.glm.GLMException;
 import edu.asu.zoophy.rest.pipeline.glm.PredictorGenerator;
@@ -53,6 +55,7 @@ public class SequenceAligner {
 	private int startYear = 3000;
 	private int endYear = 1000;
 	private Map<String, Integer> occurrences = null;
+	private int DEFAULT_POPSIZE = 10;
 	
 	/**
 	 * Constructor for regular ZooPhy Pipeline usage
@@ -100,11 +103,14 @@ public class SequenceAligner {
 	 * @return Final List of Records to be used in the Job
 	 * @throws PipelineException
 	 */
-	public Set<String> align(List<String> accessions, List<FastaRecord> fastaRecs, boolean isTest) throws PipelineException {
+	public ValidAccessions align(List<String> accessions, List<FastaRecord> fastaRecs, boolean isTest) throws PipelineException {
 		FileHandler fileHandler = null;
 		String rawFasta= "";
+		ValidAccessions validAccessions = new ValidAccessions();
+		int distinctLocations;
 		Set<String> usedAccessions = new HashSet<String>();
 		try {
+			ValidRecords validRecords = new ValidRecords();
 			List<GenBankRecord> recs =new LinkedList<>();
 			logFile = new File(JOB_LOG_DIR+job.getID()+".log");
 			fileHandler = new FileHandler(JOB_LOG_DIR+job.getID()+".log", true);
@@ -113,8 +119,10 @@ public class SequenceAligner {
 	        log.addHandler(fileHandler);
 	        log.setUseParentHandlers(false);
 			log.info("Starting Mafft Job: "+job.getID());
-			recs = loadSequences(accessions, fastaRecs, true, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
-
+			validRecords = loadSequences(accessions, fastaRecs, true, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
+			recs = validRecords.getRecordList();
+			distinctLocations = validRecords.getDistinctLocations();
+			
 			List<GenBankRecord> recsGenbank = new LinkedList<>();
 			List<String> fastaID = new LinkedList<>();
 			Iterator<FastaRecord> recordIter = fastaRecs.listIterator();
@@ -164,7 +172,10 @@ public class SequenceAligner {
 			}
 			log.info("Mafft process complete");
 			fileHandler.close();
-			return usedAccessions;
+			
+			validAccessions.setAccessions(usedAccessions);
+			validAccessions.setDistinctLocations(distinctLocations);
+			return validAccessions;
 		}
 		catch (PipelineException pe) {
 			log.log(Level.SEVERE, "ERROR! Mafft process failed: "+pe.getMessage());
@@ -234,7 +245,7 @@ public class SequenceAligner {
 	 * @throws DaoException
 	 * @throws PipelineException
 	 */
-	public List<GenBankRecord> loadSequences(List<String> accessions, List<FastaRecord> fastaRecords, boolean isDisjoint, boolean isUsingDefaultGLM) throws GenBankRecordNotFoundException, DaoException, PipelineException {
+	public ValidRecords loadSequences(List<String> accessions, List<FastaRecord> fastaRecords, boolean isDisjoint, boolean isUsingDefaultGLM) throws GenBankRecordNotFoundException, DaoException, PipelineException {
 		log.info("Loading records for Mafft...");
 		List<GenBankRecord> records = new LinkedList<GenBankRecord>();
 		for (String accession : accessions) {
@@ -281,7 +292,10 @@ public class SequenceAligner {
 					records.remove(i);
 				}
 			}
-			return records;
+			ValidRecords validRecords = new ValidRecords();
+			validRecords.setDistinctLocations(DEFAULT_POPSIZE);
+			validRecords.setRecordList(records);
+			return validRecords;
 		}
 	}
 
