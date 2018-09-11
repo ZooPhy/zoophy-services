@@ -58,9 +58,9 @@ public class BeastRunner {
 	private Process beastProcess;
 	private boolean wasKilled = false;
 	private boolean isTest = false;
-	private final String distinctLocations;
+	private final int distinctLocations;
 	
-	public BeastRunner(ZooPhyJob job, ZooPhyMailer mailer, String distinctLocations) throws PipelineException {
+	public BeastRunner(ZooPhyJob job, ZooPhyMailer mailer, int distinctLocations) throws PipelineException {
 		PropertyProvider provider = PropertyProvider.getInstance();
 		JOB_LOG_DIR = provider.getProperty("job.logs.dir");
 		BEAST_SCRIPTS_DIR = provider.getProperty("beast.scripts.dir");

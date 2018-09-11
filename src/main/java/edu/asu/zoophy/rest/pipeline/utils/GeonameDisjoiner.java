@@ -215,7 +215,7 @@ public class GeonameDisjoiner {
 				throw new DisjoinerException("Error updating record locations to disjoint locations:\t"+e.getMessage(), "Error Disjoining Locations");
 			}
 			idToLocation.clear();
-			validRecords.setDistinctLocations(String.valueOf(locations.size()));
+			validRecords.setDistinctLocations(locations.size());
 			validRecords.setRecordList(recordsToCheck);
 			return validRecords;
 			}
@@ -418,7 +418,7 @@ public class GeonameDisjoiner {
 			throw new DisjoinerException("Too many distinct locations: "+states.size(), userErr.toString());
 		}
 		else {
-			validRecords.setDistinctLocations(String.valueOf(states.size()));
+			validRecords.setDistinctLocations(states.size());
 			validRecords.setRecordList(recordsToCheck);
 			return validRecords;
 		}

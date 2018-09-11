@@ -55,7 +55,7 @@ public class SequenceAligner {
 	private int startYear = 3000;
 	private int endYear = 1000;
 	private Map<String, Integer> occurrences = null;
-	private String DEFAULT_POPSIZE = "10";
+	private int DEFAULT_POPSIZE = 10;
 	
 	/**
 	 * Constructor for regular ZooPhy Pipeline usage
@@ -107,7 +107,7 @@ public class SequenceAligner {
 		FileHandler fileHandler = null;
 		String rawFasta= "";
 		ValidAccessions validAccessions = new ValidAccessions();
-		String distinctLocations;
+		int distinctLocations;
 		Set<String> usedAccessions = new HashSet<String>();
 		try {
 			ValidRecords validRecords = new ValidRecords();

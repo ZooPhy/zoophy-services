@@ -34,9 +34,9 @@ public class DiscreteTraitInserter {
 	private Node beastNode;
 	private final String LOG_EVERY;
 	private final BeastTreePrior TREE_PRIOR;
-	private final String distinctLocations;
+	private final int distinctLocations;
 
-	public DiscreteTraitInserter(ZooPhyJob job, String distinctLocations) throws TraitException {
+	public DiscreteTraitInserter(ZooPhyJob job, int distinctLocations) throws TraitException {
 		try {
 			this.job = job;
 			this.distinctLocations = distinctLocations;
@@ -145,11 +145,11 @@ public class DiscreteTraitInserter {
 			if(TREE_PRIOR == BeastTreePrior.Skyline && Integer.valueOf(distinctLocations) < 10) {
 				Node populationSizesNode = document.getElementsByTagName("parameter").item(4);
 				Node popSize = populationSizesNode.getAttributes().getNamedItem("dimension");
-				popSize.setTextContent(distinctLocations);
+				popSize.setTextContent(String.valueOf(distinctLocations));
 				
 				Node groupSizesNode = document.getElementsByTagName("parameter").item(5);
 				Node groupSize = groupSizesNode.getAttributes().getNamedItem("dimension");
-				groupSize.setTextContent(distinctLocations);
+				groupSize.setTextContent(String.valueOf(distinctLocations));
 				
 				// todo: should be done this way but gives an error
 /*				Node groupSizesNode = document.getElementsByTagName("groupSizes").item(0);
