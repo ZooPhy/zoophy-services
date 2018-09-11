@@ -1,9 +1,16 @@
 package edu.asu.zoophy.rest.pipeline;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
@@ -23,13 +30,14 @@ import javax.mail.internet.MimeMultipart;
 
 /**
  * Responsible for sending ZooPhy email
- * @author devdemetri
+ * @author devdemetri, kbhangal
  */
 public class ZooPhyMailer {
 	
 	private final String USERNAME;
 	private final String PASSWORD;
 	private final String FROM;
+	private final String DIRECTORY;
 	
 	private final ZooPhyJob job;
 	private final Logger log;
@@ -41,6 +49,8 @@ public class ZooPhyMailer {
 		USERNAME = property.getProperty("email.user");
 		PASSWORD = property.getProperty("email.pass");
 		FROM = property.getProperty("email.from");
+		DIRECTORY = property.getProperty("job.files.dir");//"/Users/bhangal/Desktop/Zoophy/zoophy/zoophy-services/ZooPhyJobs/";
+		
 	}
 	
 	/**
@@ -175,37 +185,54 @@ public class ZooPhyMailer {
 	        Transport.send(message);
 		}
 		else {
-			File treeFile = results[0];
-			File glmFile = results[1];
 	        Multipart multipart = new MimeMultipart();
 	        BodyPart messageBodyPart = new MimeBodyPart();
 			messageBodyPart.setContent(messageText, "text/html");
 	        multipart.addBodyPart(messageBodyPart);
-	        BodyPart treeBodyPart = new MimeBodyPart();
-	        DataSource treeSource = new FileDataSource(treeFile.getAbsolutePath());
-	        treeBodyPart.setDataHandler(new DataHandler(treeSource));
-	        String treeEnding = "";
-	        if (treeFile.getName().contains(".")) {
-	        	treeEnding = treeFile.getName().substring(treeFile.getName().lastIndexOf(".")).trim();
+	        
+	        File zipFile = zipFile(results);
+	        BodyPart zipBodyPart = new MimeBodyPart();
+	        DataSource zipSource = new FileDataSource(zipFile.getAbsolutePath());
+	        zipBodyPart.setDataHandler(new DataHandler(zipSource));
+	        String zipEnding = "";
+	        if (zipFile.getName().contains(".")) {
+	        		zipEnding = zipFile.getName().substring(zipFile.getName().lastIndexOf(".")).trim();
 	        }
-	        treeBodyPart.setFileName(getCustomName()+treeEnding);
-	        multipart.addBodyPart(treeBodyPart);
-	        if (glmFile != null) {
-	        	BodyPart glmBodyPart = new MimeBodyPart();
-		        DataSource glmSource = new FileDataSource(glmFile.getAbsolutePath());
-		        glmBodyPart.setDataHandler(new DataHandler(glmSource));
-		        String glmEnding = "_figure";
-		        if (glmFile.getName().contains(".")) {
-		        	glmEnding += glmFile.getName().substring(glmFile.getName().lastIndexOf(".")).trim();
-		        }
-		        glmBodyPart.setFileName(getCustomName()+glmEnding);
-		        multipart.addBodyPart(glmBodyPart);
-	        }
+	        zipBodyPart.setFileName(getCustomName()+zipEnding);
+	        multipart.addBodyPart(zipBodyPart);
+	        
 	        message.setContent(multipart);
 	        Transport.send(message);
 	        log.info("Email successfully sent to :"+job.getReplyEmail());
 		}
 	}
+	
+	private File zipFile(File[] files) {
+        try {
+            String zipFileName =  getCustomName().concat(".zip");
+            File zFile = new File(DIRECTORY + zipFileName);
+            ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zFile));
+            
+            for(File file: files) {
+            		if(file != null) {
+	            		zos.putNextEntry(new ZipEntry(file.getName()));
+	                byte[] bytes = Files.readAllBytes(Paths.get(file.getAbsolutePath()));
+	                zos.write(bytes, 0, bytes.length);
+	                zos.closeEntry();
+            		}
+            }
+            
+            zos.close();
+            return zFile;
+ 
+        } catch (FileNotFoundException e) {
+        	log.log(Level.SEVERE, "The file does not exist for: "+job.getReplyEmail()+" : "+e.getMessage());
+        } catch (IOException e) {
+        	log.log(Level.SEVERE, "I/O error for: "+job.getReplyEmail()+" : "+e.getMessage());
+        }
+        
+        return null;
+    }
 	
 	/**
 	 * @return Job Name if exists, otherwise Job ID
