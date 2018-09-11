@@ -142,7 +142,7 @@ public class DiscreteTraitInserter {
 			beastNode.insertBefore(traitNameComment, attributePatterns);
 			beastNode.insertBefore(endComment, constantSize);
 			//add pop size
-			if(TREE_PRIOR == BeastTreePrior.Skyline && Integer.valueOf(distinctLocations) < 10) {
+			if(TREE_PRIOR == BeastTreePrior.Skyline && distinctLocations < 10) {
 				Node populationSizesNode = document.getElementsByTagName("parameter").item(4);
 				Node popSize = populationSizesNode.getAttributes().getNamedItem("dimension");
 				popSize.setTextContent(String.valueOf(distinctLocations));

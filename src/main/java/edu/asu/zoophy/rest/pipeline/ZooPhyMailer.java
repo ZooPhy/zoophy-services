@@ -49,7 +49,7 @@ public class ZooPhyMailer {
 		USERNAME = property.getProperty("email.user");
 		PASSWORD = property.getProperty("email.pass");
 		FROM = property.getProperty("email.from");
-		DIRECTORY = property.getProperty("job.files.dir");//"/Users/bhangal/Desktop/Zoophy/zoophy/zoophy-services/ZooPhyJobs/";
+		DIRECTORY = property.getProperty("job.files.dir");
 		
 	}
 	
