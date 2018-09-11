@@ -18,5 +18,4 @@ public class DownloadColumn {
 	public static final String RAW_SEQUENCE = "RawSequence";
 	public static final String STATE = "State";
 	public static final String GEONAMEID = "GeonameID";
-	public static final String LOCATION_HIERARCHY = "LocationHierarchy";
 }
