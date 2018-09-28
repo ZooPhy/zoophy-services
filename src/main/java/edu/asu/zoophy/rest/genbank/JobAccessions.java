@@ -1,25 +1,34 @@
 package edu.asu.zoophy.rest.genbank;
 
+import java.util.List;
 import java.util.Set;
 
 /**
- * Valid Accessions for job with distinct location count
+ * Job Accessions with distinct location count
  * @author kbhangal
  */
-public class ValidAccessions {
-	private Set<String> accessions;
+public class JobAccessions {
+	private Set<String> validAccessions;
+	private List<InvalidRecords> invalidRecordList;
  	private Integer distinctLocations;
-	public Set<String> getAccessions() {
-		return accessions;
+ 	
+	public Set<String> getValidAccessions() {
+		return validAccessions;
 	}
-	public void setAccessions(Set<String> accessions) {
-		this.accessions = accessions;
+	public void setValidAccessions(Set<String> validAccessions) {
+		this.validAccessions = validAccessions;
 	}
 	public Integer getDistinctLocations() {
 		return distinctLocations;
 	}
 	public void setDistinctLocations(Integer distinctLocations) {
 		this.distinctLocations = distinctLocations;
+	}
+	public List<InvalidRecords> getInvalidRecordList() {
+		return invalidRecordList;
+	}
+	public void setInvalidRecordList(List<InvalidRecords> invalidRecordList) {
+		this.invalidRecordList = invalidRecordList;
 	}
  	
 }

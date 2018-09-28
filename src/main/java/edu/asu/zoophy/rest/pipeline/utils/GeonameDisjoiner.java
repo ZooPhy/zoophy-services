@@ -5,14 +5,16 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
+import edu.asu.zoophy.rest.genbank.InvalidRecords;
 import edu.asu.zoophy.rest.genbank.Location;
-import edu.asu.zoophy.rest.genbank.ValidRecords;
+import edu.asu.zoophy.rest.genbank.JobRecords;
 import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
 import edu.asu.zoophy.rest.index.LuceneSearcherException;
 import edu.asu.zoophy.rest.pipeline.PipelineException;
@@ -49,8 +51,12 @@ public class GeonameDisjoiner {
 	 * @throws GLMException 
 	 * @throws GeoHierarchyException 
 	 */
-	public ValidRecords disjoinRecords(List<GenBankRecord> recordsToCheck) throws DisjoinerException, GLMException, GeoHierarchyException {
-		ValidRecords validRecords = new ValidRecords();
+	public JobRecords disjoinRecords(List<GenBankRecord> recordsToCheck) throws DisjoinerException, GLMException, GeoHierarchyException {
+		String disjoinerType = "WORLD";
+		List<GenBankRecord> allRecords = new LinkedList<>();
+		List<GenBankRecord> missingLocationRecords = new LinkedList<>();
+		allRecords.addAll(recordsToCheck);
+		JobRecords validRecords = new JobRecords();
 		try {
 			Map<Long,Long> disjoins = new HashMap<Long,Long>((int)(recordsToCheck.size()*.75)+1);
 			Set<Location> locations = new LinkedHashSet<Location>(50);
@@ -65,6 +71,7 @@ public class GeonameDisjoiner {
 				while (recordIter.hasNext()) {
 					GenBankRecord record = recordIter.next();
 					if (record.getGeonameLocation() == null || Normalizer.normalizeLocation(record.getGeonameLocation()).equalsIgnoreCase("unknown") || record.getGeonameLocation().getGeonameType() == null) {
+						missingLocationRecords.add(record);
 						recordIter.remove();
 					}
 					else {
@@ -218,7 +225,8 @@ public class GeonameDisjoiner {
 			}
 			idToLocation.clear();
 			validRecords.setDistinctLocations(locations.size());
-			validRecords.setRecordList(recordsToCheck);
+			validRecords.setValidRecordList(recordsToCheck);
+			validRecords.setInvalidRecordList(generateInvalidRecordList(allRecords, recordsToCheck, disjoinerType, commonType));
 			return validRecords;
 			}
 			catch (PipelineException pe) {
@@ -326,8 +334,11 @@ public class GeonameDisjoiner {
 	 * @throws PipelineException 
 	 * @throws LuceneSearcherException 
 	 */
-	public ValidRecords disjoinRecordsToStates(List<GenBankRecord> recordsToCheck) throws PipelineException {
-		ValidRecords validRecords = new ValidRecords();
+	public JobRecords disjoinRecordsToStates(List<GenBankRecord> recordsToCheck) throws PipelineException {
+		String disjoinerType = "USONLY";
+		List<GenBankRecord> allRecords = new LinkedList<>();
+		allRecords.addAll(recordsToCheck);
+		JobRecords validRecords = new JobRecords();
 		try {
 			US_STATES = setupStateMap();
 			recordIter = recordsToCheck.listIterator();
@@ -421,9 +432,32 @@ public class GeonameDisjoiner {
 		}
 		else {
 			validRecords.setDistinctLocations(states.size());
-			validRecords.setRecordList(recordsToCheck);
+			validRecords.setValidRecordList(recordsToCheck);
+			validRecords.setInvalidRecordList(generateInvalidRecordList(allRecords, recordsToCheck, disjoinerType, null));
 			return validRecords;
 		}
+	}
+	
+	private List<InvalidRecords> generateInvalidRecordList(List<GenBankRecord> allRecord, List<GenBankRecord> validRecords, String disjoinerType, String commonType){
+		List<InvalidRecords> invalidRecordList = new LinkedList<>();
+		InvalidRecords invalidRecords = new InvalidRecords();
+		List<String> invalidList = new LinkedList<>();
+		String reason = "unknown";
+		if(disjoinerType.equals("USONLY")) {
+			reason = "Location exists outside US";
+		}else if(disjoinerType.equals("WORLD")) {
+			reason = "Insufficient location information at "+ commonType +" level.";
+		}
+		allRecord.removeAll(validRecords);			
+		if(allRecord.size()>0) {
+			for(GenBankRecord gBankRecord : allRecord) {
+				invalidList.add(gBankRecord.getAccession());
+			}
+			invalidRecords.setReason(reason);
+			invalidRecords.setAccessions(invalidList);
+			invalidRecordList.add(invalidRecords);
+		}
+		return invalidRecordList;
 	}
 	
 }

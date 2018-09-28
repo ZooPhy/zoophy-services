@@ -28,6 +28,7 @@ import edu.asu.zoophy.rest.database.ZooPhyDAO;
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.genbank.Location;
 import edu.asu.zoophy.rest.genbank.PossibleLocation;
+import edu.asu.zoophy.rest.genbank.JobAccessions;
 import edu.asu.zoophy.rest.index.InvalidLuceneQueryException;
 import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
 import edu.asu.zoophy.rest.index.LuceneSearcher;
@@ -609,7 +610,6 @@ public class ZooPhyController {
     	    	zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors(), parameters.getXmlOptions());
     	    Set<String> jobAccessions = new LinkedHashSet<String>();
     	    	Set<String> geonameIds = new LinkedHashSet<String>();
-    	    	Set<String> combinedAccesions = new HashSet<String>();
         	ArrayList<JobRecord> userEnteredRecords= new ArrayList<>();
         	List<FastaRecord> fastaRecords = new LinkedList<FastaRecord>();
         	Set<String> jobRecordIds = new HashSet<String>();
@@ -679,13 +679,9 @@ public class ZooPhyController {
     	    		throw new ParameterException("accessions list is too long");
     	    	}
     	    
-    	    	combinedAccesions.addAll(jobAccessions);
-    	    combinedAccesions.addAll(jobRecordIds);
-    	    	
-    	    	Set<String> remainingAccessions = zoophy.testZooPhy(new ArrayList<String>(jobAccessions), fastaRecords, dao, hierarchyIndexSearcher);
-    	    	combinedAccesions.removeAll(remainingAccessions);
-	    	results.setAccessionsRemoved(new LinkedList<String>(combinedAccesions));
-	    	results.setAccessionsUsed(new LinkedList<String>(remainingAccessions));   	
+    	    JobAccessions validAccessions = zoophy.testZooPhy(new ArrayList<String>(jobAccessions), fastaRecords, dao, hierarchyIndexSearcher);
+	    	results.setAccessionsRemoved(validAccessions.getInvalidRecordList());
+    	    results.setAccessionsUsed(new ArrayList<String>(validAccessions.getValidAccessions()));   	
 	    	return results; 
 	    	}
 	    	else {

@@ -3,14 +3,13 @@ package edu.asu.zoophy.rest.pipeline;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import edu.asu.zoophy.rest.custom.FastaRecord;
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
-import edu.asu.zoophy.rest.genbank.ValidAccessions;
+import edu.asu.zoophy.rest.genbank.JobAccessions;
 import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
 import edu.asu.zoophy.rest.pipeline.glm.GLMFigureGenerator;
 import edu.asu.zoophy.rest.pipeline.glm.Predictor;
@@ -44,7 +43,7 @@ public class ZooPhyRunner {
 	 */
 	public void runZooPhy(List<String> accessions, List<FastaRecord> fastaRecords, ZooPhyDAO dao, LuceneHierarchySearcher hierarchyIndexSearcher) throws PipelineException {
 		try {
-			ValidAccessions validatedRecords;
+			JobAccessions validatedRecords;
 			log.info("Sending Start Email... : "+job.getID());
 			mailer.sendStartEmail();
 			log.info("Initializing Sequence Aligner... : "+job.getID());
@@ -98,10 +97,9 @@ public class ZooPhyRunner {
 	 * @param hierarchyIndexSearcher
 	 * @throws PipelineException
 	 */
-	public Set<String> testZooPhy(List<String> accessions, List<FastaRecord> fastaRecords, ZooPhyDAO dao, LuceneHierarchySearcher hierarchyIndexSearcher) throws PipelineException {
+	public JobAccessions testZooPhy(List<String> accessions, List<FastaRecord> fastaRecords, ZooPhyDAO dao, LuceneHierarchySearcher hierarchyIndexSearcher) throws PipelineException {
 		try {
-			ValidAccessions validatedRecords;
-			//Set<String> usedAccessions = new HashSet<String>();
+			JobAccessions validatedRecords;
 			log.info("Initializing test Sequence Aligner... : "+job.getID());
 			SequenceAligner aligner = new SequenceAligner(job, dao, hierarchyIndexSearcher);
 			log.info("Running test Sequence Aligner... : "+job.getID());
@@ -111,7 +109,8 @@ public class ZooPhyRunner {
 			log.info("Starting test Beast Runner... : "+job.getID());
 			beast.test();
 			log.info("ZooPhy Job Test completed successfully: "+job.getID());
-			return validatedRecords.getAccessions();
+			
+			return validatedRecords;
 		}
 		catch (PipelineException pe) {
 			log.log(Level.SEVERE, "PipelineException for test job: "+job.getID()+" : "+pe.getMessage());

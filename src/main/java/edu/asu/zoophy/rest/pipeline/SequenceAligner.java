@@ -27,8 +27,9 @@ import edu.asu.zoophy.rest.database.DaoException;
 import edu.asu.zoophy.rest.database.GenBankRecordNotFoundException;
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
-import edu.asu.zoophy.rest.genbank.ValidAccessions;
-import edu.asu.zoophy.rest.genbank.ValidRecords;
+import edu.asu.zoophy.rest.genbank.InvalidRecords;
+import edu.asu.zoophy.rest.genbank.JobAccessions;
+import edu.asu.zoophy.rest.genbank.JobRecords;
 import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
 import edu.asu.zoophy.rest.pipeline.glm.GLMException;
 import edu.asu.zoophy.rest.pipeline.glm.PredictorGenerator;
@@ -103,14 +104,13 @@ public class SequenceAligner {
 	 * @return Final List of Records to be used in the Job
 	 * @throws PipelineException
 	 */
-	public ValidAccessions align(List<String> accessions, List<FastaRecord> fastaRecs, boolean isTest) throws PipelineException {
+	public JobAccessions align(List<String> accessions, List<FastaRecord> fastaRecs, boolean isTest) throws PipelineException {
 		FileHandler fileHandler = null;
 		String rawFasta= "";
-		ValidAccessions validAccessions = new ValidAccessions();
-		int distinctLocations;
+		JobAccessions validAccessions = new JobAccessions();
 		Set<String> usedAccessions = new HashSet<String>();
 		try {
-			ValidRecords validRecords = new ValidRecords();
+			JobRecords validRecords = new JobRecords();
 			List<GenBankRecord> recs =new LinkedList<>();
 			logFile = new File(JOB_LOG_DIR+job.getID()+".log");
 			fileHandler = new FileHandler(JOB_LOG_DIR+job.getID()+".log", true);
@@ -120,8 +120,10 @@ public class SequenceAligner {
 	        log.setUseParentHandlers(false);
 			log.info("Starting Mafft Job: "+job.getID());
 			validRecords = loadSequences(accessions, fastaRecs, true, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
-			recs = validRecords.getRecordList();
-			distinctLocations = validRecords.getDistinctLocations();
+			recs = validRecords.getValidRecordList();
+			
+			validAccessions.setDistinctLocations(validRecords.getDistinctLocations());
+			validAccessions.setInvalidRecordList(validRecords.getInvalidRecordList());
 			
 			List<GenBankRecord> recsGenbank = new LinkedList<>();
 			List<String> fastaID = new LinkedList<>();
@@ -140,7 +142,7 @@ public class SequenceAligner {
 					recordIter.remove();
 				}
 			}
-			
+			validAccessions.setValidAccessions(usedAccessions);
 			if(recsGenbank.size()>0) {
 				log.info("After screening accession job includes: "+recsGenbank.size()+" records.");
 				rawFasta = fastaFormat(recsGenbank, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
@@ -172,9 +174,7 @@ public class SequenceAligner {
 			}
 			log.info("Mafft process complete");
 			fileHandler.close();
-			
-			validAccessions.setAccessions(usedAccessions);
-			validAccessions.setDistinctLocations(distinctLocations);
+
 			return validAccessions;
 		}
 		catch (PipelineException pe) {
@@ -245,9 +245,13 @@ public class SequenceAligner {
 	 * @throws DaoException
 	 * @throws PipelineException
 	 */
-	public ValidRecords loadSequences(List<String> accessions, List<FastaRecord> fastaRecords, boolean isDisjoint, boolean isUsingDefaultGLM) throws GenBankRecordNotFoundException, DaoException, PipelineException {
+	public JobRecords loadSequences(List<String> accessions, List<FastaRecord> fastaRecords, boolean isDisjoint, boolean isUsingDefaultGLM) throws GenBankRecordNotFoundException, DaoException, PipelineException {
 		log.info("Loading records for Mafft...");
 		List<GenBankRecord> records = new LinkedList<GenBankRecord>();
+		
+		InvalidRecords invalidRecords = new InvalidRecords();
+		List<String> invalidList = new LinkedList<>();
+		
 		for (String accession : accessions) {
 			GenBankRecord record = dao.retrieveFullRecord(accession);
 			try {
@@ -256,6 +260,7 @@ public class SequenceAligner {
 						records.add(record);
 					}
 				} else {
+					invalidList.add(accession);
 					log.log(Level.SEVERE, "ERROR! Record: "+accession+" removed. No Collection date found!");
 				}
 			}
@@ -263,6 +268,11 @@ public class SequenceAligner {
 				log.log(Level.SEVERE, "ERROR! Issue Adding Record: "+accession+" : "+e.getMessage());
 			}
 		}
+		if(invalidList.size()>0) {
+			invalidRecords.setReason("Collection date not found.");
+			invalidRecords.setAccessions(invalidList);
+		}
+		
 		if(fastaRecords!=null) {
 			for(FastaRecord fastaRec : fastaRecords) {
 				GenBankRecord record = new GenBankRecord();
@@ -279,22 +289,44 @@ public class SequenceAligner {
 		if (isDisjoint) {
 			GeonameDisjoiner disjoiner  = new GeonameDisjoiner(hierarchyIndexSearcher);
 			if (isUsingDefaultGLM) {
-				return disjoiner.disjoinRecordsToStates(records);
+				JobRecords validRecords = disjoiner.disjoinRecordsToStates(records);
+				if(invalidList.size()>0) {
+					validRecords.getInvalidRecordList().add(invalidRecords);
+				}
+				return validRecords;
 			}
 			else {
-				return disjoiner.disjoinRecords(records);
+				JobRecords validRecords = disjoiner.disjoinRecords(records);
+				if(invalidList.size()>0) {
+					validRecords.getInvalidRecordList().add(invalidRecords);
+				}
+				return validRecords;
 			}
 		}
 		else {
+			List<InvalidRecords> invalidRecordList = new LinkedList<>();
+			invalidRecordList.add(invalidRecords);
+			invalidRecords = new InvalidRecords();
+			invalidList = new LinkedList<>();
+			
 			for (int i = 0; i < records.size(); i++) {
 				GenBankRecord record = records.get(i);
 				if (record.getGeonameLocation() == null || Normalizer.normalizeLocation(record.getGeonameLocation()).equalsIgnoreCase("unknown")) {
+					invalidList.add(record.getAccession());
 					records.remove(i);
 				}
 			}
-			ValidRecords validRecords = new ValidRecords();
+			
+			if(invalidList.size()>0) {
+				invalidRecords.setReason("Insufficient location information");
+				invalidRecords.setAccessions(invalidList);
+				invalidRecordList.add(invalidRecords);
+			}
+			
+			JobRecords validRecords = new JobRecords();
 			validRecords.setDistinctLocations(DEFAULT_POPSIZE);
-			validRecords.setRecordList(records);
+			validRecords.setValidRecordList(records);
+			validRecords.setInvalidRecordList(invalidRecordList);
 			return validRecords;
 		}
 	}
