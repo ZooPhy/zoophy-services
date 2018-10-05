@@ -11,6 +11,11 @@ public class JobRecords {
 	private List<InvalidRecords> invalidRecordList;
 	private Integer distinctLocations;
 	
+	public JobRecords(List<GenBankRecord> validRecordList, List<InvalidRecords> invalidRecordList, Integer distinctLocations) {
+		this.validRecordList = validRecordList;
+		this.distinctLocations = distinctLocations;
+		this.invalidRecordList = invalidRecordList;
+	}
 	public List<GenBankRecord> getValidRecordList() {
 		return validRecordList;
 	}

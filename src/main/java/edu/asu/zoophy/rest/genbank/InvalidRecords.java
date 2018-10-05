@@ -6,14 +6,19 @@ import java.util.List;
  * @author kbhangal
  */
 public class InvalidRecords {
-	private List<String> accessions;
+	private List<ExcludedRecords> excludedRecords;
 	private String reason;
 	
-	public List<String> getAccessions() {
-		return accessions;
+	public InvalidRecords(List<ExcludedRecords> excludedRecords, String reason) {
+		this.excludedRecords = excludedRecords;
+		this.reason = reason;
 	}
-	public void setAccessions(List<String> accessions) {
-		this.accessions = accessions;
+	
+	public List<ExcludedRecords> getExcludedRecords() {
+		return excludedRecords;
+	}
+	public void setAccessions(List<ExcludedRecords> excludedRecords) {
+		this.excludedRecords = excludedRecords;
 	}
 	public String getReason() {
 		return reason;

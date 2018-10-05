@@ -679,9 +679,9 @@ public class ZooPhyController {
     	    		throw new ParameterException("accessions list is too long");
     	    	}
     	    
-    	    JobAccessions validAccessions = zoophy.testZooPhy(new ArrayList<String>(jobAccessions), fastaRecords, dao, hierarchyIndexSearcher);
-	    	results.setAccessionsRemoved(validAccessions.getInvalidRecordList());
-    	    results.setAccessionsUsed(new ArrayList<String>(validAccessions.getValidAccessions()));   	
+    	    JobAccessions accessionsList = zoophy.testZooPhy(new ArrayList<String>(jobAccessions), fastaRecords, dao, hierarchyIndexSearcher);
+	    	results.setAccessionsRemoved(accessionsList.getInvalidRecordList());
+    	    results.setAccessionsUsed(new ArrayList<String>(accessionsList.getValidAccessions()));   	
 	    	return results; 
 	    	}
 	    	else {

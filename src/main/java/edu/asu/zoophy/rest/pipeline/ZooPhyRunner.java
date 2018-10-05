@@ -43,15 +43,15 @@ public class ZooPhyRunner {
 	 */
 	public void runZooPhy(List<String> accessions, List<FastaRecord> fastaRecords, ZooPhyDAO dao, LuceneHierarchySearcher hierarchyIndexSearcher) throws PipelineException {
 		try {
-			JobAccessions validatedRecords;
+			JobAccessions jobAccessions;
 			log.info("Sending Start Email... : "+job.getID());
 			mailer.sendStartEmail();
 			log.info("Initializing Sequence Aligner... : "+job.getID());
 			SequenceAligner aligner = new SequenceAligner(job, dao, hierarchyIndexSearcher);
 			log.info("Running Sequence Aligner... : "+job.getID());
-			validatedRecords = aligner.align(accessions, fastaRecords, false);
+			jobAccessions = aligner.align(accessions, fastaRecords, false);
 			log.info("Initializing Beast Runner... : "+job.getID());
-			BeastRunner beast = new BeastRunner(job, mailer, validatedRecords.getDistinctLocations());
+			BeastRunner beast = new BeastRunner(job, mailer, jobAccessions.getDistinctLocations());
 			log.info("Starting Beast Runner... : "+job.getID());
 			File treeFile = beast.run();
 			File[] results = new File[2];
@@ -99,18 +99,18 @@ public class ZooPhyRunner {
 	 */
 	public JobAccessions testZooPhy(List<String> accessions, List<FastaRecord> fastaRecords, ZooPhyDAO dao, LuceneHierarchySearcher hierarchyIndexSearcher) throws PipelineException {
 		try {
-			JobAccessions validatedRecords;
+			JobAccessions jobAccessions;
 			log.info("Initializing test Sequence Aligner... : "+job.getID());
 			SequenceAligner aligner = new SequenceAligner(job, dao, hierarchyIndexSearcher);
 			log.info("Running test Sequence Aligner... : "+job.getID());
-			validatedRecords = aligner.align(accessions, fastaRecords, true);
+			jobAccessions = aligner.align(accessions, fastaRecords, true);
 			log.info("Initializing test Beast Runner... : "+job.getID());
-			BeastRunner beast = new BeastRunner(job, null, validatedRecords.getDistinctLocations());
+			BeastRunner beast = new BeastRunner(job, null, jobAccessions.getDistinctLocations());
 			log.info("Starting test Beast Runner... : "+job.getID());
 			beast.test();
 			log.info("ZooPhy Job Test completed successfully: "+job.getID());
 			
-			return validatedRecords;
+			return jobAccessions;
 		}
 		catch (PipelineException pe) {
 			log.log(Level.SEVERE, "PipelineException for test job: "+job.getID()+" : "+pe.getMessage());
