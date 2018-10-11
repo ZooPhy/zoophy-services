@@ -26,9 +26,11 @@ import edu.asu.zoophy.rest.custom.FastaRecord;
 import edu.asu.zoophy.rest.database.DaoException;
 import edu.asu.zoophy.rest.database.GenBankRecordNotFoundException;
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
+import edu.asu.zoophy.rest.genbank.ExcludedRecords;
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
-import edu.asu.zoophy.rest.genbank.ValidAccessions;
-import edu.asu.zoophy.rest.genbank.ValidRecords;
+import edu.asu.zoophy.rest.genbank.InvalidRecords;
+import edu.asu.zoophy.rest.genbank.JobAccessions;
+import edu.asu.zoophy.rest.genbank.JobRecords;
 import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
 import edu.asu.zoophy.rest.pipeline.glm.GLMException;
 import edu.asu.zoophy.rest.pipeline.glm.PredictorGenerator;
@@ -103,14 +105,13 @@ public class SequenceAligner {
 	 * @return Final List of Records to be used in the Job
 	 * @throws PipelineException
 	 */
-	public ValidAccessions align(List<String> accessions, List<FastaRecord> fastaRecs, boolean isTest) throws PipelineException {
+	public JobAccessions align(List<String> accessions, List<FastaRecord> fastaRecs, boolean isTest) throws PipelineException {
 		FileHandler fileHandler = null;
 		String rawFasta= "";
-		ValidAccessions validAccessions = new ValidAccessions();
-		int distinctLocations;
+		JobAccessions jobAccessions = new JobAccessions();
 		Set<String> usedAccessions = new HashSet<String>();
 		try {
-			ValidRecords validRecords = new ValidRecords();
+			JobRecords jobRecords = null;
 			List<GenBankRecord> recs =new LinkedList<>();
 			logFile = new File(JOB_LOG_DIR+job.getID()+".log");
 			fileHandler = new FileHandler(JOB_LOG_DIR+job.getID()+".log", true);
@@ -119,9 +120,11 @@ public class SequenceAligner {
 	        log.addHandler(fileHandler);
 	        log.setUseParentHandlers(false);
 			log.info("Starting Mafft Job: "+job.getID());
-			validRecords = loadSequences(accessions, fastaRecs, true, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
-			recs = validRecords.getRecordList();
-			distinctLocations = validRecords.getDistinctLocations();
+			jobRecords = loadSequences(accessions, fastaRecs, true, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
+			recs = jobRecords.getValidRecordList();
+			
+			jobAccessions.setDistinctLocations(jobRecords.getDistinctLocations());
+			jobAccessions.setInvalidRecordList(jobRecords.getInvalidRecordList());
 			
 			List<GenBankRecord> recsGenbank = new LinkedList<>();
 			List<String> fastaID = new LinkedList<>();
@@ -140,7 +143,7 @@ public class SequenceAligner {
 					recordIter.remove();
 				}
 			}
-			
+			jobAccessions.setValidAccessions(usedAccessions);
 			if(recsGenbank.size()>0) {
 				log.info("After screening accession job includes: "+recsGenbank.size()+" records.");
 				rawFasta = fastaFormat(recsGenbank, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
@@ -172,10 +175,8 @@ public class SequenceAligner {
 			}
 			log.info("Mafft process complete");
 			fileHandler.close();
-			
-			validAccessions.setAccessions(usedAccessions);
-			validAccessions.setDistinctLocations(distinctLocations);
-			return validAccessions;
+
+			return jobAccessions;
 		}
 		catch (PipelineException pe) {
 			log.log(Level.SEVERE, "ERROR! Mafft process failed: "+pe.getMessage());
@@ -245,9 +246,11 @@ public class SequenceAligner {
 	 * @throws DaoException
 	 * @throws PipelineException
 	 */
-	public ValidRecords loadSequences(List<String> accessions, List<FastaRecord> fastaRecords, boolean isDisjoint, boolean isUsingDefaultGLM) throws GenBankRecordNotFoundException, DaoException, PipelineException {
+	public JobRecords loadSequences(List<String> accessions, List<FastaRecord> fastaRecords, boolean isDisjoint, boolean isUsingDefaultGLM) throws GenBankRecordNotFoundException, DaoException, PipelineException {
 		log.info("Loading records for Mafft...");
 		List<GenBankRecord> records = new LinkedList<GenBankRecord>();
+		List<ExcludedRecords> missingDateRecords = new LinkedList<>();
+		
 		for (String accession : accessions) {
 			GenBankRecord record = dao.retrieveFullRecord(accession);
 			try {
@@ -256,6 +259,7 @@ public class SequenceAligner {
 						records.add(record);
 					}
 				} else {
+					missingDateRecords.add(new ExcludedRecords(accession, null));
 					log.log(Level.SEVERE, "ERROR! Record: "+accession+" removed. No Collection date found!");
 				}
 			}
@@ -279,23 +283,39 @@ public class SequenceAligner {
 		if (isDisjoint) {
 			GeonameDisjoiner disjoiner  = new GeonameDisjoiner(hierarchyIndexSearcher);
 			if (isUsingDefaultGLM) {
-				return disjoiner.disjoinRecordsToStates(records);
+				JobRecords jobRecords = disjoiner.disjoinRecordsToStates(records);
+				if(missingDateRecords.size()>0) {
+					jobRecords.getInvalidRecordList().add(new InvalidRecords(missingDateRecords, "Missing Date Information"));
+				}
+				return jobRecords;
 			}
 			else {
-				return disjoiner.disjoinRecords(records);
+				JobRecords jobRecords = disjoiner.disjoinRecords(records);
+				if(missingDateRecords.size()>0) {
+					jobRecords.getInvalidRecordList().add(new InvalidRecords(missingDateRecords, "Missing Date Information"));
+				}
+				return jobRecords;
 			}
 		}
 		else {
+			List<ExcludedRecords> missingLocationRecords = new LinkedList<>();
+			List<InvalidRecords> invalidRecords = new LinkedList<>();
+			
 			for (int i = 0; i < records.size(); i++) {
 				GenBankRecord record = records.get(i);
 				if (record.getGeonameLocation() == null || Normalizer.normalizeLocation(record.getGeonameLocation()).equalsIgnoreCase("unknown")) {
+					missingLocationRecords.add(new ExcludedRecords(record.getAccession(), null));
 					records.remove(i);
 				}
 			}
-			ValidRecords validRecords = new ValidRecords();
-			validRecords.setDistinctLocations(DEFAULT_POPSIZE);
-			validRecords.setRecordList(records);
-			return validRecords;
+			if(!missingLocationRecords.isEmpty()) {
+				invalidRecords.add(new InvalidRecords(missingLocationRecords,"Missing Location Information"));
+			}
+			if(!missingDateRecords.isEmpty()) {
+				invalidRecords.add(new InvalidRecords(missingDateRecords,"Missing Date Information"));
+			}
+			JobRecords jobRecords = new JobRecords(records, invalidRecords, DEFAULT_POPSIZE);
+			return jobRecords;
 		}
 	}
 

@@ -5,14 +5,17 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
+import edu.asu.zoophy.rest.genbank.ExcludedRecords;
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
+import edu.asu.zoophy.rest.genbank.InvalidRecords;
 import edu.asu.zoophy.rest.genbank.Location;
-import edu.asu.zoophy.rest.genbank.ValidRecords;
+import edu.asu.zoophy.rest.genbank.JobRecords;
 import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
 import edu.asu.zoophy.rest.index.LuceneSearcherException;
 import edu.asu.zoophy.rest.pipeline.PipelineException;
@@ -49,8 +52,9 @@ public class GeonameDisjoiner {
 	 * @throws GLMException 
 	 * @throws GeoHierarchyException 
 	 */
-	public ValidRecords disjoinRecords(List<GenBankRecord> recordsToCheck) throws DisjoinerException, GLMException, GeoHierarchyException {
-		ValidRecords validRecords = new ValidRecords();
+	public JobRecords disjoinRecords(List<GenBankRecord> recordsToCheck) throws DisjoinerException, GLMException, GeoHierarchyException {
+		List<ExcludedRecords> missingLocationRecords = new LinkedList<>();
+		List<ExcludedRecords> higherAdminRecords = new LinkedList<>();
 		try {
 			Map<Long,Long> disjoins = new HashMap<Long,Long>((int)(recordsToCheck.size()*.75)+1);
 			Set<Location> locations = new LinkedHashSet<Location>(50);
@@ -65,6 +69,7 @@ public class GeonameDisjoiner {
 				while (recordIter.hasNext()) {
 					GenBankRecord record = recordIter.next();
 					if (record.getGeonameLocation() == null || Normalizer.normalizeLocation(record.getGeonameLocation()).equalsIgnoreCase("unknown") || record.getGeonameLocation().getGeonameType() == null) {
+						missingLocationRecords.add(new ExcludedRecords(record.getAccession(), null));
 						recordIter.remove();
 					}
 					else {
@@ -72,11 +77,13 @@ public class GeonameDisjoiner {
 						try {
 							recordAncestors = hierarchyIndexSearcher.findLocationAncestors(record.getGeonameLocation().getGeonameID().toString());
 							if (recordAncestors == null) {
+								higherAdminRecords.add(new ExcludedRecords(record.getAccession(),record.getGeonameLocation().getGeonameType()));
 								recordIter.remove();
 							}
 							else {
 								recordAncestors.remove(record.getGeonameLocation().getGeonameID());
 								if (recordAncestors.isEmpty()) {
+									higherAdminRecords.add(new ExcludedRecords(record.getAccession(),record.getGeonameLocation().getGeonameType()));
 									recordIter.remove();
 								} else {
 									String type = record.getGeonameLocation().getGeonameType();								
@@ -120,6 +127,7 @@ public class GeonameDisjoiner {
 					if (hierarchy.isParent(commonType, record.getGeonameLocation().getGeonameType())) {
 						isDisjoint = false;
 						recordIter.remove();
+						higherAdminRecords.add(new ExcludedRecords(record.getAccession(), record.getGeonameLocation().getGeonameType()));
 					}
 					else {
 						for (Location parent : locations) {
@@ -199,6 +207,7 @@ public class GeonameDisjoiner {
 					if (disjoins.get(tempGeonameID) != null) {
 						if (disjoins.get(tempGeonameID).longValue() == BAD_DISJOIN) {
 							recordIter.remove();
+							higherAdminRecords.add(new ExcludedRecords(record.getAccession(),record.getGeonameLocation().getGeonameType()));
 						}
 						Long disjointID = null;
 						while (disjoins.get(tempGeonameID) != null) {
@@ -217,9 +226,16 @@ public class GeonameDisjoiner {
 				throw new DisjoinerException("Error updating record locations to disjoint locations:\t"+e.getMessage(), "Error Disjoining Locations");
 			}
 			idToLocation.clear();
-			validRecords.setDistinctLocations(locations.size());
-			validRecords.setRecordList(recordsToCheck);
-			return validRecords;
+			
+			List<InvalidRecords> invalidRecords = new LinkedList<>();
+			if(!missingLocationRecords.isEmpty()) {
+				invalidRecords.add(new InvalidRecords(missingLocationRecords,"Missing Location Information"));
+			}
+			if(!higherAdminRecords.isEmpty()) {
+				invalidRecords.add(new InvalidRecords(higherAdminRecords,"Insufficient location information at "+ commonType +" level"));
+			}
+			JobRecords jobRecords = new JobRecords(recordsToCheck, invalidRecords, locations.size());
+			return jobRecords;
 			}
 			catch (PipelineException pe) {
 				throw pe;
@@ -326,31 +342,37 @@ public class GeonameDisjoiner {
 	 * @throws PipelineException 
 	 * @throws LuceneSearcherException 
 	 */
-	public ValidRecords disjoinRecordsToStates(List<GenBankRecord> recordsToCheck) throws PipelineException {
-		ValidRecords validRecords = new ValidRecords();
+	public JobRecords disjoinRecordsToStates(List<GenBankRecord> recordsToCheck) throws PipelineException {
+		List<ExcludedRecords> missingLocationRecords = new LinkedList<>();
+		List<ExcludedRecords> outsideUSRecords = new LinkedList<>();
+		List<ExcludedRecords> higherAdminRecords = new LinkedList<>();
+		List<ExcludedRecords> unknownExclusion = new LinkedList<>();
 		try {
 			US_STATES = setupStateMap();
 			recordIter = recordsToCheck.listIterator();
 			while (recordIter.hasNext()) {
 				GenBankRecord record = recordIter.next();
-				if (record.getGeonameLocation() == null || Normalizer.normalizeLocation(record.getGeonameLocation()).equalsIgnoreCase("unknown")) {
+				if (record.getGeonameLocation() == null || Normalizer.normalizeLocation(record.getGeonameLocation()).equalsIgnoreCase("unknown") || record.getGeonameLocation().getGeonameType() == null ) {
 					recordIter.remove();
+					missingLocationRecords.add(new ExcludedRecords(record.getAccession(), null));
 				}
-				else if (record.getGeonameLocation().getGeonameType() == null || hierarchy.isParent("ADM1", record.getGeonameLocation().getGeonameType())) {
+				else if (hierarchy.isParent("ADM1", record.getGeonameLocation().getGeonameType())) {
 					recordIter.remove();
+					higherAdminRecords.add(new ExcludedRecords(record.getAccession(),record.getGeonameLocation().getGeonameType()));
 				}
 				else {
 					Set<Long> recordAncestors;
 					try {
 						recordAncestors = hierarchyIndexSearcher.findLocationAncestors(record.getGeonameLocation().getGeonameID().toString());
-						
 						if (recordAncestors == null) {
 							recordIter.remove();
+							higherAdminRecords.add(new ExcludedRecords(record.getAccession(),record.getGeonameLocation().getGeonameType()));
 						}
 						else {
 							recordAncestors.remove(record.getGeonameLocation().getGeonameID());
 							if (recordAncestors.isEmpty()) {
 								recordIter.remove();
+								higherAdminRecords.add(new ExcludedRecords(record.getAccession(),record.getGeonameLocation().getGeonameType()));
 							}
 						}
 					}
@@ -387,6 +409,7 @@ public class GeonameDisjoiner {
 				if (stateLocation == null) {
 					// could not map to state
 					recordIter.remove();
+					outsideUSRecords.add(new ExcludedRecords(record.getAccession(),null));
 				}
 				else {
 					recLocation.setGeonameID(stateID);
@@ -399,6 +422,7 @@ public class GeonameDisjoiner {
 			catch (Exception e) {
 				// issue record
 				recordIter.remove();
+				unknownExclusion.add(new ExcludedRecords(record.getAccession(),null));
 			}
 		}
 		
@@ -420,10 +444,21 @@ public class GeonameDisjoiner {
 			throw new DisjoinerException("Too many distinct locations: "+states.size(), userErr.toString());
 		}
 		else {
-			validRecords.setDistinctLocations(states.size());
-			validRecords.setRecordList(recordsToCheck);
+			List<InvalidRecords> invalidRecords = new LinkedList<>();
+			if(!missingLocationRecords.isEmpty()) {
+				invalidRecords.add(new InvalidRecords(missingLocationRecords,"Missing Location Information"));
+			}
+			if(!higherAdminRecords.isEmpty()) {
+				invalidRecords.add(new InvalidRecords(higherAdminRecords,"Insufficient location information at State level"));
+			}
+			if(!outsideUSRecords.isEmpty()) {
+				invalidRecords.add(new InvalidRecords(outsideUSRecords,"Unable to map location to a state in US"));
+			}
+			if(!unknownExclusion.isEmpty()) {
+				invalidRecords.add(new InvalidRecords(unknownExclusion,"Unknow Error"));
+			}
+			JobRecords validRecords = new JobRecords(recordsToCheck, invalidRecords, states.size());
 			return validRecords;
 		}
 	}
-	
 }

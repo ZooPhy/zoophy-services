@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
-import edu.asu.zoophy.rest.genbank.ValidRecords;
+import edu.asu.zoophy.rest.genbank.JobRecords;
 import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
 import edu.asu.zoophy.rest.pipeline.SequenceAligner;
 import edu.asu.zoophy.rest.pipeline.utils.Normalizer;
@@ -37,12 +37,12 @@ public class PredictorTemplateGenerator {
 	 */
 	public String generateTemplate(List<String> accessions) throws GLMException {
 		try {
-			ValidRecords validRecords;
+			JobRecords validRecords;
 			List<GenBankRecord> records;
 			SequenceAligner aligner = new SequenceAligner(dao, hierarchyIndexSearcher);
 			try {
 				validRecords = aligner.loadSequences(accessions, null, true, false);
-				records = validRecords.getRecordList();
+				records = validRecords.getValidRecordList();
 			}
 			catch (Exception e) {
 				throw new GLMException("Error loading records for Predictor Template: "+e.getMessage(), "Error loading records for Predictor Template.");
