@@ -32,6 +32,7 @@ public class GeonameDisjoiner {
 	private final GeoHierarchy hierarchy = GeoHierarchy.getInstance();
 	private final int MAX_STATES;
 	private Map<Long, String> US_STATES;
+	private Map<String, String> adminLevel;
 	private final long BAD_DISJOIN = -1L;
 	private Map<String,Set<Long>> ancestors = null;
 	private Iterator<GenBankRecord> recordIter = null;
@@ -40,6 +41,7 @@ public class GeonameDisjoiner {
 	public GeonameDisjoiner(LuceneHierarchySearcher hierarchyIndexSearcher) throws PipelineException {
 		this.hierarchyIndexSearcher = hierarchyIndexSearcher;
 		PropertyProvider provider = PropertyProvider.getInstance();
+		adminLevel = setupAdminLevelMap();
 		MAX_STATES = Integer.parseInt(provider.getProperty("job.max.locations"));
 		log = Logger.getLogger("GeonameDisjoiner");
 	}
@@ -77,13 +79,13 @@ public class GeonameDisjoiner {
 						try {
 							recordAncestors = hierarchyIndexSearcher.findLocationAncestors(record.getGeonameLocation().getGeonameID().toString());
 							if (recordAncestors == null) {
-								higherAdminRecords.add(new ExcludedRecords(record.getAccession(),record.getGeonameLocation().getGeonameType()));
+								higherAdminRecords.add(new ExcludedRecords(record.getAccession(), adminCodeToCommonName(record.getGeonameLocation().getGeonameType())));
 								recordIter.remove();
 							}
 							else {
 								recordAncestors.remove(record.getGeonameLocation().getGeonameID());
 								if (recordAncestors.isEmpty()) {
-									higherAdminRecords.add(new ExcludedRecords(record.getAccession(),record.getGeonameLocation().getGeonameType()));
+									higherAdminRecords.add(new ExcludedRecords(record.getAccession(), adminCodeToCommonName(record.getGeonameLocation().getGeonameType())));
 									recordIter.remove();
 								} else {
 									String type = record.getGeonameLocation().getGeonameType();								
@@ -127,7 +129,7 @@ public class GeonameDisjoiner {
 					if (hierarchy.isParent(commonType, record.getGeonameLocation().getGeonameType())) {
 						isDisjoint = false;
 						recordIter.remove();
-						higherAdminRecords.add(new ExcludedRecords(record.getAccession(), record.getGeonameLocation().getGeonameType()));
+						higherAdminRecords.add(new ExcludedRecords(record.getAccession(), adminCodeToCommonName(record.getGeonameLocation().getGeonameType())));
 					}
 					else {
 						for (Location parent : locations) {
@@ -207,7 +209,7 @@ public class GeonameDisjoiner {
 					if (disjoins.get(tempGeonameID) != null) {
 						if (disjoins.get(tempGeonameID).longValue() == BAD_DISJOIN) {
 							recordIter.remove();
-							higherAdminRecords.add(new ExcludedRecords(record.getAccession(),record.getGeonameLocation().getGeonameType()));
+							higherAdminRecords.add(new ExcludedRecords(record.getAccession(), adminCodeToCommonName(record.getGeonameLocation().getGeonameType())));
 						}
 						Long disjointID = null;
 						while (disjoins.get(tempGeonameID) != null) {
@@ -232,7 +234,7 @@ public class GeonameDisjoiner {
 				invalidRecords.add(new InvalidRecords(missingLocationRecords,"Missing Location Information"));
 			}
 			if(!higherAdminRecords.isEmpty()) {
-				invalidRecords.add(new InvalidRecords(higherAdminRecords,"Insufficient location information at "+ commonType +" level"));
+				invalidRecords.add(new InvalidRecords(higherAdminRecords,"Insufficient location information at "+ adminCodeToCommonName(commonType) +" level"));
 			}
 			JobRecords jobRecords = new JobRecords(recordsToCheck, invalidRecords, locations.size());
 			return jobRecords;
@@ -358,7 +360,7 @@ public class GeonameDisjoiner {
 				}
 				else if (hierarchy.isParent("ADM1", record.getGeonameLocation().getGeonameType())) {
 					recordIter.remove();
-					higherAdminRecords.add(new ExcludedRecords(record.getAccession(),record.getGeonameLocation().getGeonameType()));
+					higherAdminRecords.add(new ExcludedRecords(record.getAccession(), adminCodeToCommonName(record.getGeonameLocation().getGeonameType())));
 				}
 				else {
 					Set<Long> recordAncestors;
@@ -366,13 +368,13 @@ public class GeonameDisjoiner {
 						recordAncestors = hierarchyIndexSearcher.findLocationAncestors(record.getGeonameLocation().getGeonameID().toString());
 						if (recordAncestors == null) {
 							recordIter.remove();
-							higherAdminRecords.add(new ExcludedRecords(record.getAccession(),record.getGeonameLocation().getGeonameType()));
+							higherAdminRecords.add(new ExcludedRecords(record.getAccession(), adminCodeToCommonName(record.getGeonameLocation().getGeonameType())));
 						}
 						else {
 							recordAncestors.remove(record.getGeonameLocation().getGeonameID());
 							if (recordAncestors.isEmpty()) {
 								recordIter.remove();
-								higherAdminRecords.add(new ExcludedRecords(record.getAccession(),record.getGeonameLocation().getGeonameType()));
+								higherAdminRecords.add(new ExcludedRecords(record.getAccession(), adminCodeToCommonName(record.getGeonameLocation().getGeonameType())));
 							}
 						}
 					}
@@ -460,5 +462,21 @@ public class GeonameDisjoiner {
 			JobRecords validRecords = new JobRecords(recordsToCheck, invalidRecords, states.size());
 			return validRecords;
 		}
+	}
+	
+	private static Map<String, String> setupAdminLevelMap() {
+		Map<String, String> adminLevels = new LinkedHashMap<String, String>();
+		adminLevels.put("PCLI", "Country");
+		adminLevels.put("ADM1", "Province/State");
+		adminLevels.put("ADM2", "County/City");
+		return adminLevels;
+	}
+	
+	private String adminCodeToCommonName(String adminCode) {
+		String commonName = adminLevel.get(adminCode);
+		if(commonName == null) {
+			return adminCode;
+		}
+		return commonName;
 	}
 }
