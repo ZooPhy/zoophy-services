@@ -250,6 +250,7 @@ public class SequenceAligner {
 		log.info("Loading records for Mafft...");
 		List<GenBankRecord> records = new LinkedList<GenBankRecord>();
 		List<ExcludedRecords> missingDateRecords = new LinkedList<>();
+		List<ExcludedRecords> unknowndateFormatRecords = new LinkedList<>();
 		
 		for (String accession : accessions) {
 			GenBankRecord record = dao.retrieveFullRecord(accession);
@@ -264,6 +265,7 @@ public class SequenceAligner {
 				}
 			}
 			catch (Exception e) {
+				unknowndateFormatRecords.add(new ExcludedRecords(accession, null));
 				log.log(Level.SEVERE, "ERROR! Issue Adding Record: "+accession+" : "+e.getMessage());
 			}
 		}
@@ -287,12 +289,18 @@ public class SequenceAligner {
 				if(missingDateRecords.size()>0) {
 					jobRecords.getInvalidRecordList().add(new InvalidRecords(missingDateRecords, "Missing Date Information"));
 				}
+				if(unknowndateFormatRecords.size()>0) {
+					jobRecords.getInvalidRecordList().add(new InvalidRecords(unknowndateFormatRecords, "Unknown Date Format"));
+				}
 				return jobRecords;
 			}
 			else {
 				JobRecords jobRecords = disjoiner.disjoinRecords(records);
 				if(missingDateRecords.size()>0) {
 					jobRecords.getInvalidRecordList().add(new InvalidRecords(missingDateRecords, "Missing Date Information"));
+				}
+				if(unknowndateFormatRecords.size()>0) {
+					jobRecords.getInvalidRecordList().add(new InvalidRecords(unknowndateFormatRecords, "Unknown Date Format"));
 				}
 				return jobRecords;
 			}
@@ -313,6 +321,9 @@ public class SequenceAligner {
 			}
 			if(!missingDateRecords.isEmpty()) {
 				invalidRecords.add(new InvalidRecords(missingDateRecords,"Missing Date Information"));
+			}
+			if(!unknowndateFormatRecords.isEmpty()) {
+				invalidRecords.add(new InvalidRecords(unknowndateFormatRecords,"Unknown Date Format"));
 			}
 			JobRecords jobRecords = new JobRecords(records, invalidRecords, DEFAULT_POPSIZE);
 			return jobRecords;
