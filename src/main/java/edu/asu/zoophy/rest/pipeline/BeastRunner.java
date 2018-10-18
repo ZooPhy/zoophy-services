@@ -71,7 +71,7 @@ public class BeastRunner {
 		this.job = job;
 		this.distinctLocations = distinctLocations;
 		filesToCleanup = new LinkedHashSet<String>();
-		JOB_WORK_DIR = System.getProperty("user.dir")+"/ZooPhyJobs/";
+		JOB_WORK_DIR = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"/";
 	}
 	
 	/**

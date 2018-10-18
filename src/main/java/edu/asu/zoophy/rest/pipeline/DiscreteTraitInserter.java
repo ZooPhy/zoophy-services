@@ -40,7 +40,7 @@ public class DiscreteTraitInserter {
 		try {
 			this.job = job;
 			this.distinctLocations = distinctLocations;
-			DOCUMENT_PATH = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+".xml";
+			DOCUMENT_PATH = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"/"+job.getID()+".xml";
 			locations = new HashSet<String>();
 			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
 			DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
