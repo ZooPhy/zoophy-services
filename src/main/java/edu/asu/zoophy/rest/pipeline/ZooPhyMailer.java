@@ -215,7 +215,7 @@ public class ZooPhyMailer {
             
             for(File file: files) {
             		if(file != null) {
-	            		zos.putNextEntry(new ZipEntry(file.getName()));
+	            		zos.putNextEntry(new ZipEntry(file.getName().replace(job.getID(), job.getJobName())));
 	                byte[] bytes = Files.readAllBytes(Paths.get(file.getAbsolutePath()));
 	                zos.write(bytes, 0, bytes.length);
 	                zos.closeEntry();
