@@ -9,9 +9,6 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.lang.ProcessBuilder.Redirect;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.LinkedHashSet;
@@ -74,7 +71,7 @@ public class BeastRunner {
 		this.job = job;
 		this.distinctLocations = distinctLocations;
 		filesToCleanup = new LinkedHashSet<String>();
-		JOB_WORK_DIR = System.getProperty("user.dir")+"/ZooPhyJobs/";
+		JOB_WORK_DIR = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"/";
 	}
 	
 	/**
@@ -162,7 +159,7 @@ public class BeastRunner {
 	 */
 	private void runBeastGen(String fastaFile, String beastInput, XMLParameters xmlParameters) throws BeastException, IOException, InterruptedException {
 		log.info("Finding BEASTGen template with parameters:" + xmlParameters.toString());
-		String workingDir = System.getProperty("user.dir")+"/ZooPhyJobs/";
+		String workingDir = JOB_WORK_DIR;
 		File beastGenDir = new File(System.getProperty("user.dir")+"/BeastGen");
 		filesToCleanup.add(JOB_WORK_DIR+fastaFile);
 		//TODO: add/change templates programmatically by importing beastgen.jar's objects
@@ -445,7 +442,8 @@ public class BeastRunner {
 	 * Deletes unwanted files after the BEAST process is finished
 	 */
 	private void cleanupBeast() {
-		log.info("Cleaning up BEAST...");
+		// This function is disabled to access the job files in case of an error
+	/*	log.info("Cleaning up BEAST...");
 		try {
 			Path fileToDelete;
 			for (String filePath : filesToCleanup) {
@@ -463,7 +461,7 @@ public class BeastRunner {
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "BEAST cleanup failed: "+e.getMessage());
-		}
+		}*/
 	}
 	
 	/**

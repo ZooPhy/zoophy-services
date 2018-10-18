@@ -32,6 +32,7 @@ public class GeonameDisjoiner {
 	private final GeoHierarchy hierarchy = GeoHierarchy.getInstance();
 	private final int MAX_STATES;
 	private Map<Long, String> US_STATES;
+	private Map<String, String> adminLevel;
 	private final long BAD_DISJOIN = -1L;
 	private Map<String,Set<Long>> ancestors = null;
 	private Iterator<GenBankRecord> recordIter = null;
@@ -40,6 +41,7 @@ public class GeonameDisjoiner {
 	public GeonameDisjoiner(LuceneHierarchySearcher hierarchyIndexSearcher) throws PipelineException {
 		this.hierarchyIndexSearcher = hierarchyIndexSearcher;
 		PropertyProvider provider = PropertyProvider.getInstance();
+		adminLevel = setupAdminLevelMap();
 		MAX_STATES = Integer.parseInt(provider.getProperty("job.max.locations"));
 		log = Logger.getLogger("GeonameDisjoiner");
 	}
@@ -47,194 +49,204 @@ public class GeonameDisjoiner {
 	/**
 	 * Disjoins given list of records, filtering out records with invalid or too general locations. Remaining locations are normalized to a set of disjoint locations.
 	 * @param recordsToCheck - list of records to Disjoin
-	 * @return Filtered records with valid, disjoint Geoname locations.=
+	 * @return Filtered records with valid, disjoint Geoname locations.
 	 * @throws DisjoinerException
 	 * @throws GLMException 
 	 * @throws GeoHierarchyException 
 	 */
 	public JobRecords disjoinRecords(List<GenBankRecord> recordsToCheck) throws DisjoinerException, GLMException, GeoHierarchyException {
 		List<ExcludedRecords> missingLocationRecords = new LinkedList<>();
-		List<ExcludedRecords> higherAdminRecords = new LinkedList<>();
+		List<GenBankRecord> validRecords = new LinkedList<>();
+		List<InvalidRecords> invalidRecords = new LinkedList<>();
+		Set<Location> distinctLocations = new LinkedHashSet<Location>(50);
 		try {
-			Map<Long,Long> disjoins = new HashMap<Long,Long>((int)(recordsToCheck.size()*.75)+1);
-			Set<Location> locations = new LinkedHashSet<Location>(50);
-			Map<String,Set<Long>> types = new LinkedHashMap<String,Set<Long>>();
-			Set<Location> locationsToRemove;
-			Map<Long,String> idToLocation = new HashMap<Long,String>(50);
-			ancestors = new HashMap<String,Set<Long>>((int)(recordsToCheck.size())+1, 1.0f);
-			String commonType = null;
-			int maxType = 0;
-			try {
-				recordIter = recordsToCheck.listIterator();
-				while (recordIter.hasNext()) {
-					GenBankRecord record = recordIter.next();
-					if (record.getGeonameLocation() == null || Normalizer.normalizeLocation(record.getGeonameLocation()).equalsIgnoreCase("unknown") || record.getGeonameLocation().getGeonameType() == null) {
-						missingLocationRecords.add(new ExcludedRecords(record.getAccession(), null));
-						recordIter.remove();
-					}
-					else {
-						Set<Long> recordAncestors;
-						try {
-							recordAncestors = hierarchyIndexSearcher.findLocationAncestors(record.getGeonameLocation().getGeonameID().toString());
-							if (recordAncestors == null) {
-								higherAdminRecords.add(new ExcludedRecords(record.getAccession(),record.getGeonameLocation().getGeonameType()));
-								recordIter.remove();
-							}
-							else {
-								recordAncestors.remove(record.getGeonameLocation().getGeonameID());
-								if (recordAncestors.isEmpty()) {
-									higherAdminRecords.add(new ExcludedRecords(record.getAccession(),record.getGeonameLocation().getGeonameType()));
+			Map<String,List<GenBankRecord>> countryBasedRecords =  generateCountryMap(recordsToCheck);
+			for (List<GenBankRecord> records : countryBasedRecords.values()) {
+				recordIter = records.listIterator();
+				List<ExcludedRecords> higherAdminRecords = new LinkedList<>();
+				
+				Map<Long,Long> disjoins = new HashMap<Long,Long>((int)(records.size()*.75)+1);
+				Set<Location> locations = new LinkedHashSet<Location>(50);
+				Map<String,Set<Long>> types = new LinkedHashMap<String,Set<Long>>();
+				Set<Location> locationsToRemove;
+				Map<Long,String> idToLocation = new HashMap<Long,String>(50);
+				ancestors = new HashMap<String,Set<Long>>((int)(records.size())+1, 1.0f);
+				String commonType = null;
+				int maxType = 0;
+				try {
+					while (recordIter.hasNext()) {
+						GenBankRecord record = recordIter.next();
+						if (record.getGeonameLocation() == null || Normalizer.normalizeLocation(record.getGeonameLocation()).equalsIgnoreCase("unknown") || record.getGeonameLocation().getGeonameType() == null) {
+							missingLocationRecords.add(new ExcludedRecords(record.getAccession(), null));
+							recordIter.remove();
+						}
+						else {
+							Set<Long> recordAncestors;
+							try {
+								recordAncestors = hierarchyIndexSearcher.findLocationAncestors(record.getGeonameLocation().getGeonameID().toString());
+								if (recordAncestors == null) {
+									higherAdminRecords.add(new ExcludedRecords(record.getAccession(), adminCodeToCommonName(record.getGeonameLocation().getGeonameType())));
 									recordIter.remove();
-								} else {
-									String type = record.getGeonameLocation().getGeonameType();								
-									if (types.get(type) == null) {
-										Set<Long> geonameIds = new HashSet<Long>();
+								}
+								else {
+									recordAncestors.remove(record.getGeonameLocation().getGeonameID());
+									if (recordAncestors.isEmpty()) {
+										higherAdminRecords.add(new ExcludedRecords(record.getAccession(), adminCodeToCommonName(record.getGeonameLocation().getGeonameType())));
+										recordIter.remove();
+									} else {
+										String type = record.getGeonameLocation().getGeonameType();								
+										if (types.get(type) == null) {
+											Set<Long> geonameIds = new HashSet<Long>();
+											types.put(type, geonameIds);
+										}
+										Set<Long> geonameIds = types.get(type);
+										geonameIds.add(record.getGeonameLocation().getGeonameID());
 										types.put(type, geonameIds);
+										ancestors.put(record.getAccession(), recordAncestors);
 									}
-									Set<Long> geonameIds = types.get(type);
-									geonameIds.add(record.getGeonameLocation().getGeonameID());
-									types.put(type, geonameIds);
-									ancestors.put(record.getAccession(), recordAncestors);
 								}
 							}
-						}
-						catch (LuceneSearcherException lse) {
-							throw new DisjoinerException("Error retrieving location ancestors: "+lse.getMessage(), "Error Disjoining Locations");
-						}
-					}
-				}
-				recordIter = null;
-			}
-			catch (PipelineException pe) {
-				throw pe;
-			}
-			catch (Exception e) {
-				throw new DisjoinerException("Error initially screening record locations:\t"+e.getMessage(), "Error Filtering Locations");
-			}
-			for (String type : types.keySet()) {
-				if (types.get(type).size() > maxType) {
-					maxType = types.get(type).size();
-					commonType = type;
-				}
-			}
-			try {
-				recordIter = recordsToCheck.listIterator();
-				while (recordIter.hasNext()) {
-					GenBankRecord record = recordIter.next();
-					Location recordLocation = record.getGeonameLocation();
-					boolean isDisjoint = true;
-					//selected record should be same or lower level than common level
-					if (hierarchy.isParent(commonType, record.getGeonameLocation().getGeonameType())) {
-						isDisjoint = false;
-						recordIter.remove();
-						higherAdminRecords.add(new ExcludedRecords(record.getAccession(), record.getGeonameLocation().getGeonameType()));
-					}
-					else {
-						for (Location parent : locations) {
-							if (isAncestor(parent, recordLocation)) {
-								isDisjoint = false;
-								if (!parent.getGeonameID().equals(recordLocation.getGeonameID())) {
-									disjoins.put(recordLocation.getGeonameID(), parent.getGeonameID());
-								}
-								break;
+							catch (LuceneSearcherException lse) {
+								throw new DisjoinerException("Error retrieving location ancestors: "+lse.getMessage(), "Error Disjoining Locations");
 							}
 						}
 					}
-					if (isDisjoint) {
-						locations.add(recordLocation);
+					recordIter = null;
+				}
+				catch (PipelineException pe) {
+					throw pe;
+				}
+				catch (Exception e) {
+					throw new DisjoinerException("Error initially screening record locations:\t"+e.getMessage(), "Error Filtering Locations");
+				}
+				for (String type : types.keySet()) {
+					if (types.get(type).size() > maxType) {
+						maxType = types.get(type).size();
+						commonType = type;
 					}
 				}
-				recordIter = null;
-			}
-			catch (GeoHierarchyException ghe) {
-				throw new GeoHierarchyException(ghe.getMessage(), "Error Filtering Locations");
-			}
-			catch (PipelineException pe) {
-				throw pe;
-			}
-			catch (Exception e) {
-				throw new DisjoinerException("Error filtering out locations above Common Type:\t"+e.getMessage(), "Error Filtering Locations");
-			}
-			locationsToRemove = new HashSet<Location>();
-			try {
-				for (Location location : locations) {
-					for (Location locationParent : locations) {
-						if (!(locationParent.getGeonameID().equals(location.getGeonameID()) || locationsToRemove.contains(locationParent))) {
-							if (isAncestor(locationParent,location)) {
-								if (!location.getGeonameID().equals(locationParent.getGeonameID())) {
-									disjoins.put(location.getGeonameID(), locationParent.getGeonameID());
+				try {
+					recordIter = records.listIterator();
+					while (recordIter.hasNext()) {
+						GenBankRecord record = recordIter.next();
+						Location recordLocation = record.getGeonameLocation();
+						boolean isDisjoint = true;
+						//selected record should be same or lower level than common level
+						if (hierarchy.isParent(commonType, record.getGeonameLocation().getGeonameType())) {
+							isDisjoint = false;
+							recordIter.remove();
+							higherAdminRecords.add(new ExcludedRecords(record.getAccession(), adminCodeToCommonName(record.getGeonameLocation().getGeonameType())));
+						}
+						else {
+							for (Location parent : locations) {
+								if (isAncestor(parent, recordLocation)) {
+									isDisjoint = false;
+									if (!parent.getGeonameID().equals(recordLocation.getGeonameID())) {
+										disjoins.put(recordLocation.getGeonameID(), parent.getGeonameID());
+									}
+									break;
 								}
-								locationsToRemove.add(location);
-								break;
+							}
+						}
+						if (isDisjoint) {
+							locations.add(recordLocation);
+						}
+					}
+					recordIter = null;
+				}
+				catch (GeoHierarchyException ghe) {
+					throw new GeoHierarchyException(ghe.getMessage(), "Error Filtering Locations");
+				}
+				catch (PipelineException pe) {
+					throw pe;
+				}
+				catch (Exception e) {
+					throw new DisjoinerException("Error filtering out locations above Common Type:\t"+e.getMessage(), "Error Filtering Locations");
+				}
+				locationsToRemove = new HashSet<Location>();
+				try {
+					for (Location location : locations) {
+						for (Location locationParent : locations) {
+							if (!(locationParent.getGeonameID().equals(location.getGeonameID()) || locationsToRemove.contains(locationParent))) {
+								if (isAncestor(locationParent,location)) {
+									if (!location.getGeonameID().equals(locationParent.getGeonameID())) {
+										disjoins.put(location.getGeonameID(), locationParent.getGeonameID());
+									}
+									locationsToRemove.add(location);
+									break;
+								}
 							}
 						}
 					}
+					locations.removeAll(locationsToRemove);
 				}
-				locations.removeAll(locationsToRemove);
-			}
-			catch (PipelineException pe) {
-				throw pe;
-			}
-			catch (Exception e) {
-				throw new DisjoinerException("Error removing overlapping locations:\t"+e.getMessage(), "Error Disjoining Locations");
-			}
-			locationsToRemove.clear();
-			log.info("Distinct locations: "+locations.size());
-			if (locations.size() < 2) {
-				String userErr = "Too few distinct locations (need at least 2): " + locations.size();
-				if (locations.size() == 1) {
-					userErr += "\nLocation: "+locations.iterator().next().getLocation();
+				catch (PipelineException pe) {
+					throw pe;
 				}
-				throw new DisjoinerException("Too few distinct locations: "+locations.size(),userErr);
+				catch (Exception e) {
+					throw new DisjoinerException("Error removing overlapping locations:\t"+e.getMessage(), "Error Disjoining Locations");
+				}
+				locationsToRemove.clear();
+				
+				try {
+					for (Location location : locations) {
+						idToLocation.put(location.getGeonameID(), location.getLocation());
+					}
+					recordIter = records.listIterator();
+					while (recordIter.hasNext()) {
+						GenBankRecord record = recordIter.next();
+						Long tempGeonameID = record.getGeonameLocation().getGeonameID();
+						if (disjoins.get(tempGeonameID) != null) {
+							if (disjoins.get(tempGeonameID).longValue() == BAD_DISJOIN) {
+								recordIter.remove();
+								higherAdminRecords.add(new ExcludedRecords(record.getAccession(), adminCodeToCommonName(record.getGeonameLocation().getGeonameType())));
+							}
+							Long disjointID = null;
+							while (disjoins.get(tempGeonameID) != null) {
+								if (disjoins.get(tempGeonameID) != null) {
+									disjointID = disjoins.get(tempGeonameID);
+								}
+								tempGeonameID = disjoins.get(tempGeonameID);
+							}
+							String newLoc = idToLocation.get(disjointID);
+							setLocationName(record, newLoc);
+						}
+					}
+					recordIter = null;
+				}
+				catch (Exception e) {
+					throw new DisjoinerException("Error updating record locations to disjoint locations:\t"+e.getMessage(), "Error Disjoining Locations");
+				}
+				idToLocation.clear();
+				
+				validRecords.addAll(records);	
+				distinctLocations.addAll(locations);
+				
+				if(!higherAdminRecords.isEmpty()) {
+					invalidRecords.add(new InvalidRecords(higherAdminRecords,"Insufficient location information at "+ adminCodeToCommonName(commonType) +" level"));
+				}
 			}
-			else if (locations.size() > MAX_STATES) {
-				StringBuilder userErr = new StringBuilder("Too many distinct locations (limit is "+MAX_STATES+"): " + locations.size());
+			log.info("Distinct locations: "+distinctLocations.size());
+			if (distinctLocations.size() < 2) {
+				String userErr = "Too few distinct locations (need at least 2): " + distinctLocations.size();
+				if (distinctLocations.size() == 1) {
+					userErr += "\nLocation: "+distinctLocations.iterator().next().getLocation();
+				}
+				throw new DisjoinerException("Too few distinct locations: "+distinctLocations.size(),userErr);
+			}
+			else if (distinctLocations.size() > MAX_STATES) {
+				StringBuilder userErr = new StringBuilder("Too many distinct locations (limit is "+MAX_STATES+"): " + distinctLocations.size());
 				userErr.append("\nLocations: ");
-				for (Location location : locations) {
+				for (Location location : distinctLocations) {
 					userErr.append("\n\t");
 					userErr.append(location.getLocation());
 				}
-				throw new DisjoinerException("Too many distinct locations: "+locations.size(), userErr.toString());
+				throw new DisjoinerException("Too many distinct locations: "+distinctLocations.size(), userErr.toString());
 			}
-			try {
-				for (Location location : locations) {
-					idToLocation.put(location.getGeonameID(), location.getLocation());
-				}
-				recordIter = recordsToCheck.listIterator();
-				while (recordIter.hasNext()) {
-					GenBankRecord record = recordIter.next();
-					Long tempGeonameID = record.getGeonameLocation().getGeonameID();
-					if (disjoins.get(tempGeonameID) != null) {
-						if (disjoins.get(tempGeonameID).longValue() == BAD_DISJOIN) {
-							recordIter.remove();
-							higherAdminRecords.add(new ExcludedRecords(record.getAccession(),record.getGeonameLocation().getGeonameType()));
-						}
-						Long disjointID = null;
-						while (disjoins.get(tempGeonameID) != null) {
-							if (disjoins.get(tempGeonameID) != null) {
-								disjointID = disjoins.get(tempGeonameID);
-							}
-							tempGeonameID = disjoins.get(tempGeonameID);
-						}
-						String newLoc = idToLocation.get(disjointID);
-						setLocationName(record, newLoc);
-					}
-				}
-				recordIter = null;
-			}
-			catch (Exception e) {
-				throw new DisjoinerException("Error updating record locations to disjoint locations:\t"+e.getMessage(), "Error Disjoining Locations");
-			}
-			idToLocation.clear();
-			
-			List<InvalidRecords> invalidRecords = new LinkedList<>();
 			if(!missingLocationRecords.isEmpty()) {
 				invalidRecords.add(new InvalidRecords(missingLocationRecords,"Missing Location Information"));
 			}
-			if(!higherAdminRecords.isEmpty()) {
-				invalidRecords.add(new InvalidRecords(higherAdminRecords,"Insufficient location information at "+ commonType +" level"));
-			}
-			JobRecords jobRecords = new JobRecords(recordsToCheck, invalidRecords, locations.size());
+			JobRecords jobRecords = new JobRecords(validRecords, invalidRecords, distinctLocations.size());
 			return jobRecords;
 			}
 			catch (PipelineException pe) {
@@ -243,6 +255,23 @@ public class GeonameDisjoiner {
 		catch (Exception e) {
 			throw new DisjoinerException("Uncaught Disjoiner error:"+e.getMessage(), "Error Disjoining Locations");
 		}
+	}
+	
+	private Map<String,List<GenBankRecord>> generateCountryMap(List<GenBankRecord> recordsToCheck) {
+		Iterator<GenBankRecord> iter = recordsToCheck.listIterator();
+		Map<String,List<GenBankRecord>> countries = new LinkedHashMap<String,List<GenBankRecord>>();
+		while (iter.hasNext()) {
+			GenBankRecord record = iter.next();
+			String country = record.getGeonameLocation().getCountry();								
+			if (countries.get(country) == null) {
+				List<GenBankRecord> records = new LinkedList<GenBankRecord>();
+				countries.put(country, records);
+			}
+			List<GenBankRecord> records = countries.get(country);
+			records.add(record);
+			countries.put(country, records);
+		}
+		return countries;
 	}
 
 	/**
@@ -358,7 +387,7 @@ public class GeonameDisjoiner {
 				}
 				else if (hierarchy.isParent("ADM1", record.getGeonameLocation().getGeonameType())) {
 					recordIter.remove();
-					higherAdminRecords.add(new ExcludedRecords(record.getAccession(),record.getGeonameLocation().getGeonameType()));
+					higherAdminRecords.add(new ExcludedRecords(record.getAccession(), adminCodeToCommonName(record.getGeonameLocation().getGeonameType())));
 				}
 				else {
 					Set<Long> recordAncestors;
@@ -366,13 +395,13 @@ public class GeonameDisjoiner {
 						recordAncestors = hierarchyIndexSearcher.findLocationAncestors(record.getGeonameLocation().getGeonameID().toString());
 						if (recordAncestors == null) {
 							recordIter.remove();
-							higherAdminRecords.add(new ExcludedRecords(record.getAccession(),record.getGeonameLocation().getGeonameType()));
+							higherAdminRecords.add(new ExcludedRecords(record.getAccession(), adminCodeToCommonName(record.getGeonameLocation().getGeonameType())));
 						}
 						else {
 							recordAncestors.remove(record.getGeonameLocation().getGeonameID());
 							if (recordAncestors.isEmpty()) {
 								recordIter.remove();
-								higherAdminRecords.add(new ExcludedRecords(record.getAccession(),record.getGeonameLocation().getGeonameType()));
+								higherAdminRecords.add(new ExcludedRecords(record.getAccession(), adminCodeToCommonName(record.getGeonameLocation().getGeonameType())));
 							}
 						}
 					}
@@ -460,5 +489,21 @@ public class GeonameDisjoiner {
 			JobRecords validRecords = new JobRecords(recordsToCheck, invalidRecords, states.size());
 			return validRecords;
 		}
+	}
+	
+	private static Map<String, String> setupAdminLevelMap() {
+		Map<String, String> adminLevels = new LinkedHashMap<String, String>();
+		adminLevels.put("PCLI", "Country");
+		adminLevels.put("ADM1", "Province/State");
+		adminLevels.put("ADM2", "County/City");
+		return adminLevels;
+	}
+	
+	private String adminCodeToCommonName(String adminCode) {
+		String commonName = adminLevel.get(adminCode);
+		if(commonName == null) {
+			return adminCode;
+		}
+		return commonName;
 	}
 }

@@ -58,6 +58,7 @@ public class SequenceAligner {
 	private int endYear = 1000;
 	private Map<String, Integer> occurrences = null;
 	private int DEFAULT_POPSIZE = 10;
+	private final String JOB_WORK_DIR;
 	
 	/**
 	 * Constructor for regular ZooPhy Pipeline usage
@@ -71,6 +72,7 @@ public class SequenceAligner {
 		this.hierarchyIndexSearcher = hierarchyIndexSearcher;
 		PropertyProvider provider = PropertyProvider.getInstance();
 		JOB_LOG_DIR = provider.getProperty("job.logs.dir");
+		JOB_WORK_DIR = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"/";
 		log = Logger.getLogger("SequenceAligner"+job.getID());
 		uniqueGeonames = new LinkedHashSet<String>();
 		geonameCoordinates = new HashMap<String,String>();
@@ -78,6 +80,7 @@ public class SequenceAligner {
 			occurrences = new HashMap<String, Integer>();
 		}
 		this.job = job;
+		new File(JOB_WORK_DIR).mkdirs();			//create a new work directory for the job.
 	}
 	
 	/**
@@ -90,6 +93,7 @@ public class SequenceAligner {
 		this.dao = dao;
 		this.hierarchyIndexSearcher = hierarchyIndexSearcher;
 		JOB_LOG_DIR = null;
+		JOB_WORK_DIR = null;
 		job = null;
 	}
 	
@@ -166,7 +170,7 @@ public class SequenceAligner {
 			log.info("Mafft Job: "+job.getID()+" has finished.");
 			log.info("Deleting raw fasta...");
 			try {
-				Path path = Paths.get(System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"-raw.fasta");
+				Path path = Paths.get(System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"/"+job.getID()+"-raw.fasta");
 				Files.delete(path);
 			}
 			catch (IOException e) {
@@ -199,7 +203,7 @@ public class SequenceAligner {
 	 * @throws GLMException 
 	 */
 	private void createGLMFile(boolean usingDefault) throws GLMException {
-		String glmPath = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"-"+"predictors.txt";
+		String glmPath = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"/"+job.getID()+"-"+"predictors.txt";
 		if (usingDefault) {
 			PredictorGenerator generator = new PredictorGenerator(glmPath, startYear, endYear, uniqueGeonames,dao);
 			generator.generatePredictorsFile(occurrences);
@@ -219,7 +223,7 @@ public class SequenceAligner {
 			coordinates.append("\n");
 		}
 		coordinates.trimToSize();
-		String dir = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"-";
+		String dir = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"/"+job.getID()+"-";
 		PrintWriter coordinateWriter = null;
 		try {
 			coordinateWriter = new PrintWriter(dir+"coords.txt");
@@ -250,6 +254,7 @@ public class SequenceAligner {
 		log.info("Loading records for Mafft...");
 		List<GenBankRecord> records = new LinkedList<GenBankRecord>();
 		List<ExcludedRecords> missingDateRecords = new LinkedList<>();
+		List<ExcludedRecords> unknowndateFormatRecords = new LinkedList<>();
 		
 		for (String accession : accessions) {
 			GenBankRecord record = dao.retrieveFullRecord(accession);
@@ -264,6 +269,7 @@ public class SequenceAligner {
 				}
 			}
 			catch (Exception e) {
+				unknowndateFormatRecords.add(new ExcludedRecords(accession, null));
 				log.log(Level.SEVERE, "ERROR! Issue Adding Record: "+accession+" : "+e.getMessage());
 			}
 		}
@@ -287,12 +293,18 @@ public class SequenceAligner {
 				if(missingDateRecords.size()>0) {
 					jobRecords.getInvalidRecordList().add(new InvalidRecords(missingDateRecords, "Missing Date Information"));
 				}
+				if(unknowndateFormatRecords.size()>0) {
+					jobRecords.getInvalidRecordList().add(new InvalidRecords(unknowndateFormatRecords, "Unknown Date Format"));
+				}
 				return jobRecords;
 			}
 			else {
 				JobRecords jobRecords = disjoiner.disjoinRecords(records);
 				if(missingDateRecords.size()>0) {
 					jobRecords.getInvalidRecordList().add(new InvalidRecords(missingDateRecords, "Missing Date Information"));
+				}
+				if(unknowndateFormatRecords.size()>0) {
+					jobRecords.getInvalidRecordList().add(new InvalidRecords(unknowndateFormatRecords, "Unknown Date Format"));
 				}
 				return jobRecords;
 			}
@@ -314,6 +326,9 @@ public class SequenceAligner {
 			if(!missingDateRecords.isEmpty()) {
 				invalidRecords.add(new InvalidRecords(missingDateRecords,"Missing Date Information"));
 			}
+			if(!unknowndateFormatRecords.isEmpty()) {
+				invalidRecords.add(new InvalidRecords(unknowndateFormatRecords,"Unknown Date Format"));
+			}
 			JobRecords jobRecords = new JobRecords(records, invalidRecords, DEFAULT_POPSIZE);
 			return jobRecords;
 		}
@@ -327,7 +342,7 @@ public class SequenceAligner {
 	 */
 	private String runMafft(String rawFasta) throws AlignerException {
 		log.info("Setting up Mafft for job: "+job.getID());
-		String dir = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"-";
+		String dir = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"/"+job.getID()+"-";
 		String rawFilePath = dir + "raw.fasta";
 		String alignedFilePath = dir+"aligned.fasta";
 		try {
@@ -369,7 +384,7 @@ public class SequenceAligner {
 	 */
 	private String fakeMafft(String rawFasta) {
 		log.info("Faking Mafft for job: "+job.getID());
-		String dir = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"-";
+		String dir = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"/"+job.getID()+"-";
 		String rawFilePath = dir + "raw.fasta";
 		String alignedFilePath = dir+"aligned.fasta";
 		try {
