@@ -53,20 +53,19 @@ public class ZooPhyRunner {
 			log.info("Initializing Beast Runner... : "+job.getID());
 			BeastRunner beast = new BeastRunner(job, mailer, jobAccessions.getDistinctLocations());
 			log.info("Starting Beast Runner... : "+job.getID());
-			File treeFile = beast.run();
-			File[] results = new File[2];
-			results[0] = treeFile;
+			// Run BEAST and get list of output files
+			List<File> resultsList = beast.run();
 			if (job.isUsingGLM()) {
 				log.info("Running GLM Figure Generator... : "+job.getID());
 				GLMFigureGenerator figureGenerator = new GLMFigureGenerator(job);
 				File glmFile = figureGenerator.generateFigure();
-				results[1] = glmFile;
-			}
-			else {
-				results[1] = null;
+				resultsList.add(glmFile);
 			}
 			log.info("Sending Results Email... : "+job.getID());
-			mailer.sendSuccessEmail(results); 
+			// Convert to array
+			File[] resultsArray = new File[resultsList.size()];
+			resultsArray = resultsList.toArray(resultsArray);
+			mailer.sendSuccessEmail(resultsArray); 
 			PipelineManager.removeProcess(job.getID());
 			log.info("ZooPhy Job Complete: "+job.getID());
 		}

@@ -30,6 +30,7 @@ spread3.jar=<Path to Spread3 jar file>
 spread3.result.dir=<SpreaD3 results folder path>
 job.logs.dir=<ZooPhy job logs folder path>
 glm.script=<Path to create_glm_xml.py file>
+zoophyviz.dir=<Path to zoophy-viz directory>
 
 # Server HTTP port binding
 server.port=<Server HTTP Port #>
