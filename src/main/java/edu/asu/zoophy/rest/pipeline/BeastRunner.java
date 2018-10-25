@@ -421,7 +421,7 @@ public class BeastRunner {
 			log.log(Level.SEVERE, "Invalid absolute path to zoophy-viz repository given: "+ZOOPHY_VIZ);
 			throw new BeastException("Invalid absolute path to zoophy-viz repository given!"+ZOOPHY_VIZ, "zoophy-viz failed");
 		}
-		ProcessBuilder builder = new ProcessBuilder("gen_pgmt_spread.sh", treeFile, coordinatesFile, workingDir).directory(zoophyVizDirectory);
+		ProcessBuilder builder = new ProcessBuilder("./gen_pgmt_spread.sh", treeFile, coordinatesFile, workingDir).directory(zoophyVizDirectory);
 		builder.redirectOutput(Redirect.appendTo(logFile));
 		builder.redirectError(Redirect.appendTo(logFile));
 		log.info("Starting Process: "+builder.command().toString());
