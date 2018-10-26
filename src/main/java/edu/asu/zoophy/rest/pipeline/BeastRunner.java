@@ -430,7 +430,7 @@ public class BeastRunner {
 		zoophyVizProcess.waitFor();
 		if (zoophyVizProcess.exitValue() != 0) {
 			log.log(Level.SEVERE, "zoophy-viz generation failed! with code: "+zoophyVizProcess.exitValue());
-			throw new BeastException("zoophy-viz generation failed! with code: "+zoophyVizProcess.exitValue(), "zoophy-viz failed");
+			// throw new BeastException("zoophy-viz generation failed! with code: "+zoophyVizProcess.exitValue(), "zoophy-viz failed");
 		} else {
 			spreadVideo = new File(workingDir + "/spread.mp4");
 			if (!spreadVideo.exists()) {
