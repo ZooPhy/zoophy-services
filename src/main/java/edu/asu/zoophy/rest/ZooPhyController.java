@@ -367,12 +367,7 @@ public class ZooPhyController {
     		catch (ParameterException pe) {
     			log.warning("Bad XML Parameters: "+pe.getMessage());
     			throw pe;
-    		}
-    		
-    		//************For Testing**************//
-    		parameters.getXmlOptions().setChainLength(5000001);
-    		//************For Testing**************//
-    		
+    		}    		
     		zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors(), parameters.getXmlOptions());
     		Set<String> genBankJobAccessions = new LinkedHashSet<String>();
     		Set<String> geonameIds = new LinkedHashSet<String>();
