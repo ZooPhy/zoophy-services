@@ -88,10 +88,7 @@ public class LuceneHierarchySearcher {
 			reader = DirectoryReader.open(indexDirectory);
 			indexSearcher = new IndexSearcher(reader);
 			queryParser = new QueryParser(GID_FIELD, new KeywordAnalyzer());;
-			
 			query = queryParser.parse("\""+geonameId+"\"");
-			log.info("Searching ancestor for : " + query);
-			
 			documents = indexSearcher.search(query, 1);
 			
 			if (documents.scoreDocs != null && documents.scoreDocs.length == 1) {
@@ -101,10 +98,9 @@ public class LuceneHierarchySearcher {
 					for(int i=0; i<strArray.length;i++) {
 						ancestors.add(Long.parseLong(strArray[i].trim()));
 					}
-					log.info("Results : " + ancestors.size());
 				}
 			}else {
-				log.info(" No results");
+				log.info(" No ancestors for: "+ query);
 			}
 			reader.close();
 			return ancestors;
