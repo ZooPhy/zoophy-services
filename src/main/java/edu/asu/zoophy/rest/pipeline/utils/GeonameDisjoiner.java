@@ -381,7 +381,7 @@ public class GeonameDisjoiner {
 			if(types.get("ADM1")!=null) {		//TODO: if ADM1 does not exist check lower level
 				return "ADM1";
 			}else {
-				return "PCL1";
+				return "PCLI";
 			}
 		}
 	}
