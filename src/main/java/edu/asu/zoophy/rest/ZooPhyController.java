@@ -1,6 +1,8 @@
 package edu.asu.zoophy.rest;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -202,6 +204,11 @@ public class ZooPhyController {
 	    		log.info("Searching query: "+query);
 	    		List<GenBankRecord> results = indexSearcher.searchIndex(query, QUERY_MAX_RECORDS);
 	    		log.info("Successfully searched query: "+query);
+	    		Collections.sort(results, new Comparator<GenBankRecord>() {
+	    		    public int compare(GenBankRecord r1, GenBankRecord r2) {
+	    		        return r1.getAccession().compareTo(r2.getAccession());
+	    		    }
+	    		});
 	    		return results;
 	    	}
 	    	else {
@@ -361,6 +368,11 @@ public class ZooPhyController {
     			log.warning("Bad XML Parameters: "+pe.getMessage());
     			throw pe;
     		}
+    		
+    		//************For Testing**************//
+    		parameters.getXmlOptions().setChainLength(5000001);
+    		//************For Testing**************//
+    		
     		zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors(), parameters.getXmlOptions());
     		Set<String> genBankJobAccessions = new LinkedHashSet<String>();
     		Set<String> geonameIds = new LinkedHashSet<String>();
