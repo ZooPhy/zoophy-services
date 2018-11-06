@@ -1,5 +1,7 @@
 package edu.asu.zoophy.rest.pipeline.utils;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -41,11 +43,11 @@ public class GeonameDisjoiner {
 	Set<Location> distinctLocations = new LinkedHashSet<Location>(50);
 	List<InvalidRecords> invalidRecords = new LinkedList<>();
 	
-	//Exclusion Reasons
 	private final String MISSING_LOCATION = "Missing Location information";
 	private final String INCOMPLETE_HIERARCHY = "Incomplete Location Hierarchy inforamtion";
 	private final String HIGHER_ADMIN_LEVEL = "Insufficient location information at ";
 	private final String DEFAULT_DISJOIN_LEVEL = "PCLI";
+
 	
 	public GeonameDisjoiner(LuceneHierarchySearcher hierarchyIndexSearcher) throws PipelineException {
 		this.hierarchyIndexSearcher = hierarchyIndexSearcher;
@@ -77,8 +79,10 @@ public class GeonameDisjoiner {
 			List<GenBankRecord> records = entry.getValue();
 			removeFromDistinctLocations(country);
 			
-			Map<String,Integer> types = adminLevelsMap(records);
+			Map<String,Integer> types = adminLevelsTotalLocationMap(records);
 			String disjoinLevel = calculateDisjoinLevel(types,countryBasedRecords.size());
+			log.info("Admin levels in "+country +": "+types);
+			log.info("Disjoiner level: "+disjoinLevel);
 			List<GenBankRecord> jobRecordsCountry = disjoinRecords(records,disjoinLevel);
 			validRecords.addAll(jobRecordsCountry);
 		}
@@ -332,7 +336,7 @@ public class GeonameDisjoiner {
 
 		while (iter.hasNext()) {
 			GenBankRecord record = iter.next();
-			String country = record.getGeonameLocation().getCountry();								
+			String country = record.getGeonameLocation().getCountry().trim();								
 			if (countries.get(country) == null) {
 				List<GenBankRecord> records = new LinkedList<GenBankRecord>();
 				countries.put(country, records);
@@ -344,7 +348,7 @@ public class GeonameDisjoiner {
 		return countries;
 	}
 	
-	private Map<String,Integer> adminLevelsMap(List<GenBankRecord> genBankRecords) {
+	private Map<String,Integer> adminLevelsTotalLocationMap(List<GenBankRecord> genBankRecords) {
 		Map<String,Integer> types = new LinkedHashMap<>();
 		Iterator<GenBankRecord> iter = genBankRecords.listIterator();
 		while (iter.hasNext()) {
@@ -359,31 +363,53 @@ public class GeonameDisjoiner {
 		return types;
 	}
 	
-	//TODO: use hierarchy to find exclusion
-	private String calculateDisjoinLevel(Map<String,Integer> types, int countryCount) {
-		if(countryCount>1) {
-			String level = "PCLI";
-			int maxType = 0;
-			int totalCount = 0;
-			for (String type : types.keySet()) {
-				if (types.get(type) > maxType) {
-					maxType = types.get(type);
-					level = type;
-				}
-				totalCount += types.get(type);
-			}
-			float exclusionPercent = 100 -  ((float) maxType/totalCount)*100;
-			if(exclusionPercent > DISJOIN_THRESHOLD) {
-				level = "PCLI";
-			}
-			return level;
-		}else {
-			if(types.get("ADM1")!=null) {		//TODO: if ADM1 does not exist check lower level
-				return "ADM1";
-			}else {
-				return "PCLI";
-			}
+	private String calculateDisjoinLevel(Map<String,Integer> types,int countryCount) throws GeoHierarchyException {
+		if(countryCount==1) {
+			return "ADM1";
 		}
+		Map<String, Integer> levelCount = new HashMap<>();
+		String level = DEFAULT_DISJOIN_LEVEL;
+		int totalCount = 0;
+		for (String type : types.keySet()) {
+			int count = types.get(type); 
+			totalCount += count;
+			for (String subType : types.keySet()) {
+				if(!subType.equals(type) && hierarchy.isParent(subType, type)) {
+					count += types.get(subType);
+				}
+			}
+			levelCount.put(type, count);
+		}
+		levelCount = sortByValue(levelCount);
+		
+		String prevLevel = DEFAULT_DISJOIN_LEVEL;
+		for(String type : levelCount.keySet()) {
+			int count  = levelCount.get(type);
+			float exclusionPercent = 100 - ((float) count/totalCount)*100;
+			if(exclusionPercent > DISJOIN_THRESHOLD) {
+				level = prevLevel;
+				break;
+			}
+			level = type;
+			prevLevel = type;
+		}
+		return level;
+	}
+	
+	public static <K, V extends Comparable<? super V>> Map<K, V> sortByValue(Map<K, V> map) {
+		List<Map.Entry<K, V>> list = new LinkedList<>(map.entrySet());
+		Collections.sort(list, new Comparator<Map.Entry<K, V>>() {
+			@Override
+			public int compare(Map.Entry<K, V> e1, Map.Entry<K, V> e2) {
+				return - (e1.getValue()).compareTo(e2.getValue());
+			}
+		});
+	 
+		Map<K, V> result = new LinkedHashMap<>();
+		for (Map.Entry<K, V> entry : list) {
+			result.put(entry.getKey(), entry.getValue());
+		}
+		return result;
 	}
 	
 	/**
