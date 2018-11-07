@@ -75,6 +75,8 @@ public class DocumentMapper {
 				location.setLongitude(Double.parseDouble(luceneDocument.get("Longitude")));
 			}
 			location.setCountry(luceneDocument.get("Country"));
+			// TODO: get state from index
+			location.setState(luceneDocument.get("State"));
 			record.setGeonameLocation(location);
 			Host host = new Host();
 			host.setAccession(recordAccession);

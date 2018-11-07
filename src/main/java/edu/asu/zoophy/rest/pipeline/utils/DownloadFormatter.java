@@ -134,16 +134,21 @@ public class DownloadFormatter {
 				Location location = null;
 				stringJoiner = new StringJoiner(",");
 				for(String column: columns) {
-					if(column.equals(DownloadColumn.STATE) && location == null) {
-						String geonameID = record.getGeonameLocation().getGeonameID().toString();
-						if (locMap.containsKey(geonameID)){
-							location = locMap.get(geonameID);
-						} else {
-							location = hierarchyIndexSearcher.findGeonameLocation(geonameID);
-							locMap.put(geonameID, location);
+					try {
+						if(column.equals(DownloadColumn.STATE) && location == null) {
+							String geonameID = record.getGeonameLocation().getGeonameID().toString();
+							if (locMap.containsKey(geonameID)){
+								location = locMap.get(geonameID);
+							} else {
+								location = hierarchyIndexSearcher.findGeonameLocation(geonameID);
+								locMap.put(geonameID, location);
+							}
 						}
+						stringJoiner.add(columnValue(record, column, location, DownloadFormat.CSV, JobConstants.SOURCE_GENBANK));	
+					}catch(LuceneSearcherException e) {
+						//for geonameID = -1
+						stringJoiner.add("Unknown");
 					}
-					stringJoiner.add(columnValue(record, column, location, DownloadFormat.CSV, JobConstants.SOURCE_GENBANK));	
 				}
 				csv.append(stringJoiner);
 				csv.append("\n");
@@ -205,16 +210,21 @@ public class DownloadFormatter {
 				tempBuilder = new StringBuilder();
 				tempBuilder.append(">");
 				for(String column: columns) {
-					if(column.equals(DownloadColumn.STATE) && location == null) {
-						String geonameID = record.getGeonameLocation().getGeonameID().toString();
-						if (locMap.containsKey(geonameID)){
-							location = locMap.get(geonameID);
-						} else {
-							location = hierarchyIndexSearcher.findGeonameLocation(geonameID);
-							locMap.put(geonameID, location);
+					try {
+						if(column.equals(DownloadColumn.STATE) && location == null) {
+							String geonameID = record.getGeonameLocation().getGeonameID().toString();
+							if (locMap.containsKey(geonameID)){
+								location = locMap.get(geonameID);
+							} else {
+								location = hierarchyIndexSearcher.findGeonameLocation(geonameID);
+								locMap.put(geonameID, location);
+							}
 						}
+						stringJoiner.add(columnValue(record, column, location, DownloadFormat.FASTA, JobConstants.SOURCE_GENBANK));	
+					}catch(LuceneSearcherException e) {
+						//for geonameID = -1
+						stringJoiner.add("Unknown");
 					}
-					stringJoiner.add(columnValue(record, column, location, DownloadFormat.FASTA, JobConstants.SOURCE_GENBANK));	
 				}
 				
 				tempBuilder.append(stringJoiner);
@@ -293,7 +303,12 @@ public class DownloadFormatter {
 		case DownloadColumn.DATE:
 			if(record.getSequence()!=null && record.getSequence().getCollectionDate()!=null) {
 				if(format.equals(DownloadFormat.CSV)) {
-					return Normalizer.csvify(Normalizer.formatDate(Normalizer.normalizeDate(record.getSequence().getCollectionDate())));
+					try {
+						String date = Normalizer.formatDate(Normalizer.normalizeDate(record.getSequence().getCollectionDate()));
+						return Normalizer.csvify(date);
+					}catch(NormalizerException e) {
+						return "Unknown";
+					}
 				}else if(format.equals(DownloadFormat.FASTA)) {
 					return getFastaDate(record.getSequence().getCollectionDate());
 				}
@@ -311,7 +326,7 @@ public class DownloadFormatter {
 				return Normalizer.csvify(record.getHost().getName());
 			}
 			else {
-				return Normalizer.csvify("unknown");
+				return "Unknown";
 			}
 		case DownloadColumn.GEONAMEID:
 			if(record.getGeonameLocation()!=null && record.getGeonameLocation().getGeonameID()!= null) {
@@ -323,9 +338,6 @@ public class DownloadFormatter {
 			if(RecordType == JobConstants.SOURCE_GENBANK) {
 				if (record.getGeonameLocation() != null && record.getGeonameLocation().getCountry() != null) {
 					return Normalizer.csvify(record.getGeonameLocation().getCountry());
-				}
-				if (record.getHost() != null && record.getHost().getName() != null) {
-					return Normalizer.csvify(record.getHost().getName());
 				}
 				else {
 					return "Unknown";

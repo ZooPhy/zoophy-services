@@ -178,9 +178,7 @@ public class ZooPhyController {
     @ResponseStatus(value=HttpStatus.OK)
     public String countqueryLucene(@RequestParam(value="query") String query) throws LuceneSearcherException, InvalidLuceneQueryException, ParameterException {
     	if (security.checkParameter(query, Parameter.LUCENE_QUERY)) {
-    		log.info("Searching query: "+query);
     		String count = indexSearcher.searchCount(query);
-    		log.info("Successfully searched query: "+query);
     		return count;
     	}
     	else {
