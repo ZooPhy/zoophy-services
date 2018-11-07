@@ -59,6 +59,7 @@ public class BeastRunner {
 	private boolean wasKilled = false;
 	private boolean isTest = false;
 	private final int distinctLocations;
+	private int mailUpdateCount = 0;
 	
 	public BeastRunner(ZooPhyJob job, ZooPhyMailer mailer, int distinctLocations) throws PipelineException {
 		PropertyProvider provider = PropertyProvider.getInstance();
@@ -560,7 +561,11 @@ public class BeastRunner {
 		}
 		try {
 			if (finalUpdate || checkRateMatrix()) {
-				mailer.sendUpdateEmail(finishTime, finalUpdate);
+				//reason for count: handler reads a couple more lines and sends update mail even after tail.stop()
+				if(mailUpdateCount < 2) {
+					mailer.sendUpdateEmail(finishTime, finalUpdate);
+					mailUpdateCount ++;
+				}
 			}
 			else {
 				killBeast("Rate Matrix Error. Try reducing discrete states.");
