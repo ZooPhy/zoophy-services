@@ -131,24 +131,9 @@ public class DownloadFormatter {
 			
 			//GenBank records
 			for (GenBankRecord record : records) {
-				Location location = null;
 				stringJoiner = new StringJoiner(",");
 				for(String column: columns) {
-					try {
-						if(column.equals(DownloadColumn.STATE) && location == null) {
-							String geonameID = record.getGeonameLocation().getGeonameID().toString();
-							if (locMap.containsKey(geonameID)){
-								location = locMap.get(geonameID);
-							} else {
-								location = hierarchyIndexSearcher.findGeonameLocation(geonameID);
-								locMap.put(geonameID, location);
-							}
-						}
-						stringJoiner.add(columnValue(record, column, location, DownloadFormat.CSV, JobConstants.SOURCE_GENBANK));	
-					}catch(LuceneSearcherException e) {
-						//for geonameID = -1
-						stringJoiner.add("Unknown");
-					}
+					stringJoiner.add(columnValue(record, column, null, DownloadFormat.CSV, JobConstants.SOURCE_GENBANK));	
 				}
 				csv.append(stringJoiner);
 				csv.append("\n");
@@ -205,28 +190,12 @@ public class DownloadFormatter {
 			
 			//GenBank Records
 			for (GenBankRecord record : records) {
-				Location location = null;
 				stringJoiner = new StringJoiner("|");
 				tempBuilder = new StringBuilder();
 				tempBuilder.append(">");
 				for(String column: columns) {
-					try {
-						if(column.equals(DownloadColumn.STATE) && location == null) {
-							String geonameID = record.getGeonameLocation().getGeonameID().toString();
-							if (locMap.containsKey(geonameID)){
-								location = locMap.get(geonameID);
-							} else {
-								location = hierarchyIndexSearcher.findGeonameLocation(geonameID);
-								locMap.put(geonameID, location);
-							}
-						}
-						stringJoiner.add(columnValue(record, column, location, DownloadFormat.FASTA, JobConstants.SOURCE_GENBANK));	
-					}catch(LuceneSearcherException e) {
-						//for geonameID = -1
-						stringJoiner.add("Unknown");
-					}
+					stringJoiner.add(columnValue(record, column, null, DownloadFormat.FASTA, JobConstants.SOURCE_GENBANK));	
 				}
-				
 				tempBuilder.append(stringJoiner);
 				tempBuilder.append("\n");
 				tempBuilder.append(rawSequenceGenerator(record));
@@ -351,17 +320,36 @@ public class DownloadFormatter {
 				}
 			}
 		case DownloadColumn.STATE:
-			if(location!=null) {
-				return Normalizer.csvify(location.getState());		//todo: get state from db, when added
-			}else {
-				return "Unknown";
+			if(RecordType == JobConstants.SOURCE_GENBANK) {
+				if (record.getGeonameLocation() != null && record.getGeonameLocation().getState() != null 
+						&& !record.getGeonameLocation().getState().isEmpty() ) {
+					return Normalizer.csvify(record.getGeonameLocation().getState());
+				}
+				else {
+					return "Unknown";
+				}
+			}else if(RecordType == JobConstants.SOURCE_FASTA) { 
+				if(location!=null) {
+					return Normalizer.csvify(location.getState());		
+				}else {
+					return "Unknown";
+				}
 			}
 		case DownloadColumn.LENGTH:
-			if(record.getSequence()!=null && record.getSequence().getSegmentLength()!=null) {
-				return Normalizer.csvify(String.valueOf(record.getSequence().getSegmentLength()));
-			}else {
-				return "Unknown";
+			if(RecordType == JobConstants.SOURCE_GENBANK) {
+				if(record.getSequence()!=null && record.getSequence().getSegmentLength()!=null) {
+					return Normalizer.csvify(String.valueOf(record.getSequence().getSegmentLength()));
+				}else {
+					return "Unknown";
+				}
+			}else if(RecordType == JobConstants.SOURCE_FASTA) {
+				if(record.getSequence()!=null && record.getSequence().getRawSequence()!=null) {
+					return Normalizer.csvify(String.valueOf(record.getSequence().getRawSequence().length()));
+				}else {
+					return "Unknown";
+				}
 			}
+			
 		default: 
 			throw new FormatterException("Error Generating CSV!");
 		}

@@ -22,6 +22,7 @@ public class LocationRowMapper implements RowMapper<Location> {
 		location.setGeonameType(row.getString("Type"));
 		location.setLatitude(row.getDouble("Latitude"));
 		location.setLongitude(row.getDouble("Longitude"));
+		location.setState(row.getString("State"));
 		location.setCountry(row.getString("Country"));
 		return location;
 	}
