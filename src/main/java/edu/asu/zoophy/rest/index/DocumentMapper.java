@@ -35,7 +35,7 @@ public class DocumentMapper {
 			record.setAccession(recordAccession);
 			Sequence sequence = new Sequence();
 			sequence.setAccession(recordAccession);
-			sequence.setCollectionDate(luceneDocument.get("Date"));
+			sequence.setCollectionDate(luceneDocument.get("NormalizedDate"));
 			sequence.setDefinition(luceneDocument.get("Definition"));
 			sequence.setOrganism(luceneDocument.get("Organism"));
 			sequence.setSegmentLength(Integer.parseInt(luceneDocument.get("SegmentLength")));
@@ -75,7 +75,6 @@ public class DocumentMapper {
 				location.setLongitude(Double.parseDouble(luceneDocument.get("Longitude")));
 			}
 			location.setCountry(luceneDocument.get("Country"));
-			// TODO: get state from index
 			location.setState(luceneDocument.get("State"));
 			record.setGeonameLocation(location);
 			Host host = new Host();

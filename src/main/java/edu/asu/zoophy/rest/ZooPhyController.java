@@ -511,6 +511,7 @@ public class ZooPhyController {
 		    			throw new ParameterException(record.getId());
 		    		}
 	    		}
+	    		log.info("Columns selected: "+ columns );
 	    		records = new LinkedList<JobRecord>(downloadAccessions);
 	    		downloadAccessions.clear();
 	    		String download = null;
