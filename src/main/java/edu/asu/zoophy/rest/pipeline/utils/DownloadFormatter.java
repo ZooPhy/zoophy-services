@@ -78,7 +78,7 @@ public class DownloadFormatter {
 			columns.add(DownloadColumn.GENES);
 			columns.add(DownloadColumn.VIRUS_ID);
 			columns.add(DownloadColumn.VIRUS);
-			columns.add(DownloadColumn.DATE);
+			columns.add(DownloadColumn.Human_Date);
 			columns.add(DownloadColumn.HOST_ID);
 			columns.add(DownloadColumn.HOST);
 			columns.add(DownloadColumn.COUNTRY);
@@ -269,19 +269,21 @@ public class DownloadFormatter {
 				return Normalizer.csvify(Normalizer.simplifyOrganism(record.getSequence().getOrganism()));
 			else
 				return "Unknown";
-		case DownloadColumn.DATE:
+		case DownloadColumn.Human_Date:
 			if(record.getSequence()!=null && record.getSequence().getCollectionDate()!=null) {
-				if(format.equals(DownloadFormat.CSV)) {
-					try {
-						String date = Normalizer.formatDate(Normalizer.normalizeDate(record.getSequence().getCollectionDate()));
-						return Normalizer.csvify(date);
-					}catch(NormalizerException e) {
-						return "Unknown";
-					}
-				}else if(format.equals(DownloadFormat.FASTA)) {
-					return getFastaDate(record.getSequence().getCollectionDate());
+				try {
+					String date = Normalizer.formatDate(Normalizer.normalizeDate(record.getSequence().getCollectionDate()));
+					return Normalizer.csvify(date);
+				}catch(NormalizerException e) {
+					return "Unknown";
 				}
 			}else {
+				return "Unknown";
+			}
+		case DownloadColumn.Decimal_Date:
+			try {
+				return getFastaDate(record.getSequence().getCollectionDate());
+			}catch(NormalizerException e) {
 				return "Unknown";
 			}
 		case DownloadColumn.HOST_ID:
@@ -349,9 +351,8 @@ public class DownloadFormatter {
 					return "Unknown";
 				}
 			}
-			
 		default: 
-			throw new FormatterException("Error Generating CSV!");
+			throw new FormatterException("Unsupported Column type!");
 		}
 	}
 	
@@ -387,7 +388,7 @@ public class DownloadFormatter {
 	 * @throws NormalizerException 
 	 * @throws Exception 
 	 */
-	private String getFastaDate(String collectionDate) throws AlignerException, NormalizerException {
+	private String getFastaDate(String collectionDate) throws NormalizerException {
 		if (collectionDate != null && !collectionDate.equals("10000101")) {
 			String date = Normalizer.formatDate(collectionDate);
 			return Normalizer.dateToDecimal(date);
