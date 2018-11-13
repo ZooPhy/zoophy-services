@@ -78,7 +78,7 @@ public class DownloadFormatter {
 			columns.add(DownloadColumn.GENES);
 			columns.add(DownloadColumn.VIRUS_ID);
 			columns.add(DownloadColumn.VIRUS);
-			columns.add(DownloadColumn.DATE);
+			columns.add(DownloadColumn.Human_Date);
 			columns.add(DownloadColumn.HOST_ID);
 			columns.add(DownloadColumn.HOST);
 			columns.add(DownloadColumn.COUNTRY);
@@ -131,19 +131,9 @@ public class DownloadFormatter {
 			
 			//GenBank records
 			for (GenBankRecord record : records) {
-				Location location = null;
 				stringJoiner = new StringJoiner(",");
 				for(String column: columns) {
-					if(column.equals(DownloadColumn.STATE) && location == null) {
-						String geonameID = record.getGeonameLocation().getGeonameID().toString();
-						if (locMap.containsKey(geonameID)){
-							location = locMap.get(geonameID);
-						} else {
-							location = hierarchyIndexSearcher.findGeonameLocation(geonameID);
-							locMap.put(geonameID, location);
-						}
-					}
-					stringJoiner.add(columnValue(record, column, location, DownloadFormat.CSV, JobConstants.SOURCE_GENBANK));	
+					stringJoiner.add(columnValue(record, column, null, DownloadFormat.CSV, JobConstants.SOURCE_GENBANK));	
 				}
 				csv.append(stringJoiner);
 				csv.append("\n");
@@ -200,23 +190,12 @@ public class DownloadFormatter {
 			
 			//GenBank Records
 			for (GenBankRecord record : records) {
-				Location location = null;
 				stringJoiner = new StringJoiner("|");
 				tempBuilder = new StringBuilder();
 				tempBuilder.append(">");
 				for(String column: columns) {
-					if(column.equals(DownloadColumn.STATE) && location == null) {
-						String geonameID = record.getGeonameLocation().getGeonameID().toString();
-						if (locMap.containsKey(geonameID)){
-							location = locMap.get(geonameID);
-						} else {
-							location = hierarchyIndexSearcher.findGeonameLocation(geonameID);
-							locMap.put(geonameID, location);
-						}
-					}
-					stringJoiner.add(columnValue(record, column, location, DownloadFormat.FASTA, JobConstants.SOURCE_GENBANK));	
+					stringJoiner.add(columnValue(record, column, null, DownloadFormat.FASTA, JobConstants.SOURCE_GENBANK));	
 				}
-				
 				tempBuilder.append(stringJoiner);
 				tempBuilder.append("\n");
 				tempBuilder.append(rawSequenceGenerator(record));
@@ -290,14 +269,21 @@ public class DownloadFormatter {
 				return Normalizer.csvify(Normalizer.simplifyOrganism(record.getSequence().getOrganism()));
 			else
 				return "Unknown";
-		case DownloadColumn.DATE:
+		case DownloadColumn.Human_Date:
 			if(record.getSequence()!=null && record.getSequence().getCollectionDate()!=null) {
-				if(format.equals(DownloadFormat.CSV)) {
-					return Normalizer.csvify(Normalizer.formatDate(Normalizer.normalizeDate(record.getSequence().getCollectionDate())));
-				}else if(format.equals(DownloadFormat.FASTA)) {
-					return getFastaDate(record.getSequence().getCollectionDate());
+				try {
+					String date = Normalizer.formatDate(Normalizer.normalizeDate(record.getSequence().getCollectionDate()));
+					return Normalizer.csvify(date);
+				}catch(NormalizerException e) {
+					return "Unknown";
 				}
 			}else {
+				return "Unknown";
+			}
+		case DownloadColumn.Decimal_Date:
+			try {
+				return getFastaDate(record.getSequence().getCollectionDate());
+			}catch(NormalizerException e) {
 				return "Unknown";
 			}
 		case DownloadColumn.HOST_ID:
@@ -311,7 +297,7 @@ public class DownloadFormatter {
 				return Normalizer.csvify(record.getHost().getName());
 			}
 			else {
-				return Normalizer.csvify("unknown");
+				return "Unknown";
 			}
 		case DownloadColumn.GEONAMEID:
 			if(record.getGeonameLocation()!=null && record.getGeonameLocation().getGeonameID()!= null) {
@@ -323,9 +309,6 @@ public class DownloadFormatter {
 			if(RecordType == JobConstants.SOURCE_GENBANK) {
 				if (record.getGeonameLocation() != null && record.getGeonameLocation().getCountry() != null) {
 					return Normalizer.csvify(record.getGeonameLocation().getCountry());
-				}
-				if (record.getHost() != null && record.getHost().getName() != null) {
-					return Normalizer.csvify(record.getHost().getName());
 				}
 				else {
 					return "Unknown";
@@ -339,19 +322,37 @@ public class DownloadFormatter {
 				}
 			}
 		case DownloadColumn.STATE:
-			if(location!=null) {
-				return Normalizer.csvify(location.getState());		//todo: get state from db, when added
-			}else {
-				return "Unknown";
+			if(RecordType == JobConstants.SOURCE_GENBANK) {
+				if (record.getGeonameLocation() != null && record.getGeonameLocation().getState() != null 
+						&& !record.getGeonameLocation().getState().isEmpty() ) {
+					return Normalizer.csvify(record.getGeonameLocation().getState());
+				}
+				else {
+					return "Unknown";
+				}
+			}else if(RecordType == JobConstants.SOURCE_FASTA) { 
+				if(location!=null) {
+					return Normalizer.csvify(location.getState());		
+				}else {
+					return "Unknown";
+				}
 			}
 		case DownloadColumn.LENGTH:
-			if(record.getSequence()!=null && record.getSequence().getSegmentLength()!=null) {
-				return Normalizer.csvify(String.valueOf(record.getSequence().getSegmentLength()));
-			}else {
-				return "Unknown";
+			if(RecordType == JobConstants.SOURCE_GENBANK) {
+				if(record.getSequence()!=null && record.getSequence().getSegmentLength()!=null) {
+					return Normalizer.csvify(String.valueOf(record.getSequence().getSegmentLength()));
+				}else {
+					return "Unknown";
+				}
+			}else if(RecordType == JobConstants.SOURCE_FASTA) {
+				if(record.getSequence()!=null && record.getSequence().getRawSequence()!=null) {
+					return Normalizer.csvify(String.valueOf(record.getSequence().getRawSequence().length()));
+				}else {
+					return "Unknown";
+				}
 			}
 		default: 
-			throw new FormatterException("Error Generating CSV!");
+			throw new FormatterException("Unsupported Column type!");
 		}
 	}
 	
@@ -387,7 +388,7 @@ public class DownloadFormatter {
 	 * @throws NormalizerException 
 	 * @throws Exception 
 	 */
-	private String getFastaDate(String collectionDate) throws AlignerException, NormalizerException {
+	private String getFastaDate(String collectionDate) throws NormalizerException {
 		if (collectionDate != null && !collectionDate.equals("10000101")) {
 			String date = Normalizer.formatDate(collectionDate);
 			return Normalizer.dateToDecimal(date);

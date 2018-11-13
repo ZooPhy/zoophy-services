@@ -1,6 +1,8 @@
 package edu.asu.zoophy.rest;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -28,6 +30,7 @@ import edu.asu.zoophy.rest.database.ZooPhyDAO;
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.genbank.Location;
 import edu.asu.zoophy.rest.genbank.PossibleLocation;
+import edu.asu.zoophy.rest.genbank.JobAccessions;
 import edu.asu.zoophy.rest.index.InvalidLuceneQueryException;
 import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
 import edu.asu.zoophy.rest.index.LuceneSearcher;
@@ -175,9 +178,7 @@ public class ZooPhyController {
     @ResponseStatus(value=HttpStatus.OK)
     public String countqueryLucene(@RequestParam(value="query") String query) throws LuceneSearcherException, InvalidLuceneQueryException, ParameterException {
     	if (security.checkParameter(query, Parameter.LUCENE_QUERY)) {
-    		log.info("Searching query: "+query);
     		String count = indexSearcher.searchCount(query);
-    		log.info("Successfully searched query: "+query);
     		return count;
     	}
     	else {
@@ -201,6 +202,11 @@ public class ZooPhyController {
 	    		log.info("Searching query: "+query);
 	    		List<GenBankRecord> results = indexSearcher.searchIndex(query, QUERY_MAX_RECORDS);
 	    		log.info("Successfully searched query: "+query);
+	    		Collections.sort(results, new Comparator<GenBankRecord>() {
+	    		    public int compare(GenBankRecord r1, GenBankRecord r2) {
+	    		        return r1.getAccession().compareTo(r2.getAccession());
+	    		    }
+	    		});
 	    		return results;
 	    	}
 	    	else {
@@ -359,7 +365,7 @@ public class ZooPhyController {
     		catch (ParameterException pe) {
     			log.warning("Bad XML Parameters: "+pe.getMessage());
     			throw pe;
-    		}
+    		}    		
     		zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors(), parameters.getXmlOptions());
     		Set<String> genBankJobAccessions = new LinkedHashSet<String>();
     		Set<String> geonameIds = new LinkedHashSet<String>();
@@ -505,6 +511,7 @@ public class ZooPhyController {
 		    			throw new ParameterException(record.getId());
 		    		}
 	    		}
+	    		log.info("Columns selected: "+ columns );
 	    		records = new LinkedList<JobRecord>(downloadAccessions);
 	    		downloadAccessions.clear();
 	    		String download = null;
@@ -609,7 +616,6 @@ public class ZooPhyController {
     	    	zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors(), parameters.getXmlOptions());
     	    Set<String> jobAccessions = new LinkedHashSet<String>();
     	    	Set<String> geonameIds = new LinkedHashSet<String>();
-    	    	Set<String> combinedAccesions = new HashSet<String>();
         	ArrayList<JobRecord> userEnteredRecords= new ArrayList<>();
         	List<FastaRecord> fastaRecords = new LinkedList<FastaRecord>();
         	Set<String> jobRecordIds = new HashSet<String>();
@@ -679,13 +685,9 @@ public class ZooPhyController {
     	    		throw new ParameterException("accessions list is too long");
     	    	}
     	    
-    	    	combinedAccesions.addAll(jobAccessions);
-    	    combinedAccesions.addAll(jobRecordIds);
-    	    	
-    	    	Set<String> remainingAccessions = zoophy.testZooPhy(new ArrayList<String>(jobAccessions), fastaRecords, dao, hierarchyIndexSearcher);
-    	    	combinedAccesions.removeAll(remainingAccessions);
-	    	results.setAccessionsRemoved(new LinkedList<String>(combinedAccesions));
-	    	results.setAccessionsUsed(new LinkedList<String>(remainingAccessions));   	
+    	    JobAccessions accessionsList = zoophy.testZooPhy(new ArrayList<String>(jobAccessions), fastaRecords, dao, hierarchyIndexSearcher);
+	    	results.setAccessionsRemoved(accessionsList.getInvalidRecordList());
+    	    results.setAccessionsUsed(new ArrayList<String>(accessionsList.getValidAccessions()));   	
 	    	return results; 
 	    	}
 	    	else {

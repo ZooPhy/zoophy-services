@@ -23,7 +23,7 @@ public class GenBankRecordRowMapper implements RowMapper<GenBankRecord> {
 		record.setAccession(recordAccession);
 		Sequence sequence = new Sequence();
 		sequence.setAccession(recordAccession);
-		sequence.setCollectionDate(row.getString("Collection_Date"));
+		sequence.setCollectionDate(row.getString("Normalized_Date"));
 		sequence.setComment(row.getString("Comment"));
 		sequence.setDefinition(row.getString("Definition"));
 		sequence.setIsolate(row.getString("Isolate"));
@@ -41,6 +41,7 @@ public class GenBankRecordRowMapper implements RowMapper<GenBankRecord> {
 		location.setGeonameType(row.getString("Type"));
 		location.setLatitude(row.getDouble("Latitude"));
 		location.setLongitude(row.getDouble("Longitude"));
+		location.setState(row.getString("State"));
 		location.setCountry(row.getString("Country"));
 		record.setGeonameLocation(location);
 		Host host = new Host();

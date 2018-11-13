@@ -150,9 +150,9 @@
 		<scaleOperator scaleFactor="0.75" weight="1">
 			<parameter idref="alpha"/>
 		</scaleOperator>
-		<scaleOperator scaleFactor="0.75" weight="1">
+		<randomWalkOperator windowSize="0.75" weight="1" boundaryCondition="logit">
 			<parameter idref="pInv"/>
-		</scaleOperator>
+		</randomWalkOperator>
 		<scaleOperator scaleFactor="0.75" weight="3">
 			<parameter idref="${filename_stem}.ucld.mean"/>
 		</scaleOperator>

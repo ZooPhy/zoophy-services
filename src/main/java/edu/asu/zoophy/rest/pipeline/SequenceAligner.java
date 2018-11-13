@@ -26,9 +26,11 @@ import edu.asu.zoophy.rest.custom.FastaRecord;
 import edu.asu.zoophy.rest.database.DaoException;
 import edu.asu.zoophy.rest.database.GenBankRecordNotFoundException;
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
+import edu.asu.zoophy.rest.genbank.ExcludedRecords;
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
-import edu.asu.zoophy.rest.genbank.ValidAccessions;
-import edu.asu.zoophy.rest.genbank.ValidRecords;
+import edu.asu.zoophy.rest.genbank.InvalidRecords;
+import edu.asu.zoophy.rest.genbank.JobAccessions;
+import edu.asu.zoophy.rest.genbank.JobRecords;
 import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
 import edu.asu.zoophy.rest.pipeline.glm.GLMException;
 import edu.asu.zoophy.rest.pipeline.glm.PredictorGenerator;
@@ -56,6 +58,7 @@ public class SequenceAligner {
 	private int endYear = 1000;
 	private Map<String, Integer> occurrences = null;
 	private int DEFAULT_POPSIZE = 10;
+	private final String JOB_WORK_DIR;
 	
 	/**
 	 * Constructor for regular ZooPhy Pipeline usage
@@ -69,6 +72,7 @@ public class SequenceAligner {
 		this.hierarchyIndexSearcher = hierarchyIndexSearcher;
 		PropertyProvider provider = PropertyProvider.getInstance();
 		JOB_LOG_DIR = provider.getProperty("job.logs.dir");
+		JOB_WORK_DIR = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"/";
 		log = Logger.getLogger("SequenceAligner"+job.getID());
 		uniqueGeonames = new LinkedHashSet<String>();
 		geonameCoordinates = new HashMap<String,String>();
@@ -76,6 +80,7 @@ public class SequenceAligner {
 			occurrences = new HashMap<String, Integer>();
 		}
 		this.job = job;
+		new File(JOB_WORK_DIR).mkdirs();			//create a new work directory for the job.
 	}
 	
 	/**
@@ -88,6 +93,7 @@ public class SequenceAligner {
 		this.dao = dao;
 		this.hierarchyIndexSearcher = hierarchyIndexSearcher;
 		JOB_LOG_DIR = null;
+		JOB_WORK_DIR = null;
 		job = null;
 	}
 	
@@ -103,14 +109,13 @@ public class SequenceAligner {
 	 * @return Final List of Records to be used in the Job
 	 * @throws PipelineException
 	 */
-	public ValidAccessions align(List<String> accessions, List<FastaRecord> fastaRecs, boolean isTest) throws PipelineException {
+	public JobAccessions align(List<String> accessions, List<FastaRecord> fastaRecs, boolean isTest) throws PipelineException {
 		FileHandler fileHandler = null;
 		String rawFasta= "";
-		ValidAccessions validAccessions = new ValidAccessions();
-		int distinctLocations;
+		JobAccessions jobAccessions = new JobAccessions();
 		Set<String> usedAccessions = new HashSet<String>();
 		try {
-			ValidRecords validRecords = new ValidRecords();
+			JobRecords jobRecords = null;
 			List<GenBankRecord> recs =new LinkedList<>();
 			logFile = new File(JOB_LOG_DIR+job.getID()+".log");
 			fileHandler = new FileHandler(JOB_LOG_DIR+job.getID()+".log", true);
@@ -119,9 +124,11 @@ public class SequenceAligner {
 	        log.addHandler(fileHandler);
 	        log.setUseParentHandlers(false);
 			log.info("Starting Mafft Job: "+job.getID());
-			validRecords = loadSequences(accessions, fastaRecs, true, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
-			recs = validRecords.getRecordList();
-			distinctLocations = validRecords.getDistinctLocations();
+			jobRecords = loadSequences(accessions, fastaRecs, true, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
+			recs = jobRecords.getValidRecordList();
+			
+			jobAccessions.setDistinctLocations(jobRecords.getDistinctLocations());
+			jobAccessions.setInvalidRecordList(jobRecords.getInvalidRecordList());
 			
 			List<GenBankRecord> recsGenbank = new LinkedList<>();
 			List<String> fastaID = new LinkedList<>();
@@ -140,7 +147,7 @@ public class SequenceAligner {
 					recordIter.remove();
 				}
 			}
-			
+			jobAccessions.setValidAccessions(usedAccessions);
 			if(recsGenbank.size()>0) {
 				log.info("After screening accession job includes: "+recsGenbank.size()+" records.");
 				rawFasta = fastaFormat(recsGenbank, (job.isUsingGLM() && !job.isUsingCustomPredictors()));
@@ -163,7 +170,7 @@ public class SequenceAligner {
 			log.info("Mafft Job: "+job.getID()+" has finished.");
 			log.info("Deleting raw fasta...");
 			try {
-				Path path = Paths.get(System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"-raw.fasta");
+				Path path = Paths.get(System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"/"+job.getID()+"-raw.fasta");
 				Files.delete(path);
 			}
 			catch (IOException e) {
@@ -172,10 +179,8 @@ public class SequenceAligner {
 			}
 			log.info("Mafft process complete");
 			fileHandler.close();
-			
-			validAccessions.setAccessions(usedAccessions);
-			validAccessions.setDistinctLocations(distinctLocations);
-			return validAccessions;
+
+			return jobAccessions;
 		}
 		catch (PipelineException pe) {
 			log.log(Level.SEVERE, "ERROR! Mafft process failed: "+pe.getMessage());
@@ -198,7 +203,7 @@ public class SequenceAligner {
 	 * @throws GLMException 
 	 */
 	private void createGLMFile(boolean usingDefault) throws GLMException {
-		String glmPath = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"-"+"predictors.txt";
+		String glmPath = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"/"+job.getID()+"-"+"predictors.txt";
 		if (usingDefault) {
 			PredictorGenerator generator = new PredictorGenerator(glmPath, startYear, endYear, uniqueGeonames,dao);
 			generator.generatePredictorsFile(occurrences);
@@ -218,7 +223,7 @@ public class SequenceAligner {
 			coordinates.append("\n");
 		}
 		coordinates.trimToSize();
-		String dir = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"-";
+		String dir = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"/"+job.getID()+"-";
 		PrintWriter coordinateWriter = null;
 		try {
 			coordinateWriter = new PrintWriter(dir+"coords.txt");
@@ -245,9 +250,12 @@ public class SequenceAligner {
 	 * @throws DaoException
 	 * @throws PipelineException
 	 */
-	public ValidRecords loadSequences(List<String> accessions, List<FastaRecord> fastaRecords, boolean isDisjoint, boolean isUsingDefaultGLM) throws GenBankRecordNotFoundException, DaoException, PipelineException {
+	public JobRecords loadSequences(List<String> accessions, List<FastaRecord> fastaRecords, boolean isDisjoint, boolean isUsingDefaultGLM) throws GenBankRecordNotFoundException, DaoException, PipelineException {
 		log.info("Loading records for Mafft...");
 		List<GenBankRecord> records = new LinkedList<GenBankRecord>();
+		List<ExcludedRecords> missingDateRecords = new LinkedList<>();
+		List<ExcludedRecords> unknowndateFormatRecords = new LinkedList<>();
+		
 		for (String accession : accessions) {
 			GenBankRecord record = dao.retrieveFullRecord(accession);
 			try {
@@ -256,10 +264,12 @@ public class SequenceAligner {
 						records.add(record);
 					}
 				} else {
+					missingDateRecords.add(new ExcludedRecords(accession, null));
 					log.log(Level.SEVERE, "ERROR! Record: "+accession+" removed. No Collection date found!");
 				}
 			}
 			catch (Exception e) {
+				unknowndateFormatRecords.add(new ExcludedRecords(accession, null));
 				log.log(Level.SEVERE, "ERROR! Issue Adding Record: "+accession+" : "+e.getMessage());
 			}
 		}
@@ -279,23 +289,48 @@ public class SequenceAligner {
 		if (isDisjoint) {
 			GeonameDisjoiner disjoiner  = new GeonameDisjoiner(hierarchyIndexSearcher);
 			if (isUsingDefaultGLM) {
-				return disjoiner.disjoinRecordsToStates(records);
+				JobRecords jobRecords = disjoiner.disjoinRecordsToStates(records);
+				if(missingDateRecords.size()>0) {
+					jobRecords.getInvalidRecordList().add(new InvalidRecords(missingDateRecords, "Missing Date Information"));
+				}
+				if(unknowndateFormatRecords.size()>0) {
+					jobRecords.getInvalidRecordList().add(new InvalidRecords(unknowndateFormatRecords, "Unknown Date Format"));
+				}
+				return jobRecords;
 			}
 			else {
-				return disjoiner.disjoinRecords(records);
+				JobRecords jobRecords = disjoiner.disjoinRecords(records);
+				if(missingDateRecords.size()>0) {
+					jobRecords.getInvalidRecordList().add(new InvalidRecords(missingDateRecords, "Missing Date Information"));
+				}
+				if(unknowndateFormatRecords.size()>0) {
+					jobRecords.getInvalidRecordList().add(new InvalidRecords(unknowndateFormatRecords, "Unknown Date Format"));
+				}
+				return jobRecords;
 			}
 		}
 		else {
+			List<ExcludedRecords> missingLocationRecords = new LinkedList<>();
+			List<InvalidRecords> invalidRecords = new LinkedList<>();
+			
 			for (int i = 0; i < records.size(); i++) {
 				GenBankRecord record = records.get(i);
 				if (record.getGeonameLocation() == null || Normalizer.normalizeLocation(record.getGeonameLocation()).equalsIgnoreCase("unknown")) {
+					missingLocationRecords.add(new ExcludedRecords(record.getAccession(), null));
 					records.remove(i);
 				}
 			}
-			ValidRecords validRecords = new ValidRecords();
-			validRecords.setDistinctLocations(DEFAULT_POPSIZE);
-			validRecords.setRecordList(records);
-			return validRecords;
+			if(!missingLocationRecords.isEmpty()) {
+				invalidRecords.add(new InvalidRecords(missingLocationRecords,"Missing Location Information"));
+			}
+			if(!missingDateRecords.isEmpty()) {
+				invalidRecords.add(new InvalidRecords(missingDateRecords,"Missing Date Information"));
+			}
+			if(!unknowndateFormatRecords.isEmpty()) {
+				invalidRecords.add(new InvalidRecords(unknowndateFormatRecords,"Unknown Date Format"));
+			}
+			JobRecords jobRecords = new JobRecords(records, invalidRecords, DEFAULT_POPSIZE);
+			return jobRecords;
 		}
 	}
 
@@ -307,7 +342,7 @@ public class SequenceAligner {
 	 */
 	private String runMafft(String rawFasta) throws AlignerException {
 		log.info("Setting up Mafft for job: "+job.getID());
-		String dir = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"-";
+		String dir = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"/"+job.getID()+"-";
 		String rawFilePath = dir + "raw.fasta";
 		String alignedFilePath = dir+"aligned.fasta";
 		try {
@@ -349,7 +384,7 @@ public class SequenceAligner {
 	 */
 	private String fakeMafft(String rawFasta) {
 		log.info("Faking Mafft for job: "+job.getID());
-		String dir = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"-";
+		String dir = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"/"+job.getID()+"-";
 		String rawFilePath = dir + "raw.fasta";
 		String alignedFilePath = dir+"aligned.fasta";
 		try {

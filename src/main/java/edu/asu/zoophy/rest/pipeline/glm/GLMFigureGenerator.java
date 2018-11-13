@@ -39,7 +39,7 @@ public class GLMFigureGenerator {
 		BEAST_SCRIPTS_DIR = provider.getProperty("beast.scripts.dir");
 		DAN_R_SCRIPT = System.getProperty("user.dir")+"/make_predictor_fig.R";
 		DAN_BASH_SCRIPT = System.getProperty("user.dir")+"/make_table.sh";
-		JOB_WORK_DIR = System.getProperty("user.dir")+"/ZooPhyJobs/";
+		JOB_WORK_DIR = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"/";;
 		filesToCleanup = new LinkedHashSet<String>();
 		log = Logger.getLogger("GLMFigureGenerator"+job.getID());
 		this.job = job;

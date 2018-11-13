@@ -9,12 +9,11 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.lang.ProcessBuilder.Redirect;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.logging.FileHandler;
@@ -29,7 +28,7 @@ import edu.asu.zoophy.rest.pipeline.glm.GLMException;
 
 /**
  * Responsible for running BEAST processes
- * @author devdemetri
+ * @author devdemetri, amagge
  */
 public class BeastRunner {
 	
@@ -38,6 +37,7 @@ public class BeastRunner {
 	private final String SPREAD3;
 	private final String WORLD_GEOJSON;
 	private final String RENDER_DIR;
+	private final String ZOOPHY_VIZ;
 	private final String FIGTREE_TEMPLATE;
 	private final String GLM_SCRIPT;
 	private final String JOB_WORK_DIR;
@@ -59,22 +59,27 @@ public class BeastRunner {
 	private boolean wasKilled = false;
 	private boolean isTest = false;
 	private final int distinctLocations;
+	private int mailUpdateCount = 0;
 	
 	public BeastRunner(ZooPhyJob job, ZooPhyMailer mailer, int distinctLocations) throws PipelineException {
 		PropertyProvider provider = PropertyProvider.getInstance();
 		JOB_LOG_DIR = provider.getProperty("job.logs.dir");
 		BEAST_SCRIPTS_DIR = provider.getProperty("beast.scripts.dir");
-		WORLD_GEOJSON = provider.getProperty("geojson.location");
-		RENDER_DIR = provider.getProperty("spread3.result.dir");
-		FIGTREE_TEMPLATE = System.getProperty("user.dir")+"/Templates/figtreeBlock.template";
+		// SpreaD3 Settings
 		SPREAD3 = provider.getProperty("spread3.jar");
+		RENDER_DIR = provider.getProperty("spread3.result.dir");
+		WORLD_GEOJSON = provider.getProperty("geojson.location");
+		// Zoophy-Viz Settings
+		ZOOPHY_VIZ = provider.getProperty("zoophyviz.dir");
+		// FigTree Settings
+		FIGTREE_TEMPLATE = System.getProperty("user.dir")+"/Templates/figtreeBlock.template";
 		GLM_SCRIPT = provider.getProperty("glm.script");
 		log = Logger.getLogger("BeastRunner"+job.getID());
 		this.mailer = mailer;
 		this.job = job;
 		this.distinctLocations = distinctLocations;
 		filesToCleanup = new LinkedHashSet<String>();
-		JOB_WORK_DIR = System.getProperty("user.dir")+"/ZooPhyJobs/";
+		JOB_WORK_DIR = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"/";
 	}
 	
 	/**
@@ -82,9 +87,10 @@ public class BeastRunner {
 	 * @return resulting Tree File
 	 * @throws PipelineException 
 	 */
-	public File run() throws PipelineException {
+	public List<File> run() throws PipelineException {
 		String resultingTree = null;
 		FileHandler fileHandler = null;
+		List<File> fileList = new ArrayList<File>();
 		try {
 			logFile = new File(JOB_LOG_DIR+job.getID()+".log");
 			fileHandler = new FileHandler(JOB_LOG_DIR+job.getID()+".log", true);
@@ -120,13 +126,18 @@ public class BeastRunner {
 			if (tree.exists()) {
 				annotateTreeFile(resultingTree);
 				runSpread();
+				File spreadVideo = runZoophyViz();
+				if (spreadVideo != null){
+					fileList.add(spreadVideo);
+				}
 				log.info("BEAST process complete.");
 			}
 			else {
 				log.log(Level.SEVERE, "TreeAnnotator did not proudce .tree file!");
 				throw new BeastException("TreeAnnotator did not proudce .tree file!", "Tree Annotator Failed");
 			}
-			return tree;
+			fileList.add(tree);
+			return fileList;
 		}
 		catch (PipelineException pe) {
 			log.log(Level.SEVERE, "BEAST process failed: "+pe.getMessage());
@@ -162,7 +173,7 @@ public class BeastRunner {
 	 */
 	private void runBeastGen(String fastaFile, String beastInput, XMLParameters xmlParameters) throws BeastException, IOException, InterruptedException {
 		log.info("Finding BEASTGen template with parameters:" + xmlParameters.toString());
-		String workingDir = System.getProperty("user.dir")+"/ZooPhyJobs/";
+		String workingDir = JOB_WORK_DIR;
 		File beastGenDir = new File(System.getProperty("user.dir")+"/BeastGen");
 		filesToCleanup.add(JOB_WORK_DIR+fastaFile);
 		//TODO: add/change templates programmatically by importing beastgen.jar's objects
@@ -394,6 +405,44 @@ public class BeastRunner {
 	}
 	
 	/**
+	 * Runs zoophy-viz to generate data visualization video file using python 
+	 * @return File path to resulting video mp4 file
+	 * @throws BeastException
+	 * @throws InterruptedException
+	 * @throws IOException
+	 */
+	private File runZoophyViz() throws BeastException, InterruptedException, IOException {
+		File spreadVideo = null;
+		String workingDir = JOB_WORK_DIR+job.getID();
+		log.info("Running the python zoophy-viz generator...");
+		String coordinatesFile = workingDir+"-coords.txt";
+		String treeFile = workingDir+".tree";
+		File zoophyVizDirectory = new File(ZOOPHY_VIZ);
+		if (!zoophyVizDirectory.exists()) {
+			log.log(Level.SEVERE, "Invalid absolute path to zoophy-viz repository given: "+ZOOPHY_VIZ);
+			throw new BeastException("Invalid absolute path to zoophy-viz repository given!"+ZOOPHY_VIZ, "zoophy-viz failed");
+		}
+		ProcessBuilder builder = new ProcessBuilder("./gen_pgmt_spread.sh", treeFile, coordinatesFile, workingDir).directory(zoophyVizDirectory);
+		builder.redirectOutput(Redirect.appendTo(logFile));
+		builder.redirectError(Redirect.appendTo(logFile));
+		log.info("Starting Process: "+builder.command().toString());
+		Process zoophyVizProcess = builder.start();
+		PipelineManager.setProcess(job.getID(), zoophyVizProcess);
+		zoophyVizProcess.waitFor();
+		if (zoophyVizProcess.exitValue() != 0) {
+			log.log(Level.SEVERE, "zoophy-viz generation failed! with code: "+zoophyVizProcess.exitValue());
+			// throw new BeastException("zoophy-viz generation failed! with code: "+zoophyVizProcess.exitValue(), "zoophy-viz failed");
+		} else {
+			spreadVideo = new File(workingDir + "/spread.mp4");
+			if (!spreadVideo.exists()) {
+				spreadVideo = null;
+			}
+		}
+		log.info("zoophy-viz finished.");
+		return spreadVideo;
+	}
+
+	/**
 	 * Runs SpreaD3 to generate data visualization files 
 	 * @throws BeastException
 	 * @throws InterruptedException
@@ -445,7 +494,8 @@ public class BeastRunner {
 	 * Deletes unwanted files after the BEAST process is finished
 	 */
 	private void cleanupBeast() {
-		log.info("Cleaning up BEAST...");
+		// This function is disabled to access the job files in case of an error
+	/*	log.info("Cleaning up BEAST...");
 		try {
 			Path fileToDelete;
 			for (String filePath : filesToCleanup) {
@@ -463,7 +513,7 @@ public class BeastRunner {
 		}
 		catch (Exception e) {
 			log.log(Level.SEVERE, "BEAST cleanup failed: "+e.getMessage());
-		}
+		}*/
 	}
 	
 	/**
@@ -511,7 +561,11 @@ public class BeastRunner {
 		}
 		try {
 			if (finalUpdate || checkRateMatrix()) {
-				mailer.sendUpdateEmail(finishTime, finalUpdate);
+				//reason for count: handler reads a couple more lines and sends update mail even after tail.stop()
+				if(mailUpdateCount < 2) {
+					mailer.sendUpdateEmail(finishTime, finalUpdate);
+					mailUpdateCount ++;
+				}
 			}
 			else {
 				killBeast("Rate Matrix Error. Try reducing discrete states.");
@@ -606,20 +660,24 @@ public class BeastRunner {
 	  
 	  public void handle(String line) {
 		  if (line != null && !(line.trim().isEmpty() || line.contains("INFO:") || line.contains("usa.ac.asu.dbi.diego.viralcontamination3"))) {
-			  if (line.contains("hours/million states") && (reachedCheck(line.trim()) || reached)) {
+			  if ((line.contains("hours/million states") || line.contains("minutes/million states")) && (reachedCheck(line.trim()) || reached)) {
 				  if (!PipelineManager.checkProcess(job.getID())) {
 					  tail.stop();
 					  killBeast("Process was already terminated.");
 				  }
 				  else {
-					  System.out.println("\nTailer Reading: "+line);
+					System.out.println("Tailer Reading: "+line);
 					  reached = true;
 					  try {
 						  String[] beastColumns = line.split("\t");
 						  if (beastColumns.length > 0) {
 							  String progressRate = beastColumns[beastColumns.length-1].trim();
 							  int estimatedHoursToGo;
-							  double hoursPerMillion = Double.parseDouble(progressRate.substring(0, progressRate.indexOf('h')));
+							  double hoursPerMillion = Double.parseDouble(progressRate.substring(0, progressRate.indexOf(' ')));
+							  // if reporting is in minutes, convert to hours 
+							  if (progressRate.contains("minutes")){
+								hoursPerMillion = hoursPerMillion/60;
+							  }
 							  double millionsInJob = Math.ceil(job.getXMLOptions().getChainLength() / 1000000);
 							  if (finalUpdate) {
 								  estimatedHoursToGo = (int) Math.ceil(hoursPerMillion*(millionsInJob*0.5));
@@ -675,7 +733,6 @@ public class BeastRunner {
 			  return false;
 		  }
 	  }
-	  
 	}
 	
 	/**

@@ -3,20 +3,22 @@ package edu.asu.zoophy.rest;
 import java.util.LinkedList;
 import java.util.List;
 
+import edu.asu.zoophy.rest.genbank.InvalidRecords;
+
 /**
  * ZooPhy Job Validation Details
- * @author devdemetri
+ * @author devdemetri, kbhangal
  */
 public class ValidationResults {
 	
 	private String error;
 	private List<String> accessionsUsed;
-	private List<String> accessionsRemoved;
+	private List<InvalidRecords> accessionsRemoved;
 	
 	public ValidationResults() {
 		error = null;
 		accessionsUsed = new LinkedList<String>();
-		accessionsRemoved = new LinkedList<String>();
+		accessionsRemoved = new LinkedList<InvalidRecords>();
 	}
 
 	public String getError() {
@@ -35,11 +37,11 @@ public class ValidationResults {
 		this.accessionsUsed = accessionsUsed;
 	}
 	
-	public List<String> getAccessionsRemoved() {
+	public List<InvalidRecords> getAccessionsRemoved() {
 		return accessionsRemoved;
 	}
 
-	public void setAccessionsRemoved(List<String> accessionsRemoved) {
+	public void setAccessionsRemoved(List<InvalidRecords> accessionsRemoved) {
 		this.accessionsRemoved = accessionsRemoved;
 	}
 

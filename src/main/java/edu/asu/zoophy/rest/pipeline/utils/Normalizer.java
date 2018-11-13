@@ -32,6 +32,10 @@ public class Normalizer {
 		try {
 			if (location.getLocation() != null) {
 				String loc = location.getLocation().trim();
+				// Replace non-ascii chars with ascii equivalents
+				loc = java.text.Normalizer.normalize(loc, java.text.Normalizer.Form.NFD);
+				// Remove non-ascii chars that weren't normalized
+				loc = loc.replaceAll("[^\\x00-\\x7F]", "");
 				if (loc.contains(",")) {
 					loc  = loc.split(",")[0];
 				}
