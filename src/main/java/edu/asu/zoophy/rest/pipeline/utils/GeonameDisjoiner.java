@@ -11,6 +11,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.logging.Logger;
 
 import edu.asu.zoophy.rest.genbank.ExcludedRecords;
@@ -164,7 +165,7 @@ public class GeonameDisjoiner {
 	 * @throws GeoHierarchyException 
 	 */
 	public List<GenBankRecord> disjoinRecords(List<GenBankRecord> records, String commonType) throws DisjoinerException, GLMException, GeoHierarchyException {
-		List<GenBankRecord> allRecords = records;
+		List<GenBankRecord> allRecords = new LinkedList<>();
 		List<ExcludedRecords> higherAdminRecords = new LinkedList<>();
 		InvalidRecords invalidRecord = null;
 		
@@ -177,6 +178,7 @@ public class GeonameDisjoiner {
 				recordIter = records.listIterator();
 				while (recordIter.hasNext()) {
 					GenBankRecord record = recordIter.next();
+					allRecords.add(record);
 					Location recordLocation = record.getGeonameLocation();
 					boolean isDisjoint = true;
 					//selected record should be same or lower level than common level
@@ -266,7 +268,6 @@ public class GeonameDisjoiner {
 				throw new DisjoinerException("Error updating record locations to disjoint locations:\t"+e.getMessage(), "Error Disjoining Locations");
 			}
 			idToLocation.clear();
-			
 			distinctLocations.addAll(locations);	
 			if(!higherAdminRecords.isEmpty()) {
 				invalidRecord = new InvalidRecords(higherAdminRecords,HIGHER_ADMIN_LEVEL+ adminCodeToCommonName(commonType) +" level");
@@ -345,6 +346,8 @@ public class GeonameDisjoiner {
 			records.add(record);
 			countries.put(country, records);
 		}
+		
+		countries = sortCountryMap(countries);
 		return countries;
 	}
 	
@@ -410,6 +413,22 @@ public class GeonameDisjoiner {
 			result.put(entry.getKey(), entry.getValue());
 		}
 		return result;
+	}
+	
+	public static Map<String, List<GenBankRecord>> sortCountryMap(final Map<String, List<GenBankRecord>> orig)
+	{
+	    final Comparator<String> c = new Comparator<String>()
+	    {
+	        @Override
+	        public int compare(final String o1, final String o2)
+	        {
+	            return - (orig.get(o1).size() - orig.get(o2).size());
+	        }
+	    };
+
+	    final Map<String, List<GenBankRecord>> ret = new TreeMap<String, List<GenBankRecord>>(c);
+	    ret.putAll(orig);
+	    return ret;
 	}
 	
 	/**
