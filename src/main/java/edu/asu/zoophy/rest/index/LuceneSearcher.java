@@ -131,6 +131,7 @@ public class LuceneSearcher {
 		IndexSearcher indexSearcher = null;
 		Query query;
 		TopDocs documents;
+		
 		try {
 			reader = DirectoryReader.open(indexDirectory);
 			indexSearcher = new IndexSearcher(reader);
