@@ -6,7 +6,11 @@ import java.util.Set;
 import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.genbank.InvalidRecords;
 import edu.asu.zoophy.rest.genbank.Location;
-
+/**
+ * Records for job with distinct locations.
+ * It is used as a response while disjoining each country
+ * @author kbhangal
+ */
 public class DisjoinerResponse {
 	private List<GenBankRecord> validRecordList;		
 	private List<InvalidRecords> invalidRecordList;

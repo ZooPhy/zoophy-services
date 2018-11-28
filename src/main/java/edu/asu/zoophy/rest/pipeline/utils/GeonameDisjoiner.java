@@ -311,10 +311,10 @@ public class GeonameDisjoiner {
 		StringBuilder userErr = new StringBuilder("Too many distinct locations (limit is "+MAX_DISTINCT_LOCATIONS+"): " + distinctLocations.size());
 		userErr.append("\nLocations: ");
 		for (Location location : distinctLocations) {
-			userErr.append("\n\t");
 			userErr.append(location.getLocation());
+			userErr.append(", ");
 		}
-		throw new DisjoinerException("Too many distinct locations: "+distinctLocations.size(), userErr.toString());
+		throw new DisjoinerException("Too many distinct locations: "+distinctLocations.size(), userErr.substring(0,userErr.length()-2));
 	}
 	
 	
