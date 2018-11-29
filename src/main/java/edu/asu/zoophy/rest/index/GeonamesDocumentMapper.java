@@ -36,7 +36,7 @@ public class GeonamesDocumentMapper {
 				}
 			}
 			location.setLocation(luceneDocument.get("Name"));
-			location.setGeonameType(luceneDocument.get("LocationType"));
+			location.setGeonameType(luceneDocument.get("Code"));
 			if (luceneDocument.get("Latitude") != null) {
 				location.setLatitude(Double.parseDouble(luceneDocument.get("Latitude")));
 			}
