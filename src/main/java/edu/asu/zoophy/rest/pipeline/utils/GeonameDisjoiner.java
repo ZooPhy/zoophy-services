@@ -357,7 +357,6 @@ public class GeonameDisjoiner {
 		}
 		
 		countries = sortCountryMap(countries);
-		log.info("Countrues: "+ countries);
 		return countries;
 	}
 	
