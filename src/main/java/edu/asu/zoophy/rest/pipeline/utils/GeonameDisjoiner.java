@@ -36,22 +36,20 @@ public class GeonameDisjoiner {
 	private final int MAX_DISTINCT_LOCATIONS;
 	private Map<Long, String> US_STATES;
 	private Map<String, String> adminLevel;
-	private final long BAD_DISJOIN = -1L;
-	private Map<String,Set<Long>> ancestors = null;
 	private final Logger log;
-	private final int DISJOIN_THRESHOLD = 50;	//disjoin only if less than 50% of the records are excluded
+	private final int DISJOIN_THRESHOLD;
 	
 	private final String MISSING_LOCATION = "Missing Location information";
 	private final String INCOMPLETE_HIERARCHY = "Incomplete Location Hierarchy inforamtion";
 	private final String HIGHER_ADMIN_LEVEL = "Insufficient location information at ";
 	private final String DEFAULT_DISJOIN_LEVEL = "PCLI";
 
-	
 	public GeonameDisjoiner(LuceneHierarchySearcher hierarchyIndexSearcher) throws PipelineException {
 		this.hierarchyIndexSearcher = hierarchyIndexSearcher;
 		PropertyProvider provider = PropertyProvider.getInstance();
 		adminLevel = setupAdminLevelMap();
 		MAX_DISTINCT_LOCATIONS = Integer.parseInt(provider.getProperty("job.max.locations"));
+		DISJOIN_THRESHOLD = Integer.parseInt(provider.getProperty("job.disjoiner.threshold"));
 		log = Logger.getLogger("GeonameDisjoiner");
 	}
 	
@@ -68,10 +66,12 @@ public class GeonameDisjoiner {
 		Map<String,List<GenBankRecord>> countryBasedRecords = new HashMap<>();
 		Set<Location> distinctLocations = new LinkedHashSet<Location>(50);
 		List<InvalidRecords> invalidRecords = new LinkedList<>();
+		Map<String,Set<Long>> ancestors = null;
 		
-		JobRecords filteredRecords = removeIncompleteRecords(recordsToCheck);
-		recordsToCheck = filteredRecords.getValidRecordList();
-		invalidRecords.addAll(filteredRecords.getInvalidRecordList());
+		DisjoinerCleanUpResponse filteredRecords = removeIncompleteRecords(recordsToCheck);
+		ancestors = filteredRecords.getAncestors();
+		recordsToCheck = filteredRecords.getJobRecords().getValidRecordList();
+		invalidRecords.addAll(filteredRecords.getJobRecords().getInvalidRecordList());
 		
 		countryBasedRecords =  generateCountryMap(recordsToCheck);
 		distinctLocations = setupInitialDistinctLocations(countryBasedRecords);
@@ -83,11 +83,11 @@ public class GeonameDisjoiner {
 			List<GenBankRecord> records = entry.getValue();
 			distinctLocations = removeFromDistinctLocations(distinctLocations, country);
 			
-			Map<String,Integer> types = adminLevelsTotalLocationMap(records);
+			Map<String,Integer> types = adminLevelsMap(records);
 			String disjoinLevel = calculateDisjoinLevel(types,countryBasedRecords.size());
 			log.info("Admin levels in "+country +": "+types);
 			log.info("Disjoiner level: "+disjoinLevel);
-			DisjoinerResponse filteredCountryRecords = disjoinRecords(records, disjoinLevel, distinctLocations);
+			DisjoinerResponse filteredCountryRecords = disjoinRecords(records, disjoinLevel, distinctLocations, ancestors);
 			
 			validRecords.addAll(filteredCountryRecords.getValidRecordList());
 			invalidRecords.addAll(filteredCountryRecords.getInvalidRecordList());
@@ -98,22 +98,30 @@ public class GeonameDisjoiner {
 		if (distinctLocations.size() < 2) {
 			errorTooFewLocations(distinctLocations);
 		}
+		printDisjoinerResult(validRecords);
 		JobRecords jobRecords = new JobRecords(validRecords, invalidRecords, distinctLocations.size());
 		return jobRecords;
 	}
 	
+	private void printDisjoinerResult(List<GenBankRecord> validRecords) {
+		log.info("Disjoiner result");
+		for(GenBankRecord record : validRecords) {
+			log.info(record.getGeonameLocation().getCountry() + " : " + record.getGeonameLocation().getGeonameType());
+		}
+	}
+	
 	/**
 	 * Remove any record which is missing location information or information about it;s ancestors
-	 * @param recordsToCheck - list of records to Disjoin
-	 * @return List of valid records.
+	 * @param recordsToCheck - list of records to DisJoin
+	 * @return DisjoinerCleanUpResponse
 	 * @throws DisjoinerException 
 	 */
-	private JobRecords removeIncompleteRecords(List<GenBankRecord> recordsToCheck) throws DisjoinerException {
+	private DisjoinerCleanUpResponse removeIncompleteRecords(List<GenBankRecord> recordsToCheck) throws DisjoinerException {
 		List<ExcludedRecords> missingLocationRecords = new LinkedList<>();
 		List<ExcludedRecords> incompleteHierarchy = new LinkedList<>();
 		List<InvalidRecords> invalidRecords = new LinkedList<>();
 		Iterator<GenBankRecord> Iter = recordsToCheck.listIterator();
-		ancestors = new HashMap<String,Set<Long>>((int)(recordsToCheck.size())+1, 1.0f);
+		Map<String,Set<Long>> ancestors = new HashMap<String,Set<Long>>((int)(recordsToCheck.size())+1, 1.0f);
 		try {
 			while (Iter.hasNext()) {
 				GenBankRecord record = Iter.next();
@@ -152,7 +160,7 @@ public class GeonameDisjoiner {
 			if(!incompleteHierarchy.isEmpty()) {
 				invalidRecords.add(new InvalidRecords(incompleteHierarchy,INCOMPLETE_HIERARCHY));
 			}
-			return new JobRecords(recordsToCheck, invalidRecords, null);
+			return new DisjoinerCleanUpResponse(new JobRecords(recordsToCheck, invalidRecords, null), ancestors);
 		}
 		catch (PipelineException pe) {
 			throw pe;
@@ -166,18 +174,18 @@ public class GeonameDisjoiner {
 	 * Normalized locations to a set of disjoint locations based on the administration level.
 	 * @param recordsToCheck - list of records to Disjoin
 	 * @param commonType - administration level 
+	 * @param distinctLocations - set of distinct locations
+	 * @param ancestors - map of locations and their ancestors
 	 * @return Filtered records with valid, disjoint Geoname locations.
 	 * @throws DisjoinerException
 	 * @throws GLMException 
 	 * @throws GeoHierarchyException 
 	 */
-	public DisjoinerResponse disjoinRecords(List<GenBankRecord> records, String commonType, Set<Location> distinctLocations) throws DisjoinerException, GLMException, GeoHierarchyException {
+	public DisjoinerResponse disjoinRecords(List<GenBankRecord> records, String commonLevel, Set<Location> distinctLocations, Map<String,Set<Long>> ancestors) throws DisjoinerException, GLMException, GeoHierarchyException {
 		List<GenBankRecord> allRecords = new LinkedList<>();
 		List<ExcludedRecords> higherAdminRecords = new LinkedList<>();
 		List<InvalidRecords> invalidRecords = new LinkedList<>();
 		Iterator<GenBankRecord> recordIter = null;
-		
-		Map<Long,Long> disjoins = new HashMap<Long,Long>((int)(records.size()*.75)+1);
 		Set<Location> locations = new LinkedHashSet<Location>(50);
 		Set<Location> locationsToRemove;
 		Map<Long,String> idToLocation = new HashMap<Long,String>(50);
@@ -186,21 +194,28 @@ public class GeonameDisjoiner {
 				recordIter = records.listIterator();
 				while (recordIter.hasNext()) {
 					GenBankRecord record = recordIter.next();
-					allRecords.add(record);
+					allRecords.add((GenBankRecord) record.clone());
 					Location recordLocation = record.getGeonameLocation();
 					boolean isDisjoint = true;
-					//selected record should be same or lower level than common level
-					if (hierarchy.isParent(commonType, record.getGeonameLocation().getGeonameType())) {
+					if (hierarchy.isParent(commonLevel, recordLocation.getGeonameType())) {
+						//remove any record with admin level above the selected admin level 
 						isDisjoint = false;
 						recordIter.remove();
 						higherAdminRecords.add(new ExcludedRecords(record.getAccession(), adminCodeToCommonName(record.getGeonameLocation().getGeonameType())));
 					}
 					else {
+						/*
+						 * Fill up the locations set and do step1 of pre-pruning :
+						 * 1. Ignore same locations
+						 * 2. Ignore locations which have ancestors along the set of records and update those locations with 
+						 * 	  their	ancestors to reduce load at the time of pruning
+						 * e.g. - do not include Arizona if we already have Tempe, AZ
+						 */
 						for (Location parent : locations) {
-							if (isAncestor(parent, recordLocation)) {
+							if (isAncestor(ancestors, parent, recordLocation)) {
 								isDisjoint = false;
 								if (!parent.getGeonameID().equals(recordLocation.getGeonameID())) {
-									disjoins.put(recordLocation.getGeonameID(), parent.getGeonameID());
+									record.setGeonameLocation(parent);
 								}
 								break;
 							}
@@ -222,70 +237,73 @@ public class GeonameDisjoiner {
 				throw new DisjoinerException("Error filtering out locations above Common Type:\t"+e.getMessage(), "Error Filtering Locations");
 			}
 			locationsToRemove = new HashSet<Location>();
+			/*
+			 * Step 2 of pre-pruning:
+			 * All the ancestors were not removed in step1
+			 * Remove from location set and update record locations which have ancestors
+			 */
 			try {
-				for (Location location : locations) {
+				recordIter = records.listIterator();
+				while (recordIter.hasNext()) {
+					GenBankRecord record = recordIter.next();
+					Location location = record.getGeonameLocation();
 					for (Location locationParent : locations) {
 						if (!(locationParent.getGeonameID().equals(location.getGeonameID()) || locationsToRemove.contains(locationParent))) {
-							if (isAncestor(locationParent,location)) {
+							if (isAncestor(ancestors, locationParent, location)) {
 								if (!location.getGeonameID().equals(locationParent.getGeonameID())) {
-									disjoins.put(location.getGeonameID(), locationParent.getGeonameID());
+									record.setGeonameLocation(locationParent);
 								}
 								locationsToRemove.add(location);
 								break;
 							}
 						}
-					}
+					}	
 				}
 				locations.removeAll(locationsToRemove);
-			}
-			catch (PipelineException pe) {
+			}catch (PipelineException pe) {
 				throw pe;
 			}
 			catch (Exception e) {
 				throw new DisjoinerException("Error removing overlapping locations:\t"+e.getMessage(), "Error Disjoining Locations");
 			}
 			locationsToRemove.clear();
-			
-			try {
-				for (Location location : locations) {
-					idToLocation.put(location.getGeonameID(), location.getLocation());
-				}
-				recordIter = records.listIterator();
-				while (recordIter.hasNext()) {
-					GenBankRecord record = recordIter.next();
-					Long tempGeonameID = record.getGeonameLocation().getGeonameID();
-					if (disjoins.get(tempGeonameID) != null) {
-						if (disjoins.get(tempGeonameID).longValue() == BAD_DISJOIN) {
-							recordIter.remove();
-							higherAdminRecords.add(new ExcludedRecords(record.getAccession(), adminCodeToCommonName(record.getGeonameLocation().getGeonameType())));
-						}
-						Long disjointID = null;
-						while (disjoins.get(tempGeonameID) != null) {
-							if (disjoins.get(tempGeonameID) != null) {
-								disjointID = disjoins.get(tempGeonameID);
-							}
-							tempGeonameID = disjoins.get(tempGeonameID);
-						}
-						String newLoc = idToLocation.get(disjointID);
-						setLocationName(record, newLoc);
+			/*
+			 * Pruning - Prune the locations by updating the location of each record by replacing it with location at commonLevel
+			 */
+			Map<Long, Location> selectedAncestor = new HashMap<>();
+			recordIter = records.listIterator();
+			while (recordIter.hasNext()) {
+				GenBankRecord record = recordIter.next();
+				Location location = record.getGeonameLocation();
+				if(!location.getGeonameType().equals(commonLevel)) {
+					Location courselocation = selectedAncestor.get(location.getGeonameID());
+					if(courselocation==null) {
+						Set<Long> ancestorList = ancestors.get(record.getAccession());
+						courselocation = fineToCoarseLocation(ancestorList, commonLevel);
+						selectedAncestor.put(location.getGeonameID(), courselocation);
+					}
+					if(courselocation!=null) {
+						locationsToRemove.add(location);
+						record.setGeonameLocation(courselocation);
+						locations = addToLocations(locations, courselocation);
+					}else {
+						log.info("Couldn't find coarse location for " + record.getAccession());
 					}
 				}
-				recordIter = null;
 			}
-			catch (Exception e) {
-				throw new DisjoinerException("Error updating record locations to disjoint locations:\t"+e.getMessage(), "Error Disjoining Locations");
-			}
+			locations.removeAll(locationsToRemove);
+			recordIter = null;
+		
 			idToLocation.clear();
 			distinctLocations.addAll(locations);	
 			if(!higherAdminRecords.isEmpty()) {
-				invalidRecords.add(new InvalidRecords(higherAdminRecords,HIGHER_ADMIN_LEVEL+ adminCodeToCommonName(commonType) +" level"));
+				invalidRecords.add(new InvalidRecords(higherAdminRecords,HIGHER_ADMIN_LEVEL+ adminCodeToCommonName(commonLevel) +" level"));
 			}
 			DisjoinerResponse disjoinerResponse = new DisjoinerResponse(records, invalidRecords, distinctLocations);
-			if(distinctLocations.size() > MAX_DISTINCT_LOCATIONS ) {
-				if(!commonType.equals(DEFAULT_DISJOIN_LEVEL)) {
+			if(distinctLocations.size() > MAX_DISTINCT_LOCATIONS) {
+				if(!commonLevel.equals(DEFAULT_DISJOIN_LEVEL)) {
 					distinctLocations.removeAll(locations);
-					disjoinerResponse = disjoinRecords(allRecords, DEFAULT_DISJOIN_LEVEL, distinctLocations);
-
+					disjoinerResponse = disjoinRecords(allRecords, DEFAULT_DISJOIN_LEVEL, distinctLocations, ancestors);
 				}else {
 					errorTooManyLocations(distinctLocations);
 				}	
@@ -297,6 +315,42 @@ public class GeonameDisjoiner {
 		}catch (Exception e) {
 			throw new DisjoinerException("Uncaught Disjoiner error:"+e.getMessage(), "Error Disjoining Locations");
 		}
+	}
+	
+
+	/*
+	 * For a given location get the ancestor with level equal to the commonLevel
+	 */
+	private Location fineToCoarseLocation(Set<Long> ancestors, String commonLevel) {
+		Location location = null;
+		 for(Long ancestor: ancestors) {
+			 try {
+				location = hierarchyIndexSearcher.findGeonameLocation(String.valueOf(ancestor));
+				if(location!=null) {
+					String level = location.getGeonameType();
+					if(level!=null && level.equalsIgnoreCase(commonLevel)) {
+						break;
+					}
+				}
+			} catch (LuceneSearcherException e) {
+				location = null;
+			}
+		 }
+		 return location;
+	}
+	
+	private Set<Location> addToLocations(Set<Location> locations, Location location){
+		boolean exists = false;
+		for(Location loc : locations) {
+			if(String.valueOf(loc.getGeonameID()).equals(String.valueOf(location.getGeonameID()))) {
+				exists = true;
+				break;
+			}
+		}
+		if(!exists) {
+			locations.add(location);
+		}
+		return locations;
 	}
 
 	private void errorTooFewLocations(Set<Location> distinctLocations) throws DisjoinerException{
@@ -317,7 +371,11 @@ public class GeonameDisjoiner {
 		throw new DisjoinerException("Too many distinct locations: "+distinctLocations.size(), userErr.substring(0,userErr.length()-2));
 	}
 	
-	
+	/**
+	 * Initially distinctLocation set is filled with distinct countries of records
+	 * @param countryBasedRecords - map of countries and it's corresponding records
+	 * @return Set of distinct locations.
+	 */
 	private Set<Location> setupInitialDistinctLocations(Map<String,List<GenBankRecord>> countryBasedRecords) {
 		Set<Location> distinctLocations = new LinkedHashSet<Location>(50);
 		for(String country: countryBasedRecords.keySet()) {
@@ -328,7 +386,13 @@ public class GeonameDisjoiner {
 		return distinctLocations;
 	}
 	
-	//remove the country which is being explored from the distinct location list
+	/**
+	 * Before running the disJoiner for a country remove that country from the list of distinct locations
+	 * since it will be replaced by finer distinct locations after the disJoiner is run.
+	 * @param countryBasedRecords - map of countries and it's corresponding records
+	 * @param country - name of the country to be removed from the set
+	 * @return Set of distinct locations.
+	 */
 	private Set<Location> removeFromDistinctLocations(Set<Location> distinctLocations, String country) {
 		Iterator<Location> iter = distinctLocations.iterator();
 		while (iter.hasNext()) {
@@ -360,7 +424,12 @@ public class GeonameDisjoiner {
 		return countries;
 	}
 	
-	private Map<String,Integer> adminLevelsTotalLocationMap(List<GenBankRecord> genBankRecords) {
+	/**
+	 * Creates a map of administrative level and number of locations belonging to that level
+	 * @param genBankRecords - lost of genBank records
+	 * @return Map of admin level and count
+	 */
+	private Map<String,Integer> adminLevelsMap(List<GenBankRecord> genBankRecords) {
 		Map<String,Integer> types = new LinkedHashMap<>();
 		Iterator<GenBankRecord> iter = genBankRecords.listIterator();
 		while (iter.hasNext()) {
@@ -375,7 +444,13 @@ public class GeonameDisjoiner {
 		return types;
 	}
 	
-	private String calculateDisjoinLevel(Map<String,Integer> types,int countryCount) throws GeoHierarchyException {
+	/**
+	 * Select administrative level for a country based on a threshold
+	 * @param types - map of admin level and count for a country
+	 * @param countryCount - number of countries for this job
+	 * @return administrative level
+	 */
+	private String calculateDisjoinLevel(Map<String,Integer> types, int countryCount) throws GeoHierarchyException {
 		if(countryCount==1) {
 			return "ADM1";
 		}
@@ -398,6 +473,7 @@ public class GeonameDisjoiner {
 		for(String type : levelCount.keySet()) {
 			int count  = levelCount.get(type);
 			float exclusionPercent = 100 - ((float) count/totalCount)*100;
+			//Select this level only if less than 50%(DISJOIN_THRESHOLD) of the records are excluded
 			if(exclusionPercent > DISJOIN_THRESHOLD) {
 				level = prevLevel;
 				break;
@@ -424,6 +500,9 @@ public class GeonameDisjoiner {
 		return result;
 	}
 	
+	/*
+	 * Sort records-country map so that country with most records is disJoined first
+	 */
 	public static Map<String, List<GenBankRecord>> sortCountryMap(final Map<String, List<GenBankRecord>> orig){
 	    final Comparator<String> c = new Comparator<String>(){
 	        @Override
@@ -439,12 +518,13 @@ public class GeonameDisjoiner {
 	
 	/**
 	 * Checks if the suspected suspectedAncestor is actually an ancestor to the given Geoname location
+	 * @param map of location and it's ancestors
 	 * @param suspectedAncestor
 	 * @param location
 	 * @return true if suspectedAncestor is an ancestor of location, false otherwise
 	 * @throws DisjoinerException 
 	 */
-	private boolean isAncestor(Location suspectedAncestor, Location location) throws DisjoinerException {
+	private boolean isAncestor(Map<String,Set<Long>> ancestors, Location suspectedAncestor, Location location) throws DisjoinerException {
 	    Set<Long> locationAncestors = ancestors.get(location.getAccession());
 	    if (locationAncestors == null) {
 	    	throw new DisjoinerException("Null Ancestors for location ID:\t"+location.getGeonameID(), "Error Disjoining Locations");
@@ -455,17 +535,6 @@ public class GeonameDisjoiner {
 	    else {
 	    	return false;
 	    }
-	}
-
-	/**
-	 * Update a record's Geoname Location
-	 * @param record
-	 * @param locationName
-	 */
-	private void setLocationName(GenBankRecord record, String locationName) {
-		Location recordLocation = record.getGeonameLocation();
-		recordLocation.setLocation(locationName);
-		record.setGeonameLocation(recordLocation);
 	}
 	
 	/**
