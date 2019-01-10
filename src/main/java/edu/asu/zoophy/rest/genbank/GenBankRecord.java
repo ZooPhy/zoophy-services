@@ -7,7 +7,7 @@ import java.util.LinkedList;
  * Main object for representing GenBank records. This is a truncated version that has everything needed for these services.
  * @author devdemetri
  */
-public class GenBankRecord {
+public class GenBankRecord implements Cloneable{
 	
 	private String accession;
 	private Sequence sequence;
@@ -16,6 +16,12 @@ public class GenBankRecord {
 	private Location geonameLocation;
 	private Publication publication;
 	private List<PossibleLocation> possibleLocations;
+	
+	@Override
+	public Object clone() throws CloneNotSupportedException 
+    { 
+        return super.clone(); 
+    } 
 	
 	public GenBankRecord() {
 		genes = new LinkedList<Gene>();
