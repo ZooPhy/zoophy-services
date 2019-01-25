@@ -31,7 +31,7 @@ public class SecurityHelper {
 	public static final String FASTA_MET_GEOID_REGEX = "(\\d){4,10}";
 	public static final String FASTA_MET_LOCNAME_REGEX = "([\\D-.,'’ ]){1,30}";
 	public static final String FASTA_MET_LOC_REGEX = "^(" + FASTA_MET_GEOID_REGEX + "|" + FASTA_MET_LOCNAME_REGEX + ")$";
-	public static final String FASTA_MET_RSEQ_REGEX = "^([ACGTYNKacgtynk-]){1,20000}$";
+	public static final String FASTA_MET_RSEQ_REGEX = "^([ACGTURYSWKMBDHVNacgturyswkmbdhvn-]){1,30000}$";
 	
 	/**
 	 * Verifies parameters via regular expression
