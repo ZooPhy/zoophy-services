@@ -13,7 +13,7 @@ import java.util.logging.Logger;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
-import org.apache.lucene.analysis.core.KeywordAnalyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
@@ -47,7 +47,7 @@ public class LuceneSearcher {
 		try {
 			Path index = Paths.get(indexLocation);
 			indexDirectory = FSDirectory.open(index);
-			queryParser = new QueryParser("Accession", new KeywordAnalyzer());
+			queryParser = new QueryParser("Accession", new StandardAnalyzer());
 			log.info("Connected to Index at: "+indexLocation);
 		}
 		catch (IOException ioe) {
@@ -63,7 +63,7 @@ public class LuceneSearcher {
 	@PostConstruct
 	private void testIndex() throws LuceneSearcherException {
 		try {
-			List<GenBankRecord> testList = searchIndex("TaxonID:197911", 100);
+			List<GenBankRecord> testList = searchIndex("OrganismID:197911", 100);
 			if (testList.size() != 100) {
 				throw new LuceneSearcherException("Test query should have retrieved 100 records, instead retrieved: "+testList.size());
 			}
@@ -109,7 +109,6 @@ public class LuceneSearcher {
 			reader = DirectoryReader.open(indexDirectory);
 			indexSearcher = new IndexSearcher(reader);
 			query = queryParser.parse(queryString);
-			System.out.println("Searching for : " + queryString);
 			indexSearcher.search(query, collector);
 			return String.valueOf(collector.getTotalHits());
 		}catch(Exception e) {
@@ -136,6 +135,7 @@ public class LuceneSearcher {
 			reader = DirectoryReader.open(indexDirectory);
 			indexSearcher = new IndexSearcher(reader);
 			query = queryParser.parse(querystring);
+			log.info("query: " + querystring + " : " + query);
 			documents = indexSearcher.search(query, maxRecords);
 			for (ScoreDoc scoreDoc : documents.scoreDocs) {
 				Document document = indexSearcher.doc(scoreDoc.doc);

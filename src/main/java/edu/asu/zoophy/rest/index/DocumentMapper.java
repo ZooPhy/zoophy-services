@@ -40,16 +40,11 @@ public class DocumentMapper {
 			sequence.setOrganism(luceneDocument.get("Organism"));
 			sequence.setSegmentLength(Integer.parseInt(luceneDocument.get("SegmentLength")));
 			sequence.setStrain(luceneDocument.get("Strain"));
-			for (IndexableField field : luceneDocument.getFields("TaxonID")) {
-				if (field.stringValue().matches("[0-9]{1,12}+")) {
-					try {
-						sequence.setTaxID(Integer.parseInt(field.stringValue()));
-						break;
-					}
-					catch (Exception e) {
-						log.warning("Could not parse TaxID: "+e.getMessage());
-					}
-				}
+			try {
+				sequence.setTaxID(Integer.parseInt(SplitString(luceneDocument.get("OrganismID"))));
+			}
+			catch (Exception e) {
+				log.warning("Could not parse OrganismID: "+e.getMessage());
 			}
 			sequence.setPH1N1(Boolean.valueOf(luceneDocument.get("PH1N1")));
 			record.setSequence(sequence);
@@ -79,17 +74,12 @@ public class DocumentMapper {
 			record.setGeonameLocation(location);
 			Host host = new Host();
 			host.setAccession(recordAccession);
-			host.setName(luceneDocument.get("Host_Name"));
-			for (IndexableField field : luceneDocument.getFields("HostID")) {
-				if (field.stringValue().matches("[0-9]{1,12}+")) {
-					try {
-						host.setTaxon(Integer.parseInt(field.stringValue()));
-						break;
-					}
-					catch (Exception e) {
-						log.warning("Could not parse HostID: "+e.getMessage());
-					}
-				}
+			host.setName(luceneDocument.get("HostNormalizedName"));
+			try {
+				host.setTaxon(Integer.parseInt(SplitString(luceneDocument.get("HostID"))));
+			}
+			catch (Exception e) {
+				log.warning("Could not parse HostID: "+e.getMessage());
 			}
 			if (host.getTaxon() != null && host.getTaxon() != 1) {
 				record.setHost(host);
@@ -130,6 +120,14 @@ public class DocumentMapper {
 		catch (Exception e) {
 			throw new LuceneSearcherException("Failed to map document to record: "+e.getCause() + " : " + e.getMessage());
 		}
+	}
+	
+	private static String SplitString(String organismList) {
+		String[] organisms = organismList.split(" ");
+		if(organisms.length > 0) {
+			return organisms[0];
+		}
+		return "";
 	}
 	
 	private static String SimplifyCountry(String country_name) {
