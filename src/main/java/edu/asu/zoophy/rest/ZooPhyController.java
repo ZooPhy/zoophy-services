@@ -3,7 +3,9 @@ package edu.asu.zoophy.rest;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -280,63 +282,90 @@ public class ZooPhyController {
      */
     @RequestMapping(value="/upfasta", method=RequestMethod.POST, headers="Accept=application/json")
     @ResponseStatus(value=HttpStatus.ACCEPTED)
-    public List<FastaRecord> checkFasta(@RequestBody List<JobRecord> records) throws ParameterException, LuceneSearcherException, InvalidLuceneQueryException {
+    public FastaUploadResponse checkFasta(@RequestBody List<JobRecord> records) throws ParameterException, LuceneSearcherException, InvalidLuceneQueryException {
     	log.info("Checking FASTA list...");
     	List<FastaRecord> fastaRecords = new LinkedList<FastaRecord>();
+    	List<String> uniqueRecords = new LinkedList<>();
+    	Map<String, List<String>> invalids = new HashMap<>();
+    	Map<String, Location> geonamesMap = new LinkedHashMap<>();
+    	
     	if (records != null && records.size() > 0) {
-			log.info("FASTA list size " + records.size());
+		log.info("FASTA list size " + records.size());
     		if (records.size() > QUERY_MAX_RECORDS) {
     			log.warning("Query accession list is too long.");
 	    		throw new ParameterException("accessions list is too long");
     		}
-        	Set<String> geonameIds = new LinkedHashSet<String>(records.size());
-        	for(JobRecord record : records) {
-				try {
-					if(security.checkParameter(record.getGeonameID().toString(), Parameter.LOCATION)){
-						geonameIds.add(record.getGeonameID().toString());
-					}
-				} catch (Exception e) {
-					log.warning("Skipping violating Geoname id value " + record.getStringRep());
-				}
-        	}
-    		Map<String, Location> geonamesMap;
-    		
-    		try {
-    			geonamesMap = hierarchyIndexSearcher.findGeonameLocations(geonameIds);
-    		} catch (LuceneSearcherException e) {
-    			log.warning("Geonames Lucene exception: " + e.getMessage());
-    			throw e;
-    		}
     		Location loc = new Location();
-        	for(JobRecord record : records) {
-        		if  (security.checkParameter(record.getId(), Parameter.RECORD_ID) && 
-        				security.checkParameter(record.getCollectionDate(), Parameter.DATE) &&
-        				security.checkParameter(record.getRawSequence(), Parameter.RAW_SEQUENCE)) {
-        			if (geonamesMap.containsKey(record.getGeonameID())){
-        				loc = geonamesMap.get(record.getGeonameID());
-        				loc.setAccession(record.getId());
-        			} else {
-        				loc = new Location();
-        			}
+    		for(JobRecord record: records) {
+    			Boolean isInvalid = false;
+    			if(!security.checkParameter(record.getId(), Parameter.RECORD_ID)) {
+    				isInvalid = true;
+    				invalids = putInMap(invalids, record.getId(), "Invalid ID");
+    			}
+    			if(!security.checkParameter(record.getCollectionDate(), Parameter.DATE)) {
+    				isInvalid = true;
+    				invalids = putInMap(invalids, record.getId(), "Invalid Date");
+    			}
+    			if(!security.checkParameter(record.getRawSequence(), Parameter.RAW_SEQUENCE)){
+    				isInvalid = true;
+    				invalids = putInMap(invalids, record.getId(), "Invalid Sequence");
+    			}
+    			if(uniqueRecords.contains(record.getId())) {
+    				isInvalid = true;
+    				invalids = putInMap(invalids, record.getId(), "Duplicate record");
+    			}
+    			if(!security.checkParameter(record.getGeonameID().toString(), Parameter.LOCATION)){
+    				isInvalid = true;
+    				invalids = putInMap(invalids, record.getId(), "Invalid location");
+    			}
+    			if(!isInvalid) {
+    				loc = geonamesMap.get(record.getGeonameID());
+    				if(loc==null) {
+    					try {
+    						loc = hierarchyIndexSearcher.findGeonameLocation(record.getGeonameID());
+    						if(loc!=null) {
+    							geonamesMap.put(record.getGeonameID(),loc);
+    						}else {
+    							loc = new Location();
+    						}
+    					}catch (LuceneSearcherException e) {
+    						invalids = putInMap(invalids, record.getId(), "Unable to resolve location");
+    						break;
+    		    			}	
+    				}
+    				loc.setAccession(record.getId());
         			FastaRecord fastaRecord = new FastaRecord(
         											record.getId(), 
         											record.getCollectionDate(), 
         											record.getRawSequence(),
         											loc);
+        			uniqueRecords.add(record.getId());
         			fastaRecords.add(fastaRecord);
-        		}
-        		else {
-        			log.warning("Bad parameters for record : "+record.getId());
-        			throw new ParameterException(record.getId());
-        		}
-        	}
+    			}
+    		}
     		log.info("Successfully searched accession list.");
     	}
     	else {
     		log.warning("Accession list is empty.");
     	}
-
-    	return fastaRecords;
+    	return new FastaUploadResponse(fastaRecords, invalids);
+    }
+    
+    /**
+     * Add invalid accessions and reason for uploaded FASTA file in a map.
+     * @param invalids - map for invalid accessions list and reasons
+     * @param accessionId - id for invalid record
+     * @param reason - reason for excluding the record
+     * @return updated map for invalid accessions list and reasons
+     */
+    private Map<String, List<String>> putInMap(Map<String, List<String>> invalids, String accessionId, String reason){
+    	List<String> invalidRecord = invalids.get(reason);
+		if(invalidRecord==null) {
+			invalidRecord = new LinkedList<>();
+		}
+		invalidRecord.add(accessionId);
+		invalids.put(reason, invalidRecord);
+		return invalids;
     }
 
     /**

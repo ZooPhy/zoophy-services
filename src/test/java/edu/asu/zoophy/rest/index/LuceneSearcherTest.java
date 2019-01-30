@@ -26,7 +26,7 @@ public class LuceneSearcherTest {
 			assertEquals("CY187660", record.getAccession());
 			assertEquals("United States", record.getGeonameLocation().getCountry());
 			assertEquals("HA", record.getGenes().get(0).getName());
-			assertEquals("human; gender m; age 25", record.getHost().getName());
+			assertEquals("human", record.getHost().getName());
 			assertEquals(true, record.getSequence().getIsPH1N1());
 			assertEquals(1701, record.getSequence().getSegmentLength().intValue());
 		}

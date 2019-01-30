@@ -352,7 +352,7 @@ public class DownloadFormatter {
 				}
 			}
 		default: 
-			throw new FormatterException("Unsupported Column type!");
+			throw new FormatterException("Unsupported Column type! " + RecordType);
 		}
 	}
 	
