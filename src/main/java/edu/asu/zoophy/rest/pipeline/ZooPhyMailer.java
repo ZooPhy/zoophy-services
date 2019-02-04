@@ -6,6 +6,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -27,6 +29,7 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
+
 
 /**
  * Responsible for sending ZooPhy email
@@ -84,7 +87,7 @@ public class ZooPhyMailer {
 	 * @param results - Array of Files to send to user. results[0] must contain the .tree file. results[1] contains the GLB figure PDF if applicable.
 	 * @throws MailerException 
 	 */
-	public void sendSuccessEmail(File[] results) throws MailerException {
+	public void sendSuccessEmail(List<File> results) throws MailerException {
 		log.info("Sending results email to: "+job.getReplyEmail());
 		try {
 			String messageText;
@@ -94,7 +97,16 @@ public class ZooPhyMailer {
 	        else {
 	        	messageText = "\nHere are your results for ZooPhy Job ID: "+job.getID()+".";
 	        }
-			messageText += "\nThe SpreaD3 simulation for your job is available <a href=\"https://zodo.asu.edu/spread3/"+job.getID()+"/renderers/d3/d3renderer/index.html\">here</a>.";
+			Iterator<File> fileIterator = results.iterator();
+			while(fileIterator.hasNext()) {
+				File file = fileIterator.next();
+				if(file.getName().equals(job.getID()+"-spread3.json") && file.exists()) {
+					messageText += "\nThe SpreaD3 simulation for your job is available <a href=\"https://zodo.asu.edu/spread3/"+job.getID()+"/renderers/d3/d3renderer/index.html\">here</a>.";
+					fileIterator.remove();
+				}else if(!file.exists()) {
+					fileIterator.remove();
+				}
+			}
 			messageText += "\nFor viewing the attached .tree file, we recommend downloading the latest version of <a href=\"http://tree.bio.ed.ac.uk/software/figtree/\">FigTree</a>.\n";
 			messageText += "\nThank You,\nZooPhy Lab";
 			// warning message
@@ -162,7 +174,7 @@ public class ZooPhyMailer {
 	 * @throws AddressException
 	 * @throws MessagingException
 	 */
-	private void sendEmail(String messageText, File[] results) throws AddressException, MessagingException {
+	private void sendEmail(String messageText, List<File> results) throws AddressException, MessagingException {
 		Properties properties = new Properties();
 		properties.put("mail.smtp.auth", "true");
 		properties.put("mail.smtp.starttls.enable", "true");
@@ -180,7 +192,7 @@ public class ZooPhyMailer {
         message.setSubject("ZooPhy Job: "+getCustomName());
         messageText = messageText.replaceAll("\n", "<br/>");
         messageText = messageText.replaceAll("\t", "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
-		if (results == null || results.length == 0) {
+		if (results == null || results.size() == 0) {
 	        message.setContent(messageText, "text/html");
 	        Transport.send(message);
 		}
@@ -207,7 +219,7 @@ public class ZooPhyMailer {
 		}
 	}
 	
-	private File zipFile(File[] files) {
+	private File zipFile(List<File> files) {
         try {
             String zipFileName =  getCustomName().concat(".zip");
             File zFile = new File(DIRECTORY + zipFileName);
