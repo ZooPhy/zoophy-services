@@ -77,6 +77,9 @@ public class ZooPhyController {
 	@Value("${query.max.records}")
 	private Integer QUERY_MAX_RECORDS;
 	
+	@Value("${job.max.email.address}")
+	private Integer MAX_EMAIL_ADDRESS;
+	
 	@Autowired
 	private DownloadFormatter formatter;
 	
@@ -379,103 +382,107 @@ public class ZooPhyController {
     @RequestMapping(value="/run", method=RequestMethod.POST, headers="Accept=application/json")
     @ResponseStatus(value=HttpStatus.ACCEPTED)
     public String runZooPhyJob(@RequestBody JobParameters parameters) throws ParameterException, PipelineException, LuceneSearcherException {
-    	log.info("Starting ZooPhy job..."+parameters);
-    	if (security.checkParameter(parameters.getReplyEmail(), Parameter.EMAIL)) {
-    		ZooPhyRunner zoophy;
-	    	if (parameters.getJobName() != null) {
-	    		if (!security.checkParameter(parameters.getJobName(), Parameter.JOB_NAME)) {
-	    			log.warning("Bad job name parameter: "+parameters.getJobName());
-	    			throw new ParameterException(parameters.getJobName());
-	    		}
-	    	}
-    		try {
-    			security.verifyXMLOptions(parameters.getXmlOptions());
-    		}
-    		catch (ParameterException pe) {
-    			log.warning("Bad XML Parameters: "+pe.getMessage());
-    			throw pe;
-    		}    		
-    		zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors(), parameters.getXmlOptions());
-    		Set<String> genBankJobAccessions = new LinkedHashSet<String>();
-    		Set<String> geonameIds = new LinkedHashSet<String>();
-    		ArrayList<JobRecord> userEnteredRecords= new ArrayList<>();
-    		List<FastaRecord> fastaRecords = new LinkedList<FastaRecord>();
-    		
-    		for(JobRecord jobrecord: parameters.getRecords()) {
-    			if(jobrecord.getResourceSource()==JobConstants.SOURCE_GENBANK) {
-    				String accession = jobrecord.getId();
-    				if  (security.checkParameter(accession, Parameter.ACCESSION)) {
-    					genBankJobAccessions.add(accession);
-    				}else {
-        				log.warning("Bad accession parameter: "+accession);
-        				throw new ParameterException(accession);
-        			}
-    			}else if(jobrecord.getResourceSource()==JobConstants.SOURCE_FASTA){
-    				userEnteredRecords.add(jobrecord);
-    			}	
-    		}
-    		log.info("genBank records: "+genBankJobAccessions.size()+", fasta records: "+userEnteredRecords.size());
-    		
-    		//userEntered-FASTA
-    		if(userEnteredRecords.size()>0) {
-	    		for(JobRecord jobrecord: userEnteredRecords) {
-	    			if(security.checkParameter(jobrecord.getGeonameID(), Parameter.LOCATION)){
-		    			geonameIds.add(jobrecord.getGeonameID());
-	    			}
-	    		}
-	    		log.info("geonameIds: "+geonameIds.size());
-	    		Map<String, Location> geonamesMap;
-				try {
-					geonamesMap = hierarchyIndexSearcher.findGeonameLocations(geonameIds);
-				} catch (LuceneSearcherException e) {
-	    			log.warning("Geonames Lucene exception: " + e.getMessage());
-	    			throw e;
-				}
-				Location loc = new Location();
-		    	for(JobRecord jobrecord: userEnteredRecords) {
-		    		if  (security.checkParameter(jobrecord.getId(), Parameter.RECORD_ID) && 
-		    				security.checkParameter(jobrecord.getCollectionDate(), Parameter.DATE) &&
-		    				security.checkParameter(jobrecord.getRawSequence(), Parameter.RAW_SEQUENCE)) {
-		    			if (geonamesMap.containsKey(jobrecord.getGeonameID())){
-		    				loc = geonamesMap.get(jobrecord.getGeonameID());
-		    				loc.setAccession(jobrecord.getId());
-		    			} else {
-		    				loc = new Location();
-		    			}
-		    			FastaRecord fastaRecord = new FastaRecord(
-		    					jobrecord.getId(), 
-		    					jobrecord.getCollectionDate(), 
-		    					jobrecord.getRawSequence(),
-		    					loc);
-		    			fastaRecords.add(fastaRecord);
+	    	log.info("Starting ZooPhy job..."+parameters);
+	    	try {
+	        	if (isValidEmail(parameters.getReplyEmail())) {
+		    		ZooPhyRunner zoophy;
+			    	if (parameters.getJobName() != null) {
+			    		if (!security.checkParameter(parameters.getJobName(), Parameter.JOB_NAME)) {
+			    			log.warning("Bad job name parameter: "+parameters.getJobName());
+			    			throw new ParameterException(parameters.getJobName());
+			    		}
+			    	}
+		    		try {
+		    			security.verifyXMLOptions(parameters.getXmlOptions());
 		    		}
-		    		else {
-		    			log.warning("Bad parameters for record : "+jobrecord.getId());
-		    			throw new ParameterException(jobrecord.getId());
+		    		catch (ParameterException pe) {
+		    			log.warning("Bad XML Parameters: "+pe.getMessage());
+		    			throw pe;
+		    		}    		
+		    		zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors(), parameters.getXmlOptions());
+		    		Set<String> genBankJobAccessions = new LinkedHashSet<String>();
+		    		Set<String> geonameIds = new LinkedHashSet<String>();
+		    		ArrayList<JobRecord> userEnteredRecords= new ArrayList<>();
+		    		List<FastaRecord> fastaRecords = new LinkedList<FastaRecord>();
+		    		
+		    		for(JobRecord jobrecord: parameters.getRecords()) {
+		    			if(jobrecord.getResourceSource()==JobConstants.SOURCE_GENBANK) {
+		    				String accession = jobrecord.getId();
+		    				if  (security.checkParameter(accession, Parameter.ACCESSION)) {
+		    					genBankJobAccessions.add(accession);
+		    				}else {
+		        				log.warning("Bad accession parameter: "+accession);
+		        				throw new ParameterException(accession);
+		        			}
+		    			}else if(jobrecord.getResourceSource()==JobConstants.SOURCE_FASTA){
+		    				userEnteredRecords.add(jobrecord);
+		    			}	
 		    		}
+		    		log.info("genBank records: "+genBankJobAccessions.size()+", fasta records: "+userEnteredRecords.size());
+		    		
+		    		//userEntered-FASTA
+		    		if(userEnteredRecords.size()>0) {
+			    		for(JobRecord jobrecord: userEnteredRecords) {
+			    			if(security.checkParameter(jobrecord.getGeonameID(), Parameter.LOCATION)){
+				    			geonameIds.add(jobrecord.getGeonameID());
+			    			}
+			    		}
+			    		log.info("geonameIds: "+geonameIds.size());
+			    		Map<String, Location> geonamesMap;
+						try {
+							geonamesMap = hierarchyIndexSearcher.findGeonameLocations(geonameIds);
+						} catch (LuceneSearcherException e) {
+			    			log.warning("Geonames Lucene exception: " + e.getMessage());
+			    			throw e;
+						}
+						Location loc = new Location();
+				    	for(JobRecord jobrecord: userEnteredRecords) {
+				    		if  (security.checkParameter(jobrecord.getId(), Parameter.RECORD_ID) && 
+				    				security.checkParameter(jobrecord.getCollectionDate(), Parameter.DATE) &&
+				    				security.checkParameter(jobrecord.getRawSequence(), Parameter.RAW_SEQUENCE)) {
+				    			if (geonamesMap.containsKey(jobrecord.getGeonameID())){
+				    				loc = geonamesMap.get(jobrecord.getGeonameID());
+				    				loc.setAccession(jobrecord.getId());
+				    			} else {
+				    				loc = new Location();
+				    			}
+				    			FastaRecord fastaRecord = new FastaRecord(
+				    					jobrecord.getId(), 
+				    					jobrecord.getCollectionDate(), 
+				    					jobrecord.getRawSequence(),
+				    					loc);
+				    			fastaRecords.add(fastaRecord);
+				    		}
+				    		else {
+				    			log.warning("Bad parameters for record : "+jobrecord.getId());
+				    			throw new ParameterException(jobrecord.getId());
+				    		}
+				    	}
+		    		}
+		    		if (genBankJobAccessions.size()+fastaRecords.size() > JOB_MAX_ACCESSIONS) {
+		    			log.warning("Record list is too long.");
+		    			throw new ParameterException("Record list is too long");
+		    		}
+		    		if (genBankJobAccessions.size() > JOB_MAX_ACCESSIONS) {
+		    			log.warning("Job accession list is too long.");
+		    			throw new ParameterException("accessions list is too long");
+		    		}
+		    		if (fastaRecords.size() > JOB_MAX_ACCESSIONS) {
+			    		log.warning("FASTA record list is too long.");
+			    		throw new ParameterException("accessions list is too long");
+			    	}
+		    		manager.startZooPhyPipeline(zoophy, new ArrayList<String>(genBankJobAccessions), fastaRecords);
+		    		log.info("Job successfully started: "+zoophy.getJobID());
+		    		return zoophy.getJobID();
+		    		
 		    	}
-    		}
-    		if (genBankJobAccessions.size()+fastaRecords.size() > JOB_MAX_ACCESSIONS) {
-    			log.warning("Record list is too long.");
-    			throw new ParameterException("Record list is too long");
-    		}
-    		if (genBankJobAccessions.size() > JOB_MAX_ACCESSIONS) {
-    			log.warning("Job accession list is too long.");
-    			throw new ParameterException("accessions list is too long");
-    		}
-    		if (fastaRecords.size() > JOB_MAX_ACCESSIONS) {
-	    		log.warning("FASTA record list is too long.");
-	    		throw new ParameterException("accessions list is too long");
+		    	else {
+		    		log.warning("Bad reply email parameter: "+parameters.getReplyEmail());
+		    		throw new ParameterException(parameters.getReplyEmail());
+		    	}
+    		}catch (ParameterException pe) {
+    			throw new ParameterException(pe.getMessage());
 	    	}
-    		manager.startZooPhyPipeline(zoophy, new ArrayList<String>(genBankJobAccessions), fastaRecords);
-    		log.info("Job successfully started: "+zoophy.getJobID());
-    		return zoophy.getJobID();
-    		
-    	}
-    	else {
-    		log.warning("Bad reply email parameter: "+parameters.getReplyEmail());
-    		throw new ParameterException(parameters.getReplyEmail());
-    	}
     }
     
     /**
@@ -624,135 +631,159 @@ public class ZooPhyController {
     @RequestMapping(value="/validate", method=RequestMethod.POST, headers="Accept=application/json")
     @ResponseStatus(value=HttpStatus.OK)
     public ValidationResults validateNewJob(@RequestBody JobParameters parameters) throws ParameterException, PipelineException {
-    	log.info("Validating New job...");
-    	ValidationResults results = new ValidationResults();
-    	try {
-        	if (security.checkParameter(parameters.getReplyEmail(), Parameter.EMAIL)) {
-        		ZooPhyRunner zoophy;
-    	    	if (parameters.getJobName() != null) {
-    	    		if (!security.checkParameter(parameters.getJobName(), Parameter.JOB_NAME)) {
-    	    			log.warning("Bad job name parameter: "+parameters.getJobName());
-    	    			throw new ParameterException(parameters.getJobName());
-    	    		}
-    	    	}
-        		try {
-        			security.verifyXMLOptions(parameters.getXmlOptions());
-        		}
-        		catch (ParameterException pe) {
-        			log.warning("Bad XML Parameters: "+pe.getMessage());
-        			throw pe;
-        		}
-    	    	zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors(), parameters.getXmlOptions());
-    	    Set<String> jobAccessions = new LinkedHashSet<String>();
-    	    	Set<String> geonameIds = new LinkedHashSet<String>();
-        	ArrayList<JobRecord> userEnteredRecords= new ArrayList<>();
-        	List<FastaRecord> fastaRecords = new LinkedList<FastaRecord>();
-        	Set<String> jobRecordIds = new HashSet<String>();
-    	    	for(JobRecord jobrecord: parameters.getRecords()) {
-        			if(jobrecord.getResourceSource() == JobConstants.SOURCE_GENBANK) {
-        				String accession = jobrecord.getId();
-            			if  (security.checkParameter(accession, Parameter.ACCESSION)) {
-                			jobAccessions.add(accession);
-            			}else {
-                			log.warning("Bad accession parameter: "+accession);
-                			throw new ParameterException(accession);
-                		}
-        			}else if(jobrecord.getResourceSource() == JobConstants.SOURCE_FASTA){
-        				userEnteredRecords.add(jobrecord);
-        			}
-        		}
-        	//userEntered-FASTA
-    		if(userEnteredRecords.size()>0) {
-	    		for(JobRecord jobrecord: userEnteredRecords) {
-	    			if(security.checkParameter(jobrecord.getGeonameID(), Parameter.LOCATION)){
-		    			geonameIds.add(jobrecord.getGeonameID());
-	    			}
-	    		}
-	    		log.info("geonameIds: "+geonameIds.size());
-	    		Map<String, Location> geonamesMap;
-				try {
-					geonamesMap = hierarchyIndexSearcher.findGeonameLocations(geonameIds);
-				} catch (LuceneSearcherException e) {
-	    			log.warning("Geonames Lucene exception: " + e.getMessage());
-	    			throw e;
-				}
-				Location loc = new Location();
-		    	for(JobRecord jobrecord: userEnteredRecords) {
-		    		if  (security.checkParameter(jobrecord.getId(), Parameter.RECORD_ID) && 
-		    				security.checkParameter(jobrecord.getCollectionDate(), Parameter.DATE) &&
-		    				security.checkParameter(jobrecord.getRawSequence(), Parameter.RAW_SEQUENCE)) {
-		    			if (geonamesMap.containsKey(jobrecord.getGeonameID())){
-		    				loc = geonamesMap.get(jobrecord.getGeonameID());
-		    				loc.setAccession(jobrecord.getId());
-		    			} else {
-		    				loc = new Location();
-		    			}
-		    			FastaRecord fastaRecord = new FastaRecord(
-		    					jobrecord.getId(), 
-		    					jobrecord.getCollectionDate(), 
-		    					jobrecord.getRawSequence(),
-		    					loc);
-		    			fastaRecords.add(fastaRecord);
-		    			jobRecordIds.add(jobrecord.getId());
+	    	log.info("Validating New job...");
+	    	ValidationResults results = new ValidationResults();
+	    	try {
+	        	if (isValidEmail(parameters.getReplyEmail())) {
+	        		ZooPhyRunner zoophy;
+		    	    	if (parameters.getJobName() != null) {
+		    	    		if (!security.checkParameter(parameters.getJobName(), Parameter.JOB_NAME)) {
+		    	    			log.warning("Bad job name parameter: "+parameters.getJobName());
+		    	    			throw new ParameterException(parameters.getJobName());
+		    	    		}
+		    	    	}else {
+		    	    		log.warning("Bad job name parameter: "+parameters.getJobName());
+			    			throw new ParameterException(parameters.getJobName());
+		    	    	}
+		    		try {
+		    			security.verifyXMLOptions(parameters.getXmlOptions());
 		    		}
-		    		else {
-		    			log.warning("Bad parameters for record : "+jobrecord.getId());
-		    			throw new ParameterException(jobrecord.getId());
+		    		catch (ParameterException pe) {
+		    			log.warning("Bad XML Parameters: "+pe.getMessage());
+		    			throw pe;
 		    		}
+		    	    	zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors(), parameters.getXmlOptions());
+		    	    Set<String> jobAccessions = new LinkedHashSet<String>();
+		    	    	Set<String> geonameIds = new LinkedHashSet<String>();
+		        	ArrayList<JobRecord> userEnteredRecords= new ArrayList<>();
+		        	List<FastaRecord> fastaRecords = new LinkedList<FastaRecord>();
+		        	Set<String> jobRecordIds = new HashSet<String>();
+		    	    	for(JobRecord jobrecord: parameters.getRecords()) {
+		        			if(jobrecord.getResourceSource() == JobConstants.SOURCE_GENBANK) {
+		        				String accession = jobrecord.getId();
+		            			if  (security.checkParameter(accession, Parameter.ACCESSION)) {
+		                			jobAccessions.add(accession);
+		            			}else {
+		                			log.warning("Bad accession parameter: "+accession);
+		                			throw new ParameterException(accession);
+		                		}
+		        			}else if(jobrecord.getResourceSource() == JobConstants.SOURCE_FASTA){
+		        				userEnteredRecords.add(jobrecord);
+		        			}
+		        		}
+		        	//userEntered-FASTA
+		    		if(userEnteredRecords.size()>0) {
+			    		for(JobRecord jobrecord: userEnteredRecords) {
+			    			if(security.checkParameter(jobrecord.getGeonameID(), Parameter.LOCATION)){
+				    			geonameIds.add(jobrecord.getGeonameID());
+			    			}
+			    		}
+			    		log.info("geonameIds: "+geonameIds.size());
+			    		Map<String, Location> geonamesMap;
+						try {
+							geonamesMap = hierarchyIndexSearcher.findGeonameLocations(geonameIds);
+						} catch (LuceneSearcherException e) {
+			    			log.warning("Geonames Lucene exception: " + e.getMessage());
+			    			throw e;
+						}
+						Location loc = new Location();
+				    	for(JobRecord jobrecord: userEnteredRecords) {
+				    		if  (security.checkParameter(jobrecord.getId(), Parameter.RECORD_ID) && 
+				    				security.checkParameter(jobrecord.getCollectionDate(), Parameter.DATE) &&
+				    				security.checkParameter(jobrecord.getRawSequence(), Parameter.RAW_SEQUENCE)) {
+				    			if (geonamesMap.containsKey(jobrecord.getGeonameID())){
+				    				loc = geonamesMap.get(jobrecord.getGeonameID());
+				    				loc.setAccession(jobrecord.getId());
+				    			} else {
+				    				loc = new Location();
+				    			}
+				    			FastaRecord fastaRecord = new FastaRecord(
+				    					jobrecord.getId(), 
+				    					jobrecord.getCollectionDate(), 
+				    					jobrecord.getRawSequence(),
+				    					loc);
+				    			fastaRecords.add(fastaRecord);
+				    			jobRecordIds.add(jobrecord.getId());
+				    		}
+				    		else {
+				    			log.warning("Bad parameters for record : "+jobrecord.getId());
+				    			throw new ParameterException(jobrecord.getId());
+				    		}
+				    	}
+		    		}
+		    		if (jobAccessions.size()+fastaRecords.size() > JOB_MAX_ACCESSIONS) {
+		    			log.warning("Record list is too long.");
+		    			throw new ParameterException("Record list is too long");
+		    		}
+		    		if (jobAccessions.size() > JOB_MAX_ACCESSIONS) {
+		    			log.warning("Job accession list is too long.");
+		    			throw new ParameterException("accessions list is too long");
+		    		}
+		    	    	if (fastaRecords.size() > JOB_MAX_ACCESSIONS) {
+		    	    		log.warning("FASTA record list is too long.");
+		    	    		throw new ParameterException("accessions list is too long");
+		    	    	}
+		    	    
+		    	    JobAccessions accessionsList = zoophy.testZooPhy(new ArrayList<String>(jobAccessions), fastaRecords, dao, hierarchyIndexSearcher);
+			    	results.setAccessionsRemoved(accessionsList.getInvalidRecordList());
+		    	    results.setAccessionsUsed(new ArrayList<String>(accessionsList.getValidAccessions()));   	
+			    	return results; 
+		    	}else {
+		    		results.setError("Bad parameter: "+parameters.getReplyEmail());
+		    		return results;
 		    	}
-    		}
-    		if (jobAccessions.size()+fastaRecords.size() > JOB_MAX_ACCESSIONS) {
-    			log.warning("Record list is too long.");
-    			throw new ParameterException("Record list is too long");
-    		}
-    		if (jobAccessions.size() > JOB_MAX_ACCESSIONS) {
-    			log.warning("Job accession list is too long.");
-    			throw new ParameterException("accessions list is too long");
-    		}
-    	    	if (fastaRecords.size() > JOB_MAX_ACCESSIONS) {
-    	    		log.warning("FASTA record list is too long.");
-    	    		throw new ParameterException("accessions list is too long");
-    	    	}
-    	    
-    	    JobAccessions accessionsList = zoophy.testZooPhy(new ArrayList<String>(jobAccessions), fastaRecords, dao, hierarchyIndexSearcher);
-	    	results.setAccessionsRemoved(accessionsList.getInvalidRecordList());
-    	    results.setAccessionsUsed(new ArrayList<String>(accessionsList.getValidAccessions()));   	
-	    	return results; 
 	    	}
-	    	else {
-	    		log.warning("Bad reply email parameter: "+parameters.getReplyEmail());
-	    		throw new ParameterException(parameters.getReplyEmail());
+	    	catch (ParameterException pe) {
+	    		results.setError(pe.getMessage());
+	    		return results;
 	    	}
-    	}
-    	catch (ParameterException pe) {
-    		results.setError(pe.getMessage());
-    		return results;
-    	}
-    	catch (GLMException glme) {
-    		if (glme.getUserMessage() != null) {
-    			results.setError(glme.getMessage());
-        		return results;
+	    	catch (GLMException glme) {
+	    		if (glme.getUserMessage() != null) {
+	    			results.setError(glme.getMessage());
+	        		return results;
+	    		}
+	    		else {
+	    			results.setError("GLM Tools Failed");
+	        		return results;
+	    		}
+	    	}
+	    	catch (PipelineException pe) {
+	    		if (pe.getUserMessage() != null) {
+	    			results.setError(pe.getUserMessage());
+	    			return results;
+	    			
+	    		}
+	    		else {
+	    			results.setError("ZooPhy Pipeline Failed");
+	    			return results;
+	    		}
+	    	}
+	    	catch (Exception e) {
+	    		log.warning("Unknown Pipeline error occurred: "+e.getMessage());;
+	    		results.setError("Unkown Error occurred");
+	    		return results;
+	    	}
+    }
+    
+    private Boolean isValidEmail(String emails) throws ParameterException {
+    		Boolean isValid = true;
+    		String[] emailList = emails.split(",");
+    		if(emailList.length <= MAX_EMAIL_ADDRESS) {
+    			if(emailList.length > 0) {
+				for(String email : emailList) {
+					if(!security.checkParameter(email, Parameter.EMAIL)) {
+						log.info("Invalid email address "+ email);
+		    				throw new ParameterException(email);
+					}
+				}
+    			}else {
+        			log.info("Email address missing "+ emails);
+        			throw new ParameterException(emails);
+        		}
+    		}else {
+    			log.info("Too many emails. Max " + MAX_EMAIL_ADDRESS + " emails addresses allowed! "+ emails);
+    			throw new ParameterException(emails);
     		}
-    		else {
-    			results.setError("GLM Tools Failed");
-        		return results;
-    		}
-    	}
-    	catch (PipelineException pe) {
-    		if (pe.getUserMessage() != null) {
-    			results.setError(pe.getUserMessage());
-    			return results;
-    			
-    		}
-    		else {
-    			results.setError("ZooPhy Pipeline Failed");
-    			return results;
-    		}
-    	}
-    	catch (Exception e) {
-    		log.warning("Unknown Pipeline error occurred: "+e.getMessage());;
-    		results.setError("Unkown Error occurred");
-    		return results;
-    	}
+    		return isValid;
     }
 }
