@@ -98,16 +98,8 @@ public class GeonameDisjoiner {
 		if (distinctLocations.size() < 2) {
 			errorTooFewLocations(distinctLocations);
 		}
-		printDisjoinerResult(validRecords);
 		JobRecords jobRecords = new JobRecords(validRecords, invalidRecords, distinctLocations.size());
 		return jobRecords;
-	}
-	
-	private void printDisjoinerResult(List<GenBankRecord> validRecords) {
-		log.info("Disjoiner result");
-		for(GenBankRecord record : validRecords) {
-			log.info(record.getGeonameLocation().getCountry() + " : " + record.getGeonameLocation().getGeonameType());
-		}
 	}
 	
 	/**
