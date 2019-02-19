@@ -280,10 +280,24 @@ public class DownloadFormatter {
 			}else {
 				return "Unknown";
 			}
+		case DownloadColumn.Unnormalized_Date:
+			if(record.getSequence()!=null && record.getSequence().getDate()!=null) {
+				try {
+					return Normalizer.csvify(record.getSequence().getDate());
+				}catch(Exception e) {
+					return "Unknown";
+				}
+			}else {
+				return "Unknown";
+			}
 		case DownloadColumn.Decimal_Date:
-			try {
-				return getFastaDate(record.getSequence().getCollectionDate());
-			}catch(NormalizerException e) {
+			if(record.getSequence()!=null && record.getSequence().getCollectionDate()!=null) {
+				try {
+					return getFastaDate(record.getSequence().getCollectionDate());
+				}catch(NormalizerException e) {
+					return "Unknown";
+				}
+			}else {
 				return "Unknown";
 			}
 		case DownloadColumn.HOST_ID:

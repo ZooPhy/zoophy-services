@@ -35,6 +35,7 @@ public class DocumentMapper {
 			record.setAccession(recordAccession);
 			Sequence sequence = new Sequence();
 			sequence.setAccession(recordAccession);
+			sequence.setDate(luceneDocument.get("Date"));
 			sequence.setCollectionDate(luceneDocument.get("NormalizedDate"));
 			sequence.setDefinition(luceneDocument.get("Definition"));
 			sequence.setOrganism(luceneDocument.get("Organism"));
