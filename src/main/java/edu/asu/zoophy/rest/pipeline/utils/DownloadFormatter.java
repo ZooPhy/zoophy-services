@@ -281,9 +281,9 @@ public class DownloadFormatter {
 				return "Unknown";
 			}
 		case DownloadColumn.Unnormalized_Date:
-			if(record.getSequence()!=null && record.getSequence().getDate()!=null) {
+			if(record.getSequence()!=null && record.getSequence().getUnNormalizedDate()!=null) {
 				try {
-					return Normalizer.csvify(record.getSequence().getDate());
+					return Normalizer.csvify(record.getSequence().getUnNormalizedDate());
 				}catch(Exception e) {
 					return "Unknown";
 				}

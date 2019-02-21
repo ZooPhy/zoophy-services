@@ -12,7 +12,7 @@ public class Sequence {
 	private String organism;
 	private String isolate;
 	private String strain;
-	private String date;		//unnormalized date
+	private String unNormalizedDate;
 	private String collectionDate;
 	private String comment;
 	private String rawSequence;
@@ -110,12 +110,12 @@ public class Sequence {
 		this.isPH1N1 = isPH1N1;
 	}
 
-	public String getDate() {
-		return date;
+	public String getUnNormalizedDate() {
+		return unNormalizedDate;
 	}
 
-	public void setDate(String date) {
-		this.date = date;
+	public void setUnNormalizedDate(String unNormalizedDate) {
+		this.unNormalizedDate = unNormalizedDate;
 	}
 
 }
