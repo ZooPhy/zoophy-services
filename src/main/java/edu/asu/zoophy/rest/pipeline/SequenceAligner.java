@@ -31,6 +31,7 @@ import edu.asu.zoophy.rest.genbank.GenBankRecord;
 import edu.asu.zoophy.rest.genbank.InvalidRecords;
 import edu.asu.zoophy.rest.genbank.JobAccessions;
 import edu.asu.zoophy.rest.genbank.JobRecords;
+import edu.asu.zoophy.rest.genbank.Location;
 import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
 import edu.asu.zoophy.rest.pipeline.glm.GLMException;
 import edu.asu.zoophy.rest.pipeline.glm.PredictorGenerator;
@@ -53,6 +54,7 @@ public class SequenceAligner {
 	private final Logger log;
 	private File logFile;
 	private Set<String> uniqueGeonames;
+	private Set<Location> uniqueLocations;
 	private Map<String,String> geonameCoordinates;
 	private int startYear = 3000;
 	private int endYear = 1000;
@@ -75,6 +77,7 @@ public class SequenceAligner {
 		JOB_WORK_DIR = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"/";
 		log = Logger.getLogger("SequenceAligner"+job.getID());
 		uniqueGeonames = new LinkedHashSet<String>();
+		uniqueLocations = new LinkedHashSet<>();
 		geonameCoordinates = new HashMap<String,String>();
 		if (job.isUsingGLM() && !job.isUsingCustomPredictors()) {
 			occurrences = new HashMap<String, Integer>();
@@ -205,8 +208,9 @@ public class SequenceAligner {
 	private void createGLMFile(boolean usingDefault) throws GLMException {
 		String glmPath = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"/"+job.getID()+"-"+"predictors.txt";
 		if (usingDefault) {
-			PredictorGenerator generator = new PredictorGenerator(glmPath, startYear, endYear, uniqueGeonames,dao);
-			generator.generatePredictorsFile(occurrences);
+			//PredictorGenerator generator = new PredictorGenerator(glmPath, startYear, endYear, uniqueGeonames,dao, hierarchyIndexSearcher);
+			PredictorGenerator generator = new PredictorGenerator(glmPath, startYear, endYear, uniqueGeonames, dao, hierarchyIndexSearcher);
+			generator.generateDefaultPredictorsFile(occurrences, uniqueLocations);
 		}
 		else {
 			PredictorGenerator.writeCustomPredictorsFile(glmPath, job.getPredictors());
@@ -288,7 +292,7 @@ public class SequenceAligner {
 		}
 		if (isDisjoint) {
 			GeonameDisjoiner disjoiner  = new GeonameDisjoiner(hierarchyIndexSearcher);
-			if (isUsingDefaultGLM) {
+			if (isUsingDefaultGLM && false) {
 				JobRecords jobRecords = disjoiner.disjoinRecordsToStates(records);
 				if(missingDateRecords.size()>0) {
 					jobRecords.getInvalidRecordList().add(new InvalidRecords(missingDateRecords, "Missing Date Information"));
@@ -441,6 +445,9 @@ public class SequenceAligner {
 				if (geonameCoordinates != null && geonameCoordinates.get(normalizedLocation) == null) {
 					String coordinates = normalizedLocation+"\t"+record.getGeonameLocation().getLatitude()+"\t"+record.getGeonameLocation().getLongitude();
 					geonameCoordinates.put(normalizedLocation, coordinates);
+					if(isUsingDefaultGLM) {
+						uniqueLocations.add(record.getGeonameLocation());
+					}
 					uniqueGeonames.add(normalizedLocation);
 				}
 				tempBuilder.append("\n");
@@ -504,6 +511,9 @@ public class SequenceAligner {
 				if (geonameCoordinates != null && geonameCoordinates.get(normalizedLocation) == null) {
 					String coordinates = normalizedLocation+"\t"+record.getGeonameLocation().getLatitude()+"\t"+record.getGeonameLocation().getLongitude();
 					geonameCoordinates.put(normalizedLocation, coordinates);
+					if(isUsingDefaultGLM) {
+						uniqueLocations.add(record.getGeonameLocation());
+					}
 					uniqueGeonames.add(normalizedLocation);
 				}
 				tempBuilder.append("\n");

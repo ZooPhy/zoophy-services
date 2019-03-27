@@ -631,7 +631,7 @@ public class ZooPhyController {
     @RequestMapping(value="/validate", method=RequestMethod.POST, headers="Accept=application/json")
     @ResponseStatus(value=HttpStatus.OK)
     public ValidationResults validateNewJob(@RequestBody JobParameters parameters) throws ParameterException, PipelineException {
-	    	log.info("Validating New job...");
+    		log.info("Validating New job...");
 	    	ValidationResults results = new ValidationResults();
 	    	try {
 	        	if (isValidEmail(parameters.getReplyEmail())) {
