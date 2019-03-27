@@ -59,6 +59,7 @@ public class BeastRunner {
 	private boolean isTest = false;
 	private final int distinctLocations;
 	private int mailUpdateCount = 0;
+	String RENDER_DIR;
 	
 	public BeastRunner(ZooPhyJob job, ZooPhyMailer mailer, int distinctLocations) throws PipelineException {
 		PropertyProvider provider = PropertyProvider.getInstance();
@@ -78,6 +79,7 @@ public class BeastRunner {
 		this.distinctLocations = distinctLocations;
 		filesToCleanup = new LinkedHashSet<String>();
 		JOB_WORK_DIR = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"/";
+		RENDER_DIR = provider.getProperty("spread3.result.dir");
 	}
 	
 	/**
@@ -172,23 +174,12 @@ public class BeastRunner {
 	 */
 	private void runBeastGen(String fastaFile, String beastInput, XMLParameters xmlParameters) throws BeastException, IOException, InterruptedException {
 		log.info("Finding BEASTGen template with parameters:" + xmlParameters.toString());
-		String workingDir = JOB_WORK_DIR;
-		File beastGenDir = new File(System.getProperty("user.dir")+"/BeastGen");
+		String bestgendir = System.getProperty("user.dir")+"/BeastGen/";
 		filesToCleanup.add(JOB_WORK_DIR+fastaFile);
-		//TODO: add/change templates programmatically by importing beastgen.jar's objects
-		String template_name = "beastgen_SUBMODEL_CLOCKMODEL_PRIOR.template";
-		String subModel = xmlParameters.getSubstitutionModel().toString();
-		if(xmlParameters.isGamma()){
-			subModel += "+G";
-		}
-		if(xmlParameters.isInvariantSites()){
-			subModel += "+I";
-		}
-		template_name = template_name.replace("SUBMODEL", subModel);
-		template_name = template_name.replace("CLOCKMODEL", xmlParameters.getClockModel().toString());
-		template_name = template_name.replace("PRIOR", xmlParameters.getTreePrior().toString());
-		log.info("Running BEASTGen Template:" + template_name);
-		ProcessBuilder builder = new ProcessBuilder("java", "-jar", "beastgen.jar", "-date_order", "4", "-D", "chain_length="+xmlParameters.getChainLength().toString()+",log_every="+xmlParameters.getSubSampleRate().toString()+"" ,template_name, workingDir+fastaFile, workingDir+beastInput).directory(beastGenDir);
+		BeastGenTemplateGenerator beastGenTemplateGenerator  = new BeastGenTemplateGenerator();
+		beastGenTemplateGenerator.templateGenerator(JOB_WORK_DIR, xmlParameters.getSubstitutionModel().toString(), xmlParameters.getClockModel().toString(), xmlParameters.getTreePrior().toString(), xmlParameters.isGamma(), xmlParameters.isInvariantSites());
+		log.info("Running BEASTGen Template:");
+		ProcessBuilder builder = new ProcessBuilder("java", "-jar", bestgendir+"beastgen.jar", "-date_order", "4", "-D", "chain_length="+xmlParameters.getChainLength().toString()+",log_every="+xmlParameters.getSubSampleRate().toString()+"" ,"beastgen.template", fastaFile, beastInput).directory(new File(JOB_WORK_DIR));
 		builder.redirectOutput(Redirect.appendTo(logFile));
 		builder.redirectError(Redirect.appendTo(logFile));
 		log.info("Starting Process: "+builder.command().toString());
@@ -472,6 +463,21 @@ public class BeastRunner {
 			log.log(Level.SEVERE, "SpreaD3 generation failed! with code: "+spreadGenerationProcess.exitValue());
 		}
 		log.info("SpreaD3 finished.");
+
+		//required to generate html from json
+		log.info("Running SpreaD3 render...");
+		String renderPath = RENDER_DIR+"/"+job.getID();	
+		builder = new ProcessBuilder("java","-jar", SPREAD3,"-render","d3","-json",spreadFile,"-output",renderPath).directory(spreadDirectory);	
+		builder.redirectOutput(Redirect.appendTo(logFile));	
+		builder.redirectError(Redirect.appendTo(logFile));	
+		log.info("Starting Process: "+builder.command().toString());	
+		Process spreadRenderProcess = builder.start();	
+		PipelineManager.setProcess(job.getID(), spreadRenderProcess);	
+		spreadRenderProcess.waitFor();	
+		if (spreadRenderProcess.exitValue() != 0) {	
+			log.log(Level.SEVERE, "SpreaD3 rendering failed! with code: "+spreadRenderProcess.exitValue());	
+			throw new BeastException("SpreaD3 rendering failed! with code: "+spreadRenderProcess.exitValue(), "SpreaD3 Failed");	
+		}
 		return new File(spreadFile);
 	}
 
