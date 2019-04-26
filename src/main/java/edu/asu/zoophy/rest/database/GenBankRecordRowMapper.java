@@ -23,6 +23,7 @@ public class GenBankRecordRowMapper implements RowMapper<GenBankRecord> {
 		record.setAccession(recordAccession);
 		Sequence sequence = new Sequence();
 		sequence.setAccession(recordAccession);
+		sequence.setUnNormalizedDate(row.getString("Collection_Date"));
 		sequence.setCollectionDate(row.getString("Normalized_Date"));
 		sequence.setComment(row.getString("Comment"));
 		sequence.setDefinition(row.getString("Definition"));

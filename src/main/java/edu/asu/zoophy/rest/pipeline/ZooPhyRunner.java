@@ -62,10 +62,7 @@ public class ZooPhyRunner {
 				resultsList.add(glmFile);
 			}
 			log.info("Sending Results Email... : "+job.getID());
-			// Convert to array
-			File[] resultsArray = new File[resultsList.size()];
-			resultsArray = resultsList.toArray(resultsArray);
-			mailer.sendSuccessEmail(resultsArray); 
+			mailer.sendSuccessEmail(resultsList); 
 			PipelineManager.removeProcess(job.getID());
 			log.info("ZooPhy Job Complete: "+job.getID());
 		}

@@ -23,10 +23,13 @@ import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.TotalHitCountCollector;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.util.fst.Util.TopResults;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
@@ -132,10 +135,11 @@ public class LuceneSearcher {
 		TopDocs documents;
 		
 		try {
+			Sort sort = new Sort(new SortField("NormalizedDate", SortField.Type.STRING, true));
 			reader = DirectoryReader.open(indexDirectory);
 			indexSearcher = new IndexSearcher(reader);
 			query = queryParser.parse(querystring);
-			log.info("query: " + querystring + " : " + query);
+			log.info("query: " + querystring + " : " + querystring);
 			documents = indexSearcher.search(query, maxRecords);
 			for (ScoreDoc scoreDoc : documents.scoreDocs) {
 				Document document = indexSearcher.doc(scoreDoc.doc);

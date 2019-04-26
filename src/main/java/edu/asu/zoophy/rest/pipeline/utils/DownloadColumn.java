@@ -10,6 +10,7 @@ public class DownloadColumn {
 	public static final String GENES = "Genes";
 	public static final String VIRUS_ID = "VirusID";
 	public static final String VIRUS = "Virus";
+	public static final String Unnormalized_Date = "Unnormalized_Date";
 	public static final String Human_Date = "Human_Date";
 	public static final String Decimal_Date = "Decimal_Date";
 	public static final String HOST_ID = "HostID";

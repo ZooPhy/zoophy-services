@@ -2,6 +2,7 @@ package edu.asu.zoophy.rest.pipeline.glm;
 
 import java.io.PrintWriter;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -10,14 +11,19 @@ import java.util.logging.Logger;
 
 import edu.asu.zoophy.rest.database.DaoException;
 import edu.asu.zoophy.rest.database.ZooPhyDAO;
+import edu.asu.zoophy.rest.genbank.Location;
+import edu.asu.zoophy.rest.index.LuceneHierarchySearcher;
+import edu.asu.zoophy.rest.index.LuceneSearcherException;
+import edu.asu.zoophy.rest.pipeline.utils.Normalizer;
 
 /**
  * Constructs batch GLM predictor files for BEAST GLM
- * @author devdemetri
+ * @author devdemetri, kbhangal
  */
 public class PredictorGenerator {
 	
 	private final static Logger log = Logger.getLogger("PredictorGenerator");
+	private final LuceneHierarchySearcher hierarchyIndexSearcher;
 	final private int START_YEAR;
 	final private int END_YEAR;
 	final private String TXT_FILE_PATH;
@@ -25,7 +31,8 @@ public class PredictorGenerator {
 	final private static String DELIMITER = "\t";
 	private Map<String, StatePredictor> statePredictors;
 	
-	public PredictorGenerator(String filePath, int startYear, int endYear, Set<String> stateList, ZooPhyDAO dao) {
+	public PredictorGenerator(String filePath, int startYear, int endYear, Set<String> stateList, ZooPhyDAO dao, LuceneHierarchySearcher hierarchyIndexSearcher) {
+		this.hierarchyIndexSearcher = hierarchyIndexSearcher;
 		START_YEAR = startYear;
 		END_YEAR = endYear;
 		TXT_FILE_PATH = filePath;
@@ -53,6 +60,60 @@ public class PredictorGenerator {
 			throw glme;
 		}
 		catch (Exception e) {
+			log.log(Level.SEVERE, "ERROR generating predictors file: "+e.getMessage());
+			throw new GLMException("ERROR generating predictors file: "+e.getMessage(), "Error generating predictors file.");
+		}
+	}
+	
+	/**
+	 * Generates a tab delimited text file ready to be used in default BEAST GLM
+	 * @return Path to Predictors text file in BEAST GLM format
+	 * @throws GLMException
+	 */
+	public void generateDefaultPredictorsFile(Map<String, Integer> occurences, Set<Location> uniqueLocations) throws GLMException{
+		double defaultPopulation = 0.0000001;
+		Set<String> geoNameIDs = new LinkedHashSet<>();
+		for(Location location: uniqueLocations) {
+			geoNameIDs.add(location.getGeonameID().toString());
+		}
+		try {
+			Map<String, Location> predictorData = hierarchyIndexSearcher.findGeonameLocations(geoNameIDs);
+			
+			log.info("Writing Predictors...");
+			PrintWriter predictorWriter = null;
+			try {
+				StringBuilder txtBuilder = new StringBuilder();
+				txtBuilder.append("location" + DELIMITER);
+				txtBuilder.append("lat" + DELIMITER);
+				txtBuilder.append("long" + DELIMITER);
+				txtBuilder.append("population" + DELIMITER);
+				txtBuilder.append("SampleSize");
+				txtBuilder.append("\n");
+				for (Location location: uniqueLocations) {
+					txtBuilder.append(Normalizer.normalizeLocation(location) + DELIMITER);
+					txtBuilder.append(location.getLatitude() + DELIMITER);
+					txtBuilder.append(location.getLongitude() + DELIMITER);
+					if(predictorData.get(location.getGeonameID().toString()).getPopulation() == 0) {
+						txtBuilder.append(defaultPopulation + DELIMITER);
+					}else {
+						txtBuilder.append(predictorData.get(location.getGeonameID().toString()).getPopulation().doubleValue() + DELIMITER);
+					}
+					txtBuilder.append(occurences.get(Normalizer.normalizeLocation(location)));
+					txtBuilder.append("\n");
+				}
+				predictorWriter = new PrintWriter(TXT_FILE_PATH);
+				predictorWriter.write(txtBuilder.toString());
+			}
+			catch (Exception e) {
+				log.log(Level.SEVERE, "Failed to write Predictors: "+e.getMessage());
+				throw new GLMException("Failed to write Predictors: "+e.getMessage(), "Error writing Predictors file.");
+			}
+			finally {
+				if (predictorWriter != null) {
+					predictorWriter.close();
+				}
+			}
+		} catch (LuceneSearcherException e) {
 			log.log(Level.SEVERE, "ERROR generating predictors file: "+e.getMessage());
 			throw new GLMException("ERROR generating predictors file: "+e.getMessage(), "Error generating predictors file.");
 		}

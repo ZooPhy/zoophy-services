@@ -15,6 +15,7 @@ public class Location {
 	private String country;
 	private String state;
 	private String hierarchy;
+	private Long population; 
 	
 	public Location() {
 		
@@ -91,5 +92,12 @@ public class Location {
 	public void setHierarchy(String hierarchy) {
 		this.hierarchy = hierarchy;
 	}
-	
+
+	public Long getPopulation() {
+		return population;
+	}
+
+	public void setPopulation(Long population) {
+		this.population = population;
+	}
 }
