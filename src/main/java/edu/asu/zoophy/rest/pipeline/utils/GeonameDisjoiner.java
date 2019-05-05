@@ -81,13 +81,17 @@ public class GeonameDisjoiner {
 		for(Map.Entry<String, List<GenBankRecord>> entry: countryBasedRecords.entrySet()) {
 			String country = entry.getKey();
 			List<GenBankRecord> records = entry.getValue();
+			Boolean oneCountry = false;		//is job has just one country
 			distinctLocations = removeFromDistinctLocations(distinctLocations, country);
 			
 			Map<String,Integer> types = adminLevelsMap(records);
 			String disjoinLevel = calculateDisjoinLevel(types,countryBasedRecords.size());
 			log.info("Admin levels in "+country +": "+types);
 			log.info("Disjoiner level: "+disjoinLevel);
-			DisjoinerResponse filteredCountryRecords = disjoinRecords(records, disjoinLevel, distinctLocations, ancestors);
+			if(distinctLocations.size() == 0) {
+				oneCountry = true;
+			}
+			DisjoinerResponse filteredCountryRecords = disjoinRecords(records, disjoinLevel, distinctLocations, ancestors, false, oneCountry);
 			
 			validRecords.addAll(filteredCountryRecords.getValidRecordList());
 			invalidRecords.addAll(filteredCountryRecords.getInvalidRecordList());
@@ -96,7 +100,7 @@ public class GeonameDisjoiner {
 		
 		log.info("Distinct locations: "+distinctLocations.size());
 		if (distinctLocations.size() < 2) {
-			errorTooFewLocations(distinctLocations);
+			errorTooFewLocations(distinctLocations);	
 		}
 		JobRecords jobRecords = new JobRecords(validRecords, invalidRecords, distinctLocations.size());
 		return jobRecords;
@@ -168,12 +172,14 @@ public class GeonameDisjoiner {
 	 * @param commonType - administration level 
 	 * @param distinctLocations - set of distinct locations
 	 * @param ancestors - map of locations and their ancestors
+	 * @param rerun - disjoiner is rerun on different commonLevel
+	 * @param oneCountry - job has just one country
 	 * @return Filtered records with valid, disjoint Geoname locations.
 	 * @throws DisjoinerException
 	 * @throws GLMException 
 	 * @throws GeoHierarchyException 
 	 */
-	public DisjoinerResponse disjoinRecords(List<GenBankRecord> records, String commonLevel, Set<Location> distinctLocations, Map<String,Set<Long>> ancestors) throws DisjoinerException, GLMException, GeoHierarchyException {
+	public DisjoinerResponse disjoinRecords(List<GenBankRecord> records, String commonLevel, Set<Location> distinctLocations, Map<String,Set<Long>> ancestors, Boolean rerun, Boolean oneCountry) throws DisjoinerException, GLMException, GeoHierarchyException {
 		List<GenBankRecord> allRecords = new LinkedList<>();
 		List<ExcludedRecords> higherAdminRecords = new LinkedList<>();
 		List<InvalidRecords> invalidRecords = new LinkedList<>();
@@ -291,14 +297,22 @@ public class GeonameDisjoiner {
 			if(!higherAdminRecords.isEmpty()) {
 				invalidRecords.add(new InvalidRecords(higherAdminRecords,HIGHER_ADMIN_LEVEL+ adminCodeToCommonName(commonLevel) +" level"));
 			}
-			DisjoinerResponse disjoinerResponse = new DisjoinerResponse(records, invalidRecords, distinctLocations);
+			DisjoinerResponse disjoinerResponse = new DisjoinerResponse(records, invalidRecords, distinctLocations, false);
 			if(distinctLocations.size() > MAX_DISTINCT_LOCATIONS) {
 				if(!commonLevel.equals(DEFAULT_DISJOIN_LEVEL)) {
 					distinctLocations.removeAll(locations);
-					disjoinerResponse = disjoinRecords(allRecords, DEFAULT_DISJOIN_LEVEL, distinctLocations, ancestors);
+					disjoinerResponse = disjoinRecords(allRecords, DEFAULT_DISJOIN_LEVEL, distinctLocations, ancestors, true, oneCountry);
 				}else {
 					errorTooManyLocations(distinctLocations);
-				}	
+				}
+			}
+			//Handle the case where the job has too many (>MAX_DISTINCT_LOCATIONS) records and all of them are from the same country
+			//the disjoiner will first have TooManyLocations and in the re-run with DEFAULT_DISJOIN_LEVEL, it will have TooFewLocations
+			if(disjoinerResponse.getTooManyLocations()) {
+				errorTooManyLocations(locations);
+			}
+			if(distinctLocations.size() < 2 && rerun && oneCountry) {
+				disjoinerResponse.setTooManyLocations(true);
 			}
 			return disjoinerResponse;
 		}
