@@ -15,11 +15,13 @@ public class DisjoinerResponse {
 	private List<GenBankRecord> validRecordList;		
 	private List<InvalidRecords> invalidRecordList;
 	private Set<Location> distinctLocations;
+	private Boolean tooManyLocations;
 	
-	public DisjoinerResponse(List<GenBankRecord> validRecordList, List<InvalidRecords> invalidRecordList, Set<Location> distinctLocations) {
+	public DisjoinerResponse(List<GenBankRecord> validRecordList, List<InvalidRecords> invalidRecordList, Set<Location> distinctLocations,Boolean tooManyLocations) {
 		this.validRecordList = validRecordList;
 		this.distinctLocations = distinctLocations;
 		this.invalidRecordList = invalidRecordList;
+		this.tooManyLocations = tooManyLocations;
 	}
 	public List<GenBankRecord> getValidRecordList() {
 		return validRecordList;
@@ -39,5 +41,12 @@ public class DisjoinerResponse {
 	public void setInvalidRecordList(List<InvalidRecords> invalidRecordList) {
 		this.invalidRecordList = invalidRecordList;
 	}
+	public Boolean getTooManyLocations() {
+		return tooManyLocations;
+	}
+	public void setTooManyLocations(Boolean tooManyLocations) {
+		this.tooManyLocations = tooManyLocations;
+	}
+	
 	
 }
