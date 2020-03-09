@@ -104,6 +104,11 @@ public class BeastRunner {
 			DiscreteTraitInserter traitInserter = new DiscreteTraitInserter(job, distinctLocations);
 			traitInserter.addLocation();
 			log.info("Location trait added.");
+			if (job.isUsingGeospatialUncertainties()){
+				log.info("Adding Geospatial Uncertainties...");
+				// placeholder
+				log.info("Geospatial Uncertainties added.");
+			}
 			if (job.isUsingGLM()) {
 				log.info("Adding GLM Predictors...");
 				runGLM();
@@ -112,7 +117,7 @@ public class BeastRunner {
 			else {
 				log.info("Job is not using GLM.");
 			}
-			runBeast(job.getID());
+			fileList = runBeast(job.getID());
 			if (wasKilled || !PipelineManager.checkProcess(job.getID())) {
 				throw new BeastException("Job was stopped!", "Job was stopped!");
 			}
@@ -131,6 +136,8 @@ public class BeastRunner {
 				if (spreadVideo != null){
 					fileList.add(spreadVideo);
 				}
+				// attach log file
+				fileList.add(logFile);
 				log.info("BEAST process complete.");
 			}
 			else {
@@ -192,7 +199,7 @@ public class BeastRunner {
 			log.log(Level.SEVERE, "BeastGen failed! with code: "+beastGenProcess.exitValue());
 			throw new BeastException("BeastGen failed! with code: "+beastGenProcess.exitValue(), "BeastGen Failed");
 		}
-		filesToCleanup.add(JOB_WORK_DIR+beastInput);
+		// filesToCleanup.add(JOB_WORK_DIR+beastInput);
 		log.info("BEAST input created.");
 	}
 	
@@ -255,12 +262,14 @@ public class BeastRunner {
 	/**
 	 * Runs BEAST on the input.xml file
 	 * @param jobID
+	 * @return List of files to be returned i.e. XML file
 	 * @throws BeastException
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	private void runBeast(String jobID) throws BeastException, IOException, InterruptedException {
+	private List<File> runBeast(String jobID) throws BeastException, IOException, InterruptedException {
 		String input;
+		List<File> fileList = new ArrayList<File>();
 		if (job.isUsingGLM()) { 
 			input = jobID+GLM_SUFFIX+INPUT_XML;
 			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+GLM_SUFFIX+"_states."+OUTPUT_TREES);
@@ -277,6 +286,10 @@ public class BeastRunner {
 		String beast = BEAST_SCRIPTS_DIR+"beast";
 		log.info("Running BEAST...");
 		File beastDir = new File(JOB_WORK_DIR);
+		File beastXMLFile = new File(JOB_WORK_DIR + input);
+		if (beastXMLFile.exists()){
+			fileList.add(beastXMLFile);
+		}
 		ProcessBuilder builder;
 		builder = new ProcessBuilder(beast, JOB_WORK_DIR + input).directory(beastDir);
 		builder.redirectOutput(Redirect.appendTo(logFile));
@@ -295,7 +308,7 @@ public class BeastRunner {
 			throw new BeastException("BEAST failed! with code: "+beastProcess.exitValue(), "BEAST Failed");
 		}
 		if (wasKilled) {
-			return;
+			return fileList;
 		}
 		String outputPath;
 		if (job.isUsingGLM()) {
@@ -328,6 +341,7 @@ public class BeastRunner {
 			}
 		}
 		log.info("BEAST finished.");
+		return fileList;
 	}
 
 	/**

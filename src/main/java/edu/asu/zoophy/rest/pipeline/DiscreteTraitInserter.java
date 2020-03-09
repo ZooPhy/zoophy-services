@@ -501,6 +501,19 @@ public class DiscreteTraitInserter {
 	}
 
 	/**
+	 * Inserts possible locations in the taxa block along with their probabilities
+	 */
+	public void addPossibleLocations() throws TraitException {
+		if (document == null) {
+			throw new TraitException("Error adding possible locations: NULL document.", "Error adding possible locations.");
+		}
+		if (beastNode == null) {
+			throw new TraitException("Error adding possible locations: NULL beastNode.", "Error adding possible locations.");
+		}
+		// TODO: Placeholder to insert geospatial uncertainties into the taxa
+	}
+
+	/**
 	 * Saves updated XML in updatedDocument to the XML file at documentPath
 	 * @param updatedDocument
 	 * @param documentPath

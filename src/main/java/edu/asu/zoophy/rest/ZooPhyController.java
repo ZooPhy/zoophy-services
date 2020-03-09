@@ -164,7 +164,7 @@ public class ZooPhyController {
     @ResponseStatus(value=HttpStatus.OK)
     public List<PossibleLocation> getRecordLocations(@RequestParam(value="accession") String accession) throws GenBankRecordNotFoundException, DaoException, ParameterException {
     	if (security.checkParameter(accession, Parameter.ACCESSION)) {
-    		List<PossibleLocation> loc = dao.retrieveLocations(accession);
+    		List<PossibleLocation> loc = dao.retrievePossibleLocations(accession);
     		return loc;
     	} else {
     		throw new ParameterException(accession);
@@ -308,10 +308,12 @@ public class ZooPhyController {
     			if(!security.checkParameter(record.getCollectionDate(), Parameter.DATE)) {
     				isInvalid = true;
     				invalids = putInMap(invalids, record.getId(), "Invalid Date");
+					log.warning("Invalid date: "+record.getCollectionDate()+ " in " + record.getId());
     			}
     			if(!security.checkParameter(record.getRawSequence(), Parameter.RAW_SEQUENCE)){
     				isInvalid = true;
     				invalids = putInMap(invalids, record.getId(), "Invalid Sequence");
+					log.warning("Invalid sequence in " + record.getId());
     			}
     			if(uniqueRecords.contains(record.getId())) {
     				isInvalid = true;
@@ -319,7 +321,8 @@ public class ZooPhyController {
     			}
     			if(!security.checkParameter(record.getGeonameID().toString(), Parameter.LOCATION)){
     				isInvalid = true;
-    				invalids = putInMap(invalids, record.getId(), "Invalid location");
+					invalids = putInMap(invalids, record.getId(), "Invalid location");
+					log.warning("Invalid location: "+record.getGeonameID()+ " in " + record.getId());
     			}
     			if(!isInvalid) {
     				loc = geonamesMap.get(record.getGeonameID());
@@ -329,12 +332,14 @@ public class ZooPhyController {
     						if(loc!=null) {
     							geonamesMap.put(record.getGeonameID(),loc);
     						}else {
+								log.warning("Unable to find location: "+record.getGeonameID()+ " in " + record.getId());
     							loc = new Location();
     						}
-    					}catch (LuceneSearcherException e) {
-    						invalids = putInMap(invalids, record.getId(), "Unable to resolve location");
-    						break;
-    		    			}	
+    					} catch (LuceneSearcherException e) {
+							log.warning("Encountered problems while resolving location: "+record.getGeonameID()+ " in " + record.getId());
+    						invalids = putInMap(invalids, record.getId(), "Unable to resolve location: "+record.getGeonameID());
+							loc = new Location();
+    		    		}	
     				}
     				loc.setAccession(record.getId());
         			FastaRecord fastaRecord = new FastaRecord(
@@ -346,7 +351,7 @@ public class ZooPhyController {
         			fastaRecords.add(fastaRecord);
     			}
     		}
-    		log.info("Successfully searched accession list.");
+    		log.info("Successfully searched accession list. " +fastaRecords.size()+" / "+ records.size() + " added");
     	}
     	else {
     		log.warning("Accession list is empty.");
@@ -399,7 +404,9 @@ public class ZooPhyController {
 		    			log.warning("Bad XML Parameters: "+pe.getMessage());
 		    			throw pe;
 		    		}    		
-		    		zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors(), parameters.getXmlOptions());
+					zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors(),
+											  parameters.getDisjoinerLevel(), parameters.isUsingGeospatialUncertainties(),
+											  parameters.getXmlOptions());
 		    		Set<String> genBankJobAccessions = new LinkedHashSet<String>();
 		    		Set<String> geonameIds = new LinkedHashSet<String>();
 		    		ArrayList<JobRecord> userEnteredRecords= new ArrayList<>();
@@ -652,7 +659,8 @@ public class ZooPhyController {
 		    			log.warning("Bad XML Parameters: "+pe.getMessage());
 		    			throw pe;
 		    		}
-		    	    	zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors(), parameters.getXmlOptions());
+					zoophy = new ZooPhyRunner(parameters.getReplyEmail(), parameters.getJobName(), parameters.isUsingGLM(), parameters.getPredictors(),
+											  parameters.getDisjoinerLevel(), parameters.isUsingGeospatialUncertainties(), parameters.getXmlOptions());
 		    	    Set<String> jobAccessions = new LinkedHashSet<String>();
 		    	    	Set<String> geonameIds = new LinkedHashSet<String>();
 		        	ArrayList<JobRecord> userEnteredRecords= new ArrayList<>();

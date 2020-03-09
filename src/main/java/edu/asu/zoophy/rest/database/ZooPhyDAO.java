@@ -159,7 +159,7 @@ public class ZooPhyDAO {
 	 * @throws GenBankRecordNotFoundException
 	 * @throws DaoException
 	 */
-	public List<PossibleLocation> retrieveLocations(String accession) throws GenBankRecordNotFoundException, DaoException {
+	public List<PossibleLocation> retrievePossibleLocations(String accession) throws GenBankRecordNotFoundException, DaoException {
 		try {
 			List<PossibleLocation> possLocs = null;
 			final String[] param = {accession};

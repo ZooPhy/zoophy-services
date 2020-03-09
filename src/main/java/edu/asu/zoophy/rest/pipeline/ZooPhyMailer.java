@@ -33,7 +33,7 @@ import javax.mail.internet.MimeMultipart;
 
 /**
  * Responsible for sending ZooPhy email
- * @author devdemetri, kbhangal
+ * @author devdemetri, kbhangal, amagge
  */
 public class ZooPhyMailer {
 	
@@ -60,22 +60,22 @@ public class ZooPhyMailer {
 	 * Notifies user that their job started
 	 * @throws MailerException 
 	 */
-	public void sendStartEmail() throws MailerException {
+	public void sendStartEmail(List<File> results) throws MailerException {
 		log.info("Sending start email to: "+job.getReplyEmail());
 		try {
-	        String messageText;
-	        messageText = "\nThank you for submitting ZooPhy Job Name: "+getCustomName()+".\nYour results will be sent as soon as the job is finished.";
-	        if (!getCustomName().equals(job.getID())) {
-	        	messageText += "\nNote: The Job ID for your ZooPhy Job is: "+job.getID();
-	        }
-	        if (job.isUsingGLM()) {
-	        	messageText += "\nNote: GLM features were enabled for this ZooPhy Job.";
-	        }
-	        else {
-	        	messageText += "\nNote: GLM features were NOT enabled for this ZooPhy Job.";
-	        }
-	        messageText += "\n\nThank You,\n\nZooPhy Lab";
-	        sendEmail(messageText, null);    
+			StringBuilder messageText = new StringBuilder();
+	        messageText.append("\nThank you for submitting ZooPhy Job Name: "+getCustomName()+".\n\nYour results will be sent as soon as the job is finished. ");
+			messageText.append("You will receive follow up emails with the estimated time of completion. ");
+			messageText.append("If you do not receive follow up emails, please send an email to zoophylab@gmail.com with the Job ID displayed below.");
+
+			messageText.append("\nNote: The Job ID for your ZooPhy Job is: "+job.getID());
+			messageText.append("\nThe parameters used for the ZooPhy job are shown below for reproducibility:\n"+ job.getXMLOptions().toString());
+			messageText.append("\nGLM features : " + (job.isUsingGLM()? "Enabled":"Disabled"));
+			messageText.append("\nCustom predictors : " + (job.isUsingCustomPredictors()? "Enabled":"Disabled"));
+			messageText.append("\nGeospatial Uncertainties : " + (job.isUsingGeospatialUncertainties()? "Enabled":"Disabled"));
+			messageText.append("\nLocation Disjoiner level : " + job.getDisjoinerLevel());
+	        messageText.append("\n\nThank You,\nZooPhy Lab");
+	        sendEmail(messageText.toString(), results);
 		}
 		catch (Exception e) {
 			throw new MailerException(e.getMessage(), "Failed to send Start Email");

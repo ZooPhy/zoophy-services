@@ -34,3 +34,5 @@ hs_err_pid*
 *distanceMatrix.txt
 *nohup.out
 .vscode/*
+trash/
+build_local.sh

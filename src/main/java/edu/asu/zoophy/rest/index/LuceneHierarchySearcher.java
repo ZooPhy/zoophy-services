@@ -57,7 +57,8 @@ public class LuceneHierarchySearcher {
 	private final static String ANCIDS_FIELD = "AncestorsIds";
 	List<String> stops = Arrays.asList("a", "and", "are", "but", "by",
 			"for", "if","into", "not", "such","that", "the", "their", 
-			"then", "there", "these","they", "this", "was", "will", "with"); 
+			"then", "there", "these","they", "this", "was", "will", "with",
+			"of", "state", "province", "county", "area", "region", "prefecture"); 
 	
 	public LuceneHierarchySearcher(@Value("${lucene.geonames.index.location}") String indexLocation) throws LuceneSearcherException  {	
 		try {

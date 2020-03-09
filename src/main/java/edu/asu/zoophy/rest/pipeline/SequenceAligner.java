@@ -208,7 +208,6 @@ public class SequenceAligner {
 	private void createGLMFile(boolean usingDefault) throws GLMException {
 		String glmPath = System.getProperty("user.dir")+"/ZooPhyJobs/"+job.getID()+"/"+job.getID()+"-"+"predictors.txt";
 		if (usingDefault) {
-			//PredictorGenerator generator = new PredictorGenerator(glmPath, startYear, endYear, uniqueGeonames,dao, hierarchyIndexSearcher);
 			PredictorGenerator generator = new PredictorGenerator(glmPath, startYear, endYear, uniqueGeonames, dao, hierarchyIndexSearcher);
 			generator.generateDefaultPredictorsFile(occurrences, uniqueLocations);
 		}
@@ -561,6 +560,8 @@ public class SequenceAligner {
 	 * @throws Exception 
 	 */
 	private List<String> breakUp(String sequence) throws AlignerException {
+		// convert to lowercase?
+		sequence = sequence.toLowerCase();
 		LinkedList<String> segments = new LinkedList<String>();
 		int length = sequence.length();
 		int i;

@@ -24,18 +24,8 @@ public class GeonamesDocumentMapper {
 		Location location = new Location();
 		try {
 			location.setAccession("temp"); //set it to empty and replace later
-			for (IndexableField field : luceneDocument.getFields("GeonameId")) {
-				if (field.stringValue().matches("[0-9]{1,12}+")) {
-					try {
-						location.setGeonameID(Long.parseLong(field.stringValue()));
-						break;
-					}
-					catch (Exception e) {
-						log.warning("Could not parse GeonameID: "+e.getMessage());
-					}
-				}
-			}
-			location.setLocation(luceneDocument.get("Name"));
+			location.setGeonameID(Long.parseLong(luceneDocument.get("GeonameId")));
+			location.setLocation(formatLocationName(luceneDocument.get("Name")));
 			location.setGeonameType(luceneDocument.get("Code"));
 			if (luceneDocument.get("Latitude") != null) {
 				location.setLatitude(Double.parseDouble(luceneDocument.get("Latitude")));
@@ -43,15 +33,21 @@ public class GeonamesDocumentMapper {
 			if (luceneDocument.get("Longitude") != null) {
 				location.setLongitude(Double.parseDouble(luceneDocument.get("Longitude")));
 			}
-			location.setCountry(luceneDocument.get("Country"));
-			location.setState(luceneDocument.get("State"));
-			location.setHierarchy(luceneDocument.get("AncestorName"));
+			location.setCountry(formatLocationName(luceneDocument.get("Country")));
+			location.setState(formatLocationName(luceneDocument.get("State")));
+			location.setHierarchy(formatLocationName(luceneDocument.get("AncestorsNames")));
 			location.setPopulation(Long.parseLong(luceneDocument.get("Population")));
 			return location;
 		}
 		catch (Exception e) {
-			throw new LuceneSearcherException("Failed to map document to record: "+e.getCause() + " : " + e.getMessage());
+			throw new LuceneSearcherException("Failed to map document to record: "+ luceneDocument.toString() + " -> " + e.getMessage());
 		}
 	}
-	
+
+	public static String formatLocationName(String fieldValue){
+		if (fieldValue != null) {
+			fieldValue = fieldValue.replaceAll(" *\\([^)]*\\) *", "");
+		}
+		return fieldValue;
+	}
 }

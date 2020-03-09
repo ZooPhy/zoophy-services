@@ -7,7 +7,7 @@ import edu.asu.zoophy.rest.pipeline.glm.Predictor;
 
 /**
  * Encapsulates related info for a ZooPhy Job
- * @author devdemetri
+ * @author devdemetri, amagge
  */
 public final class ZooPhyJob {
 	
@@ -15,16 +15,21 @@ public final class ZooPhyJob {
 	private final String JOB_NAME;
 	private final String REPLY_EMAIL;
 	private final boolean USE_GLM;
+	private final boolean USE_GEO_UNC;
+	private final String DISJOINER_LEVEL;
 	private final boolean USE_CUSTOM_PREDICTORS;
 	private final Map<String, List<Predictor>> predictors;
 	private final XMLParameters XML_OPTIONS;
 	
-	public ZooPhyJob(String id, String name, String email, boolean useGLM, Map<String, List<Predictor>> predictors, XMLParameters xmlOptions) {
+	public ZooPhyJob(String id, String name, String email, boolean useGLM, Map<String, List<Predictor>> predictors, 
+					 String disjoinerLevel, boolean useGeoUncertainties, XMLParameters xmlOptions) {
 		ID = id;
 		JOB_NAME = name;
 		REPLY_EMAIL = email;
 		USE_GLM = useGLM;
-		if (predictors == null || predictors.isEmpty()) {
+		USE_GEO_UNC = useGeoUncertainties;
+		DISJOINER_LEVEL = disjoinerLevel;
+			if (predictors == null || predictors.isEmpty()) {
 			USE_CUSTOM_PREDICTORS = false;
 			this.predictors = null;
 		}
@@ -58,7 +63,15 @@ public final class ZooPhyJob {
 	public Map<String, List<Predictor>> getPredictors() {
 		return predictors;
 	}
-	
+
+	public boolean isUsingGeospatialUncertainties() {
+		return USE_GEO_UNC;
+	}
+
+	public String getDisjoinerLevel() {
+		return DISJOINER_LEVEL;
+	}
+
 	public XMLParameters getXMLOptions() {
 		return XML_OPTIONS;
 	}
