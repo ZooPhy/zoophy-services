@@ -16,6 +16,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -104,6 +106,11 @@ public class BeastRunner {
 			DiscreteTraitInserter traitInserter = new DiscreteTraitInserter(job, distinctLocations);
 			traitInserter.addLocation();
 			log.info("Location trait added.");
+			if (job.isUsingGeospatialUncertainties()){
+				log.info("Adding Geospatial Uncertainties...");
+				// placeholder
+				log.info("Geospatial Uncertainties added.");
+			}
 			if (job.isUsingGLM()) {
 				log.info("Adding GLM Predictors...");
 				runGLM();
@@ -112,7 +119,7 @@ public class BeastRunner {
 			else {
 				log.info("Job is not using GLM.");
 			}
-			runBeast(job.getID());
+			fileList = runBeast(job.getID());
 			if (wasKilled || !PipelineManager.checkProcess(job.getID())) {
 				throw new BeastException("Job was stopped!", "Job was stopped!");
 			}
@@ -131,6 +138,8 @@ public class BeastRunner {
 				if (spreadVideo != null){
 					fileList.add(spreadVideo);
 				}
+				// attach log file
+				fileList.add(logFile);
 				log.info("BEAST process complete.");
 			}
 			else {
@@ -192,7 +201,7 @@ public class BeastRunner {
 			log.log(Level.SEVERE, "BeastGen failed! with code: "+beastGenProcess.exitValue());
 			throw new BeastException("BeastGen failed! with code: "+beastGenProcess.exitValue(), "BeastGen Failed");
 		}
-		filesToCleanup.add(JOB_WORK_DIR+beastInput);
+		// filesToCleanup.add(JOB_WORK_DIR+beastInput);
 		log.info("BEAST input created.");
 	}
 	
@@ -255,12 +264,14 @@ public class BeastRunner {
 	/**
 	 * Runs BEAST on the input.xml file
 	 * @param jobID
+	 * @return List of files to be returned i.e. XML file
 	 * @throws BeastException
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	private void runBeast(String jobID) throws BeastException, IOException, InterruptedException {
+	private List<File> runBeast(String jobID) throws BeastException, IOException, InterruptedException {
 		String input;
+		List<File> fileList = new ArrayList<File>();
 		if (job.isUsingGLM()) { 
 			input = jobID+GLM_SUFFIX+INPUT_XML;
 			filesToCleanup.add(JOB_WORK_DIR+jobID+"-aligned"+GLM_SUFFIX+"_states."+OUTPUT_TREES);
@@ -277,6 +288,10 @@ public class BeastRunner {
 		String beast = BEAST_SCRIPTS_DIR+"beast";
 		log.info("Running BEAST...");
 		File beastDir = new File(JOB_WORK_DIR);
+		File beastXMLFile = new File(JOB_WORK_DIR + input);
+		if (beastXMLFile.exists()){
+			fileList.add(beastXMLFile);
+		}
 		ProcessBuilder builder;
 		builder = new ProcessBuilder(beast, JOB_WORK_DIR + input).directory(beastDir);
 		builder.redirectOutput(Redirect.appendTo(logFile));
@@ -295,7 +310,7 @@ public class BeastRunner {
 			throw new BeastException("BEAST failed! with code: "+beastProcess.exitValue(), "BEAST Failed");
 		}
 		if (wasKilled) {
-			return;
+			return fileList;
 		}
 		String outputPath;
 		if (job.isUsingGLM()) {
@@ -328,6 +343,7 @@ public class BeastRunner {
 			}
 		}
 		log.info("BEAST finished.");
+		return fileList;
 	}
 
 	/**
@@ -515,6 +531,7 @@ public class BeastRunner {
 	 */
 	private String findYougestAge(String treeFile) throws BeastException {
 		String youngestAge = "1996.0861";
+		String delimter = SequenceAligner.FASTA_DELIMITER;
 		try {
 			double minAge = 1920.0;
 			double currAge = 0;
@@ -523,20 +540,29 @@ public class BeastRunner {
 			while (!line.contains("Taxlabels")) {
 				line = scan.nextLine();
 			}
+			Pattern p = Pattern.compile("[0-9]{4}\\.[0-9]*");
+			Matcher m = null;
 			line = scan.nextLine();
-			while (line.contains("_")) {
-				currAge = Double.parseDouble(line.split("_")[3]);
-				if (currAge > minAge) {
-					minAge = currAge;
-					youngestAge = line.split("_")[3].trim();
+			while (line.contains(delimter)) {
+				try {
+					m = p.matcher(line);
+					while(m.find()) {
+						String decimal_date = m.group();
+						currAge = Double.parseDouble(decimal_date);
+						if (currAge > minAge) {
+							minAge = currAge;
+							youngestAge = decimal_date;
+						}
+					}
+				} catch (Exception e) {
+					log.log(Level.WARNING, "ERROR EXTRACTING DATE: "+ line + " ERROR:"+e.getMessage());
 				}
 				line = scan.nextLine();
 			}
 			scan.close();
 		}
 		catch (Exception e) {
-			log.log(Level.SEVERE, "ERROR SETTING FIGTREE START DATE: "+e.getMessage());
-			throw new BeastException("ERROR SETTING FIGTREE START DATE: "+e.getMessage() , "BEAST Pipeline Failed");
+			log.log(Level.SEVERE, "ERROR SETTING FIGTREE START DATE: "+e.getMessage()+ ".");
 		}
 		return youngestAge;
 	}

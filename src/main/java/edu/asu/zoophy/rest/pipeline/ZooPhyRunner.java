@@ -16,7 +16,7 @@ import edu.asu.zoophy.rest.pipeline.glm.Predictor;
 
 /**
  * Responsible for running ZooPhy jobs
- * @author devdemetri, kbhangal
+ * @author devdemetri, kbhangal, amagge
  */
 public class ZooPhyRunner {
 
@@ -24,12 +24,14 @@ public class ZooPhyRunner {
 	private final ZooPhyMailer mailer;
 	private final Logger log;
 
-	public ZooPhyRunner(String replyEmail, String jobName, boolean useGLM, Map<String, List<Predictor>> predictors, XMLParameters xmlOptions) throws PipelineException {
+	public ZooPhyRunner(String replyEmail, String jobName, boolean useGLM, Map<String, List<Predictor>> predictors,
+						String disjoinerLevel, boolean useGeoUncertainties,
+						XMLParameters xmlOptions) throws PipelineException {
 		char rand_char = (char) (Math.random()*26 + 'a');				
 		final String id  = rand_char + UUID.randomUUID().toString();	//Used as property by SpreaD3, hence start with char
 		log = Logger.getLogger("ZooPhyRunner"+id);
 		log.info("Initializing ZooPhy Job");
-		job = new ZooPhyJob(id,jobName,replyEmail, useGLM, predictors, xmlOptions);
+		job = new ZooPhyJob(id, jobName, replyEmail, useGLM, predictors, disjoinerLevel, useGeoUncertainties, xmlOptions);
 		log.info("Initializing ZooPhyMailer... : "+job.getID());
 		mailer = new ZooPhyMailer(job);
 	}
@@ -45,7 +47,8 @@ public class ZooPhyRunner {
 		try {
 			JobAccessions jobAccessions;
 			log.info("Sending Start Email... : "+job.getID());
-			mailer.sendStartEmail();
+			List<File> fileList = null;
+			mailer.sendStartEmail(fileList);
 			log.info("Initializing Sequence Aligner... : "+job.getID());
 			SequenceAligner aligner = new SequenceAligner(job, dao, hierarchyIndexSearcher);
 			log.info("Running Sequence Aligner... : "+job.getID());

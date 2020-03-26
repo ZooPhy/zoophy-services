@@ -29,7 +29,7 @@ public class SecurityHelper {
 												"|" + "\\d{4}";
 	public static final String FASTA_MET_DATE_REGEX = "^(" + FASTA_MET_DECIMAL_DATE_REGEX + "|" + FASTA_MET_MMDDYYYY_DATE_REGEX + "|" + FASTA_MET_HUMAN_DATE_REGEX + ")$";
 	public static final String FASTA_MET_GEOID_REGEX = "(\\d){4,10}";
-	public static final String FASTA_MET_LOCNAME_REGEX = "([\\D-.,'’ ]){1,30}";
+	public static final String FASTA_MET_LOCNAME_REGEX = "([\\D-.,'’ ]){1,100}";
 	public static final String FASTA_MET_LOC_REGEX = "^(" + FASTA_MET_GEOID_REGEX + "|" + FASTA_MET_LOCNAME_REGEX + ")$";
 	public static final String FASTA_MET_RSEQ_REGEX = "^([ACGTURYSWKMBDHVNacgturyswkmbdhvn-]){1,30000}$";
 	

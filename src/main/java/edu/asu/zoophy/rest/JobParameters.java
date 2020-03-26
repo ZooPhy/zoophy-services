@@ -9,7 +9,7 @@ import edu.asu.zoophy.rest.pipeline.glm.Predictor;
 
 /**
  * Parameters for ZooPhy jobs
- * @author devdemetri, kbhangal
+ * @author devdemetri, kbhangal, amagge
  */
 public class JobParameters {
 	
@@ -18,6 +18,8 @@ public class JobParameters {
 	private List<JobRecord> records;
 	private boolean useGLM = false;
 	private Map<String, List<Predictor>> predictors = null;
+	private boolean useGeoUncertainties = false;
+	private String disjoinerLevel = "Auto";
 	private XMLParameters xmlOptions = XMLParameters.getDefault();
 	
 	public JobParameters() {
@@ -54,6 +56,22 @@ public class JobParameters {
 
 	public void setUseGLM(boolean useGLM) {
 		this.useGLM = useGLM;
+	}
+
+	public boolean isUsingGeospatialUncertainties() {
+		return useGeoUncertainties;
+	}
+
+	public void setUseGeoUncertainties(boolean useGeoUncertainties) {
+		this.useGeoUncertainties = useGeoUncertainties;
+	}
+
+	public String getDisjoinerLevel() {
+		return disjoinerLevel;
+	}
+
+	public void setDisjoinerLevel(String disjoinerLevel) {
+		this.disjoinerLevel = disjoinerLevel;
 	}
 
 	public Map<String, List<Predictor>> getPredictors() {

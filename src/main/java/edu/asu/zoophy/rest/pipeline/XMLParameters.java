@@ -99,6 +99,13 @@ public class XMLParameters {
 		this.treePrior = treePrior;
 	}
 
+	@Override
+	public String toString() {
+		return "XMLParameters \n\tChain Length=" + this.chainLength + ", \n\tClock Model=" + this.clockModel + ", \n\tGamma=" + this.gamma
+				+ ", \n\tInvariant Sites=" + this.invariantSites + ", \n\tSubSample Rate=" + this.subSampleRate
+				+ ", \n\tSubstitution Model=" + this.substitutionModel + ", \n\tTree Prior=" + this.treePrior;
+	}
+
 	
 	
 }

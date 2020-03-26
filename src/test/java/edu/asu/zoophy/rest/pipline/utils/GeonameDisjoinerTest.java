@@ -87,9 +87,9 @@ public class GeonameDisjoinerTest {
 		try {
 			GeonameDisjoiner disjoiner  = new GeonameDisjoiner(hierarchyIndexSearcher);
 			JobRecords jobRecords = disjoiner.disjoinRecords(specialCase1());
-			assertEquals(25, jobRecords.getDistinctLocations().intValue());
+		assertEquals(25, jobRecords.getDistinctLocations().intValue());
 		} catch (PipelineException e) {
-			fail("Should not throw Pipeline Error");
+			fail("Should not throw Pipeline Error : "+ e.getUserMessage());
 		}
 	}
 	
