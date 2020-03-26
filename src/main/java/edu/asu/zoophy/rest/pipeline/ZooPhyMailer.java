@@ -92,7 +92,7 @@ public class ZooPhyMailer {
 		try {
 			String messageText;
 			if (!getCustomName().equals(job.getID())) {
-				messageText = "\nHere are your results for ZooPhy Job Name: "+getCustomName()+".\nNote: The Job ID for your ZooPhy Job is: "+job.getID();
+				messageText = "\nHere are your results for ZooPhy Job Name: "+getCustomName()+".\n\tNote: The Job ID for your ZooPhy Job is: "+job.getID();
 	        }
 	        else {
 	        	messageText = "\nHere are your results for ZooPhy Job ID: "+job.getID()+".";
@@ -101,14 +101,15 @@ public class ZooPhyMailer {
 			while(fileIterator.hasNext()) {
 				File file = fileIterator.next();
 				if(file.getName().equals(job.getID()+"-spread3.json") && file.exists()) {
-					messageText += "\nThe SpreaD3 simulation for your job is available <a href=\"https://zodo.asu.edu/spread3/"+job.getID()+"/renderers/d3/d3renderer/index.html\">here</a>.";
+					messageText += "\n\nThe SpreaD3 simulation for your job is available <a href=\"https://zodo.asu.edu/spread3/"+job.getID()+"/renderers/d3/d3renderer/index.html\">here</a>.";
 					fileIterator.remove();
-				}else if(!file.exists()) {
+				} else if(!file.exists()) {
 					fileIterator.remove();
 				}
 			}
-			messageText += "\nFor viewing the attached .tree file, we recommend downloading the latest version of <a href=\"http://tree.bio.ed.ac.uk/software/figtree/\">FigTree</a>.\n";
-			messageText += "\nThank You,\nZooPhy Lab";
+			messageText += "\nFor viewing the attached .tree file, we recommend downloading the latest version of <a href=\"http://tree.bio.ed.ac.uk/software/figtree/\">FigTree</a> and following the steps listed in <a href=\"https://beast.community/second_tutorial#visualising-the-mcc-tree-in-figtree\">the tutorial</a>.\n";
+			messageText += "\nIf you wish to execute the BEAST process on your local machine, please use the .xml file attached and follow directions for <a href=\"https://beast.community/first_tutorial#running-beast\">running BEAST v1.10.x</a>.\n";
+			messageText += "\n\nThank you for trying ZooPhy. Please send your questions, comments and feedback to zoophylab@gmail.com.\n\nRegards\nZooPhy Lab";
 			// warning message
 			messageText += "\n\nPlease note that ZooPhy is not a black box and should not be treated as such.\nThe generated results require assumptions that may prove to be incorrect given the selected data. Please carefully inspect your results and interpret them in light of the most current literature.\nWe recommend that you replicate your results using the same parameters and, in addition, test alternative assumptions to ensure that your results will stand up to scientific scrutiny.\n\n";
 			sendEmail(messageText, results);
