@@ -36,6 +36,9 @@ public class Normalizer {
 				loc = java.text.Normalizer.normalize(loc, java.text.Normalizer.Form.NFD);
 				// Remove non-ascii chars that weren't normalized
 				loc = loc.replaceAll("[^\\x00-\\x7F]", "");
+				if (loc.contains("(")) {
+					loc  = loc.split("(")[0];
+				}
 				if (loc.contains(",")) {
 					loc  = loc.split(",")[0];
 				}

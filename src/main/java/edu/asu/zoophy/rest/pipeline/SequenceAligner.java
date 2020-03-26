@@ -62,7 +62,7 @@ public class SequenceAligner {
 	private int DEFAULT_POPSIZE = 10;
 	private final String JOB_WORK_DIR;
 
-	public final static String FASTA_DELIMITER = "_";
+	public final static String FASTA_DELIMITER = "|";
 	
 	/**
 	 * Constructor for regular ZooPhy Pipeline usage

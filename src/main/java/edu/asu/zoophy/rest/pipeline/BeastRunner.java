@@ -540,7 +540,7 @@ public class BeastRunner {
 			while (!line.contains("Taxlabels")) {
 				line = scan.nextLine();
 			}
-			Pattern p = Pattern.compile("\\[0-9]{4}\\.[0-9]*");
+			Pattern p = Pattern.compile("[0-9]{4}\\.[0-9]*");
 			Matcher m = null;
 			line = scan.nextLine();
 			while (line.contains(delimter)) {
