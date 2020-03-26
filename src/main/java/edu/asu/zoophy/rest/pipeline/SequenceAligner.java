@@ -61,6 +61,8 @@ public class SequenceAligner {
 	private Map<String, Integer> occurrences = null;
 	private int DEFAULT_POPSIZE = 10;
 	private final String JOB_WORK_DIR;
+
+	public final static String FASTA_DELIMITER = "_";
 	
 	/**
 	 * Constructor for regular ZooPhy Pipeline usage
@@ -421,11 +423,11 @@ public class SequenceAligner {
 				tempBuilder = new StringBuilder();
 				tempBuilder.append(">");
 				tempBuilder.append(record.getAccession());
-				tempBuilder.append("_");
+				tempBuilder.append(FASTA_DELIMITER);
 				tempBuilder.append(record.getSequence().getTaxID());
-				tempBuilder.append("_");
+				tempBuilder.append(FASTA_DELIMITER);
 				tempBuilder.append(record.getHost().getTaxon());
-				tempBuilder.append("_");
+				tempBuilder.append(FASTA_DELIMITER);
 				String stringDate = getFastaDate(record.getSequence().getCollectionDate());
 				int year = (int) Double.parseDouble(stringDate);
 				if (year < startYear) {
@@ -435,7 +437,7 @@ public class SequenceAligner {
 					endYear = year;
 				}
 				tempBuilder.append(stringDate);
-				tempBuilder.append("_");
+				tempBuilder.append(FASTA_DELIMITER);
 				String normalizedLocation = Normalizer.normalizeLocation(record.getGeonameLocation());
 				tempBuilder.append(normalizedLocation);
 				if (isUsingDefaultGLM) {
@@ -483,7 +485,7 @@ public class SequenceAligner {
 				tempBuilder = new StringBuilder();
 				tempBuilder.append(">");
 				tempBuilder.append(record.getAccession());
-				tempBuilder.append("_");
+				tempBuilder.append(FASTA_DELIMITER);
 				String humanDateFormat = SecurityHelper.FASTA_MET_DECIMAL_DATE_REGEX;
 				Pattern regex = Pattern.compile(humanDateFormat);
 				Matcher matcher = regex.matcher(record.getCollectionDate());
@@ -501,7 +503,7 @@ public class SequenceAligner {
 					endYear = year;
 				}
 				tempBuilder.append(stringDate);
-				tempBuilder.append("_");
+				tempBuilder.append(FASTA_DELIMITER);
 				String normalizedLocation = Normalizer.normalizeLocation(record.getGeonameLocation());
 				tempBuilder.append(normalizedLocation);
 				if (isUsingDefaultGLM) {

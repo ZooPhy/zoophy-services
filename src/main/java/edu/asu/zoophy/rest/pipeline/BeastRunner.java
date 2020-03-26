@@ -16,6 +16,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -529,6 +531,7 @@ public class BeastRunner {
 	 */
 	private String findYougestAge(String treeFile) throws BeastException {
 		String youngestAge = "1996.0861";
+		String delimter = SequenceAligner.FASTA_DELIMITER;
 		try {
 			double minAge = 1920.0;
 			double currAge = 0;
@@ -537,20 +540,29 @@ public class BeastRunner {
 			while (!line.contains("Taxlabels")) {
 				line = scan.nextLine();
 			}
+			Pattern p = Pattern.compile("\\[0-9]{4}\\.[0-9]*");
+			Matcher m = null;
 			line = scan.nextLine();
-			while (line.contains("_")) {
-				currAge = Double.parseDouble(line.split("_")[3]);
-				if (currAge > minAge) {
-					minAge = currAge;
-					youngestAge = line.split("_")[3].trim();
+			while (line.contains(delimter)) {
+				try {
+					m = p.matcher(line);
+					while(m.find()) {
+						String decimal_date = m.group();
+						currAge = Double.parseDouble(decimal_date);
+						if (currAge > minAge) {
+							minAge = currAge;
+							youngestAge = decimal_date;
+						}
+					}
+				} catch (Exception e) {
+					log.log(Level.WARNING, "ERROR EXTRACTING DATE: "+ line + " ERROR:"+e.getMessage());
 				}
 				line = scan.nextLine();
 			}
 			scan.close();
 		}
 		catch (Exception e) {
-			log.log(Level.SEVERE, "ERROR SETTING FIGTREE START DATE: "+e.getMessage());
-			throw new BeastException("ERROR SETTING FIGTREE START DATE: "+e.getMessage() , "BEAST Pipeline Failed");
+			log.log(Level.SEVERE, "ERROR SETTING FIGTREE START DATE: "+e.getMessage()+ ".");
 		}
 		return youngestAge;
 	}

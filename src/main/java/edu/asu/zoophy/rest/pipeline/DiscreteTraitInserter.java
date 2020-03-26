@@ -77,6 +77,7 @@ public class DiscreteTraitInserter {
 	 * @throws TraitException
 	 */
 	private void addTrait(String traitName, BeastSubstitutionModel substitutionModel) throws TraitException {
+		String delimter = SequenceAligner.FASTA_DELIMITER;
 		try {
 			String baseName = job.getID()+"-aligned";
 			//add trait to taxa list
@@ -91,7 +92,7 @@ public class DiscreteTraitInserter {
 					String idNodeContent = taxaAttributesIdNode.getTextContent();
 					Element location = document.createElement("attr");
 					location.setAttribute("name", traitName);
-					String[] splits = idNodeContent.split("_");
+					String[] splits = idNodeContent.split(delimter);
 					String geonameLocation = splits[splits.length-1];
 					locations.add(geonameLocation);
 					Node geoname = document.createTextNode(geonameLocation);
