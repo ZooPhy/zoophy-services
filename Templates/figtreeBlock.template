@@ -51,7 +51,7 @@ begin figtree;
 	set rectilinearLayout.rootLength=100;
 	set scale.offsetAge=2016.2055;
 	set scale.rootAge=1.0;
-	set scale.scaleFactor=-1.0;
+	set scale.scaleFactor=1.0;
 	set scale.scaleRoot=false;
 	set scaleAxis.automaticScale=true;
 	set scaleAxis.fontSize=8.0;
