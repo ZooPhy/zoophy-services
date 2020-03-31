@@ -447,7 +447,7 @@ public class ZooPhyController {
 						Location loc = new Location();
 				    	for(JobRecord jobrecord: userEnteredRecords) {
 							// replace underscores with hyphen for BEAST - a workaround for now
-							jobrecord.setId(record.getId().replace("_", ""));
+							jobrecord.setId(jobrecord.getId().replace("_", ""));
 				    		if  (security.checkParameter(jobrecord.getId(), Parameter.RECORD_ID) && 
 				    				security.checkParameter(jobrecord.getCollectionDate(), Parameter.DATE) &&
 				    				security.checkParameter(jobrecord.getRawSequence(), Parameter.RAW_SEQUENCE)) {
@@ -701,7 +701,7 @@ public class ZooPhyController {
 						Location loc = new Location();
 				    	for(JobRecord jobrecord: userEnteredRecords) {
 							// replace underscores with hyphen for BEAST - a workaround for now
-							jobrecord.setId(record.getId().replace("_", ""));
+							jobrecord.setId(jobrecord.getId().replace("_", ""));
 				    		if  (security.checkParameter(jobrecord.getId(), Parameter.RECORD_ID) && 
 				    				security.checkParameter(jobrecord.getCollectionDate(), Parameter.DATE) &&
 				    				security.checkParameter(jobrecord.getRawSequence(), Parameter.RAW_SEQUENCE)) {
